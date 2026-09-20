@@ -30,6 +30,13 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Agent governance files (kept local and hidden on Windows)
+/AGENTS.md
+/docs/ai-agents/AGENTS.md
+
+# Temporary visual prototypes
+/tmp/ui-demo/
+
 # Electron and tooling caches
 .electron/
 .cache/
