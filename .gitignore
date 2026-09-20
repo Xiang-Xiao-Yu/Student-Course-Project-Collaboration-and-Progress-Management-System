@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build and packaging output
+dist/
+build/
+out/
+release/
+coverage/
+
+# Runtime logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and database journals
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Electron and tooling caches
+.electron/
+.cache/
+*.tsbuildinfo
