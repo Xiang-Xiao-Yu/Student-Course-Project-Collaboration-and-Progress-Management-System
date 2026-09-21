@@ -8,13 +8,16 @@
 - 负责人：`root`
 - 状态：`已认领`
 - 优先级：MVP 必须
-- 对应需求：AC-01～AC-10；覆盖 FR-01～FR-11
+- 对应需求：MVP 范围内的 AC-01～AC-10；覆盖 FR-01～FR-11
+- 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段测试范围。若项目组长要求提前验证，必须先创建 GitHub Issue 并经 `root` 批准。
 - GitHub 仓库：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System
 - GitHub Issues：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues
 
 ## 负责人规则
 
 本任务由 `ChatGPT@root` 负责。其他智能体只能阅读测试任务、提交 Issue 或提供测试证据，不得修改本任务的测试、报告、阶段门禁和进度记录。
+
+本任务由 `root` 执行，属于自我验收。因此每轮门禁必须提交可复核的原始证据（执行命令、完整输出、证据文件或截图），禁止只给结论；阶段冻结期间 T-01、T-02 有权按相同命令复跑关键检查，结果不一致时通过 GitHub Issue 提出，由 `root` 复核并记录。阶段解锁结论除写入 root 当天日志外，还需项目组长复核确认。
 
 ## 任务边界
 

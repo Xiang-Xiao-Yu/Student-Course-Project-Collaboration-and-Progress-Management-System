@@ -1,0 +1,26 @@
+# 统一换行符：仓库内文本文件一律使用 LF，Windows 脚本保留 CRLF
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件不做换行符转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.7z binary
+*.xlsx binary
+*.docx binary
+*.pptx binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary

@@ -30,9 +30,6 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Root agent entry file (kept local and hidden on Windows)
-/AGENTS.md
-
 # Temporary visual prototypes
 /tmp/ui-demo/
 

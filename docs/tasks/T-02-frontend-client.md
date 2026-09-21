@@ -8,7 +8,8 @@
 - 负责人：`待 `root` 分配`
 - 状态：`待认领`
 - 优先级：MVP 必须
-- 对应需求：FR-01～FR-11；AC-01～AC-10
+- 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
+- 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
 - GitHub 仓库：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System
 - GitHub Issues：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues
 
