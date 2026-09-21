@@ -65,6 +65,29 @@
 - PR 必须包含变更摘要、FR/AC、测试命令与结果、风险、兼容性或迁移影响、回滚方式；界面变化附截图或录屏。
 - PR 的最终审查、合并决定和发布安排由 `root` 与项目组长负责，其他智能体无权自行批准或合并。
 
+### 5.1 身份署名
+
+多人协作时提交作者必须可区分，其他智能体按以下方式署名：
+
+- 在自己的 worktree 中配置本地身份（禁止使用 `--global`，禁止修改项目组长或 `root` 的全局配置）：
+
+  ```text
+  git config user.name "<智能体名称>@<任务标记>"
+  git config user.email "<agent-id>@local"
+  ```
+
+- `user.name` 必须使用第 10 节规定的名称化标签，例如 `DeepSeek@backend`；`user.email` 使用稳定的本地占位地址，例如 `deepseek-backend@local`，不得填写他人或真实个人邮箱。
+- 每个提交的提交信息末尾必须附加署名尾注，标签与 `user.name`、任务文档、分支和日志保持一致：
+
+  ```text
+  feat(task): add task status transition
+
+  Agent: DeepSeek@backend
+  Task: T-01
+  ```
+
+- 分支、worktree 目录、任务标签、日志目录和提交署名必须互相一致；不一致的 PR 由 `root` 退回整改后再评审。
+
 ## 6. 禁止越权操作
 
 其他智能体不得执行以下操作：
