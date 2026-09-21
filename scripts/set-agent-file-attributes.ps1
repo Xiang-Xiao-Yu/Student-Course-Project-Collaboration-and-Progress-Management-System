@@ -50,6 +50,7 @@ $protectedPaths = @(
     'docs/ai-agents/AGENTS.md'
     'docs/需求规格说明书.md'
     'docs/P0-工程与契约约定.md'
+    'docs/ai-logs/README.md'
     'docs/tasks/T-03-test-quality.md'
 )
 
