@@ -35,5 +35,7 @@ Thumbs.db
 
 # Electron and tooling caches
 .electron/
+.electron-vite/
 .cache/
+.pnpm-store/
 *.tsbuildinfo

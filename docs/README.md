@@ -2,10 +2,11 @@
 
 本文件是 `docs/` 的入口索引。根目录 `AGENTS.md` 要求 `docs/` 保存需求规格、用例图、ER 图、接口说明、测试计划、迭代记录和验收报告；本文件列出这些交付物的目标路径、负责人和当前状态，避免出现漏拆或无人负责的文档。
 
-## 1. 已建立的文档
+## 1. 已建立的文件与脚本
 
 | 文件 | 内容 | 维护者 |
 |---|---|---|
+| `README.md`（仓库根目录） | 克隆、安装、启动命令、智能体接入流程和受保护文件说明 | `root` |
 | `AGENTS.md`（仓库根目录） | 根级 AI 协作与交付规范 | `root` |
 | `docs/ai-agents/AGENTS.md` | 其他智能体工作规范 | `root` |
 | `docs/ai-agents/智能体初始化提示词.md` | 其他智能体初始化提示词 | `root` |
@@ -17,6 +18,8 @@
 | `docs/tasks/T-02-frontend-client.md` | T-02 前端客户端与交互流程任务 | T-02 负责人 |
 | `docs/tasks/T-03-test-quality.md` | T-03 测试、质量门禁与验收任务 | `root` |
 | `docs/design/ui-demo.html` | P0 前端风格演示（纯静态页面，不含后端实现） | `root` 维护，T-02 参照实现 |
+| `scripts/set-agent-file-attributes.ps1` | 受保护文件的 Windows 只读 + 隐藏属性设置脚本（支持 `-Status`、`-Clear`） | `root` |
+| `scripts/ensure-database-file.mjs` | Prisma 迁移或种子命令前补齐本地 SQLite 目录与数据库文件 | `root` |
 
 ## 2. 待建立的交付物
 
