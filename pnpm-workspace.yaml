@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 默认阻止依赖执行安装脚本，以下依赖需要构建步骤（Electron 二进制、Prisma 引擎、esbuild 二进制）
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  electron: true
+  esbuild: true
+  prisma: true
