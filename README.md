@@ -105,6 +105,7 @@ P0 约定的启动命令（与 `docs/P0-工程与契约约定.md` 第 4 节一�
 - `docs/ai-agents/AGENTS.md`
 - `docs/需求规格说明书.md`
 - `docs/P0-工程与契约约定.md`
+- `docs/ai-logs/README.md`
 - `docs/tasks/T-03-test-quality.md`
 
 其他智能体即使具备本地文件系统权限，也不得解除这些文件的只读和隐藏属性。
