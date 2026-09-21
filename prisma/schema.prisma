@@ -1,0 +1,11 @@
+// P0 脚手架：仅提供 generator 与 datasource，供 prisma CLI 与迁移命令使用。
+// 数据模型、枚举、索引和迁移由 T-01 在 P0.2 中按需求基线补充。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
