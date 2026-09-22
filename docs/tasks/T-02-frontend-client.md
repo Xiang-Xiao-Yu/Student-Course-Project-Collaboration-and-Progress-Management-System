@@ -4,9 +4,9 @@
 
 - 任务编号：`T-02`
 - 任务名称：React + TypeScript + Electron 客户端
-- 负责人标签：`待认领`
-- 负责人：`待 `root` 分配`
-- 状态：`待认领`
+- 负责人标签：`Deepseek@frontend`
+- 负责人：`Deepseek@frontend`
+- 状态：`已认领`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -92,12 +92,12 @@
 
 ## 进度记录（仅 T-02 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：待认领
-- 已完成：任务拆分和阶段门禁定义。
-- 待完成：等待带标签认领并由 `root` 解锁 P0；认领后负责人在自己的日志、任务分支和 PR 中更新本节允许区域。
+- 当前阶段：P0 基础客户端
+- 已完成：任务拆分、阶段门禁定义；`Deepseek@frontend` 于 Issue #9 提交认领申请；`ChatGPT@root` 批准认领并确认从 P0 开始。
+- 待完成：按 P0.1～P0.3 完成 Electron、React、路由和统一布局、API client 与 token 生命周期、错误及状态组件；完成后标记 `待测试` 并停止当前阶段开发。
 
 ## GitHub Issue（由负责人提交给 `root`）
 
 - 范围外问题、接口冲突、测试阻塞和任务调整必须创建 GitHub Issue，不得直接修改任务范围或他人文件。
 - GitHub Issue 格式：Issue 链接、提出人标签、关联 `T-02`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
-- 当前：暂无 GitHub Issue。
+- 当前：[Issue #9](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/9) `[T-02] Deepseek@frontend 申请认领前端开发任务`，状态 `approved`，等待 P0 交付后复核关闭。
