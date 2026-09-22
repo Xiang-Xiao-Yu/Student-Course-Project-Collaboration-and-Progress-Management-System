@@ -1,23 +1,57 @@
-// P0 脚手架占位实现：只提供可启动的最小 Electron 窗口，证明工作区、构建和启动链路可用。
-// 窗口尺寸、菜单、路由骨架、统一布局和安全策略由 T-02 在 P0.1 中实现并替换本文件。
-import { BrowserWindow, app } from 'electron';
+import { BrowserWindow, app, session } from 'electron';
 import { join } from 'node:path';
 
+const APP_USER_MODEL_ID = 'com.scpc.desktop';
 const PRELOAD_PATH = join(__dirname, '../preload/index.js');
 const RENDERER_HTML_PATH = join(__dirname, '../renderer/index.html');
+
+function getApiOrigin(): string {
+  const apiBaseUrl = process.env['ELECTRON_API_BASE_URL'] ?? 'http://127.0.0.1:3000/api/v1';
+
+  try {
+    return new URL(apiBaseUrl).origin;
+  } catch {
+    return 'http://127.0.0.1:3000';
+  }
+}
+
+function configureContentSecurityPolicy(): void {
+  if (process.env['ELECTRON_RENDERER_URL']) {
+    return;
+  }
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ${getApiOrigin()}`,
+        ],
+      },
+    });
+  });
+}
 
 function createWindow(): void {
   const window = new BrowserWindow({
     width: 1280,
     height: 800,
+    minWidth: 960,
+    minHeight: 640,
     show: false,
+    autoHideMenuBar: true,
+    backgroundColor: '#f4f6f8',
     webPreferences: {
       preload: PRELOAD_PATH,
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
   });
+
+  window.setMenuBarVisibility(false);
 
   window.once('ready-to-show', () => {
     window.show();
@@ -32,7 +66,16 @@ function createWindow(): void {
   }
 }
 
+app.on('web-contents-created', (_event, contents) => {
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  contents.on('will-navigate', (event) => {
+    event.preventDefault();
+  });
+});
+
 void app.whenReady().then(() => {
+  app.setAppUserModelId(APP_USER_MODEL_ID);
+  configureContentSecurityPolicy();
   createWindow();
 
   app.on('activate', () => {
