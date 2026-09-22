@@ -16,6 +16,8 @@
     "db:migrate": "node scripts/ensure-database-file.mjs && prisma migrate dev --schema prisma/schema.prisma",
     "db:seed": "node scripts/ensure-database-file.mjs && prisma db seed --schema prisma/schema.prisma",
     "test": "pnpm -r --if-present test",
+    "test:p0-env": "node tests/p0/collect-environment.mjs",
+    "test:p0-smoke": "node tests/p0/api-contract-smoke.mjs",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write ."
