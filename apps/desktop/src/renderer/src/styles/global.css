@@ -232,6 +232,12 @@ a {
   backdrop-filter: blur(10px);
 }
 
+.topbar__account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .topbar__start {
   display: flex;
   align-items: center;
@@ -284,6 +290,21 @@ a {
   margin-top: 2px;
   color: var(--muted);
   font-size: 11px;
+}
+
+.sign-out-button {
+  min-height: 34px;
+  padding: 0 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.sign-out-button:hover {
+  color: var(--ink);
+  border-color: #c7d0d9;
 }
 
 .menu-toggle {
@@ -505,6 +526,97 @@ a {
 
 .text-link:hover {
   text-decoration: underline;
+}
+
+.auth-page {
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+  place-items: center;
+  background: var(--canvas);
+}
+
+.auth-panel {
+  width: min(100%, 440px);
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.auth-brand {
+  padding: 0;
+  color: var(--ink);
+}
+
+.auth-brand strong {
+  color: var(--ink);
+}
+
+.auth-brand span {
+  color: var(--muted);
+}
+
+.auth-copy {
+  margin-top: 30px;
+}
+
+.auth-copy h1,
+.auth-copy p {
+  margin: 0;
+}
+
+.auth-copy h1 {
+  font-size: 25px;
+}
+
+.auth-copy p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.session-notice,
+.error-notice {
+  margin-top: 18px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.session-notice {
+  color: #92400e;
+  border: 1px solid #f2d08a;
+  background: #fff8e7;
+}
+
+.error-notice {
+  color: #991b1b;
+  border: 1px solid #f0b7b7;
+  background: #fff1f1;
+}
+
+.primary-button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 0 16px;
+  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .sidebar-scrim {

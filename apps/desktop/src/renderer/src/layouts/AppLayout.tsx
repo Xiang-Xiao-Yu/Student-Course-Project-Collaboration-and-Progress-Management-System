@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 
 import { buildProjectPath, navigationGroups } from '../app/navigation';
+import { useSession } from '../features/auth/session';
 
 function getProjectLabel(projectId: string): string {
   return projectId === 'demo-project' ? '示例项目' : projectId;
@@ -11,6 +12,7 @@ export function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { projectId = 'demo-project' } = useParams<{ projectId: string }>();
   const projectLabel = getProjectLabel(projectId);
+  const { session, signOut } = useSession();
 
   return (
     <div className={`app-shell${isMenuOpen ? ' sidebar-open' : ''}`}>
@@ -77,14 +79,19 @@ export function AppLayout() {
             </div>
           </div>
 
-          <div className="user-chip">
-            <span className="user-chip__avatar" aria-hidden="true">
-              深
-            </span>
-            <div>
-              <strong>项目成员</strong>
-              <span>工作区用户</span>
+          <div className="topbar__account">
+            <div className="user-chip">
+              <span className="user-chip__avatar" aria-hidden="true">
+                {session?.user.displayName.slice(0, 1) ?? '项'}
+              </span>
+              <div>
+                <strong>{session?.user.displayName ?? '项目成员'}</strong>
+                <span>已登录</span>
+              </div>
             </div>
+            <button className="sign-out-button" onClick={() => void signOut()} type="button">
+              退出
+            </button>
           </div>
         </header>
 

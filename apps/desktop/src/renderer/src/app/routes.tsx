@@ -1,19 +1,29 @@
 import type { RouteObject } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 
+import { RequireSession } from '../features/auth/RequireSession';
 import { AppLayout } from '../layouts/AppLayout';
+import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { OverviewPage } from '../pages/OverviewPage';
 import { SectionPage } from '../pages/SectionPage';
 
 export const appRoutes: RouteObject[] = [
   {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
     path: '/',
     element: <Navigate to="/projects/demo-project/overview" replace />,
   },
   {
     path: '/projects/:projectId',
-    element: <AppLayout />,
+    element: (
+      <RequireSession>
+        <AppLayout />
+      </RequireSession>
+    ),
     children: [
       {
         index: true,

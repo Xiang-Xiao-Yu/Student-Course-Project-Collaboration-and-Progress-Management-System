@@ -93,8 +93,8 @@
 ## 进度记录（仅 T-02 负责人和 `ChatGPT@root` 可修改）
 
 - 当前阶段：P0 基础客户端
-- 已完成：任务拆分、阶段门禁定义；`Deepseek@frontend` 于 Issue #9 提交认领申请；`ChatGPT@root` 批准认领并确认从 P0 开始；P0.1 已完成 Electron 安全窗口、React 入口、HashRouter 路由骨架、统一布局、响应式导航和 404 页面。
-- 待完成：P0.2 API client 与 token 生命周期处理；P0.3 加载、空数据、失败和未保存表单提示组件；完成后标记 `待测试` 并停止当前阶段开发。
+- 已完成：任务拆分、阶段门禁定义；`Deepseek@frontend` 于 Issue #9 提交认领申请；`ChatGPT@root` 批准认领并确认从 P0 开始；P0.1 完成 Electron 安全窗口、React 路由骨架和统一布局；P0.2 完成 API client、统一错误映射、会话存储、过期处理、未登录拦截、mock 登录和退出。
+- 待完成：P0.3 加载、空数据、失败和未保存表单提示组件；完成后标记 `待测试` 并停止当前阶段开发。
 
 ## GitHub Issue（由负责人提交给 `root`）
 
