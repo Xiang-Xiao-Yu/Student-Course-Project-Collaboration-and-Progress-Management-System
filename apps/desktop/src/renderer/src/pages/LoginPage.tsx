@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 import { ErrorNotice } from '../components/ErrorNotice';
+import { LoadingState } from '../components/feedback/LoadingState';
 import { useSession } from '../features/auth/session';
 import { getUserFacingError } from '../lib/api/errors';
 
@@ -62,14 +63,13 @@ export function LoginPage() {
         {sessionMessage ? <div className="session-notice">{sessionMessage}</div> : null}
         {errorMessage ? <ErrorNotice message={errorMessage} /> : null}
 
-        <button
-          className="primary-button"
-          disabled={isSubmitting}
-          onClick={() => void handleSignIn()}
-          type="button"
-        >
-          {isSubmitting ? '正在进入...' : '进入演示项目'}
-        </button>
+        {isSubmitting ? (
+          <LoadingState compact label="正在进入项目" />
+        ) : (
+          <button className="primary-button" onClick={() => void handleSignIn()} type="button">
+            进入演示项目
+          </button>
+        )}
       </section>
     </main>
   );
