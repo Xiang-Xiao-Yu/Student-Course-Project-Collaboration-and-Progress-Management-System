@@ -100,8 +100,8 @@
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
 - 当前阶段：P0
-- 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领 T-01，任务状态已更新为“已认领”；已创建 `feat/backend-p0` 与独立 worktree。P0.1 已完成：NestJS 启动入口、环境校验、`GET /api/v1/health`、统一成功/失败响应、requestId 中间件、异常过滤与正常/边界/失败测试均已实现并通过验证。
-- 待完成：按顺序完成 P0.2～P0.4，包括 Prisma Schema、SQLite Migration、最小种子数据、模块边界和 API 契约；完成 P0 后标记待测试并等待 T-03 门禁。
+- 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领 T-01，任务状态已更新为“已认领”；已创建 `feat/backend-p0` 与独立 worktree。P0.1 已完成：NestJS 启动入口、环境校验、`GET /api/v1/health`、统一成功/失败响应、requestId 中间件、异常过滤与正常/边界/失败测试均已实现并通过验证。P0.2 已完成：核心 Prisma Schema、SQLite 初始 Migration、Prisma Client 和幂等最小种子数据均已建立并通过验证。P0.3 已完成：全局 Prisma 数据访问模块及 Auth、Users、Projects、Requirements、Tasks、Iterations、Comments、Meetings、Acceptances、Dashboard 模块边界已接入 AppModule。
+- 待完成：完成 P0.4 API 路径、请求校验、权限前置条件和状态枚举；完成 P0 后标记待测试并等待 T-03 门禁。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
