@@ -8,6 +8,17 @@ import { RequestIdMiddleware } from './common/http/request-id.middleware';
 import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
 import { validateEnvironment } from './config/validate-environment';
 import { HealthModule } from './health/health.module';
+import { AcceptancesModule } from './modules/acceptances/acceptances.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { CommentsModule } from './modules/comments/comments.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { IterationsModule } from './modules/iterations/iterations.module';
+import { MeetingsModule } from './modules/meetings/meetings.module';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { RequirementsModule } from './modules/requirements/requirements.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { UsersModule } from './modules/users/users.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -18,6 +29,17 @@ import { HealthModule } from './health/health.module';
       validate: validateEnvironment,
     }),
     HealthModule,
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    ProjectsModule,
+    RequirementsModule,
+    TasksModule,
+    IterationsModule,
+    CommentsModule,
+    MeetingsModule,
+    AcceptancesModule,
+    DashboardModule,
   ],
   providers: [
     {

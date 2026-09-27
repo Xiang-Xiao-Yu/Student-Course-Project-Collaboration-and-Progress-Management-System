@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import type { ApiErrorResponse, ApiSuccessResponse } from './common/http/api-response';
 import type { HealthStatus } from './health/health.service';
+import { PrismaService } from './prisma/prisma.service';
 
 @Controller('_test-errors')
 class TestErrorsController {
@@ -74,6 +75,10 @@ describe('API integration', () => {
     });
     expect(body.meta.requestId).toBe('test-request-id');
     expect(Number.isNaN(Date.parse(body.meta.timestamp))).toBe(false);
+  });
+
+  it('exposes the global Prisma service', () => {
+    expect(app.get(PrismaService)).toBeDefined();
   });
 
   it('returns a business error using the failure envelope', async () => {
