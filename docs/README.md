@@ -18,6 +18,8 @@
 | `docs/tasks/T-02-frontend-client.md` | T-02 前端客户端与交互流程任务 | T-02 负责人 |
 | `docs/tasks/T-03-test-quality.md` | T-03 测试、质量门禁与验收任务 | `root` |
 | `docs/design/ui-demo.html` | P0 前端风格演示（纯静态页面，不含后端实现） | `root` 维护，T-02 参照实现 |
+| `docs/test/test-plan.md` | P0～P7 测试计划、用例编号、命令与门禁条件 | T-03 |
+| `docs/test/p0-evidence-template.md` | P0 阶段门禁原始证据模板 | T-03 |
 | `scripts/set-agent-file-attributes.ps1` | 受保护文件的 Windows 只读 + 隐藏属性设置脚本（支持 `-Status`、`-Clear`） | `root` |
 | `scripts/ensure-database-file.mjs` | Prisma 迁移或种子命令前补齐本地 SQLite 目录与数据库文件 | `root` |
 
@@ -28,7 +30,6 @@
 | 用例图 | `docs/design/use-case-diagram.md` | T-01 | P1 | 待创建 |
 | ER 图 | `docs/design/er-diagram.md` | T-01 | P1 | 待创建 |
 | 接口说明 | `docs/design/api-spec.md` | T-01 | P1 | 待创建 |
-| 测试计划与用例 | `docs/test/test-plan.md` | T-03 | P0 | 待创建 |
 | 迭代记录 | `docs/iteration/log.md` | `root` | 每阶段结束时 | 待创建 |
 | 验收报告 | `docs/acceptance/report.md` | T-03 | 每轮门禁 | 待创建 |
 
