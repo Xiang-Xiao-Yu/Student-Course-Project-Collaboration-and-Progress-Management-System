@@ -1,5 +1,18 @@
 import 'reflect-metadata';
 
+import { vi } from 'vitest';
+
+vi.hoisted(() => {
+  process.env['NODE_ENV'] = 'test';
+  process.env['APP_HOST'] = '127.0.0.1';
+  process.env['APP_PORT'] = '3000';
+  process.env['DATABASE_URL'] = 'file:../data/test.db';
+  process.env['JWT_SECRET'] = 'test-only-secret';
+  process.env['JWT_EXPIRES_IN'] = '15m';
+  process.env['CORS_ORIGINS'] = 'http://localhost:5173';
+  process.env['LOG_LEVEL'] = 'error';
+});
+
 import { BadRequestException, Controller, Get, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { AddressInfo } from 'node:net';
@@ -28,15 +41,6 @@ describe('API integration', () => {
   let baseUrl: string;
 
   beforeAll(async () => {
-    process.env['NODE_ENV'] = 'test';
-    process.env['APP_HOST'] = '127.0.0.1';
-    process.env['APP_PORT'] = '3000';
-    process.env['DATABASE_URL'] = 'file:../data/test.db';
-    process.env['JWT_SECRET'] = 'test-only-secret';
-    process.env['JWT_EXPIRES_IN'] = '15m';
-    process.env['CORS_ORIGINS'] = 'http://localhost:5173';
-    process.env['LOG_LEVEL'] = 'error';
-
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
       controllers: [TestErrorsController],
@@ -56,7 +60,7 @@ describe('API integration', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   it('returns a health status using the success envelope', async () => {

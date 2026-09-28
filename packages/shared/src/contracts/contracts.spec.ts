@@ -6,6 +6,7 @@ import {
   REQUEST_VALIDATION_RULES,
   TASK_STATUS_TRANSITIONS,
   hasProjectPermission,
+  isCommentTargetValid,
   isDateRangeValid,
   isTaskDueDateValid,
 } from './index';
@@ -17,7 +18,7 @@ describe('shared P0 contracts', () => {
     }
 
     expect(API_ROUTE_CONTRACTS.health.access.type).toBe('PUBLIC');
-    expect(API_ROUTE_CONTRACTS.projectsCreate.access.type).toBe('AUTHENTICATED');
+    expect(API_ROUTE_CONTRACTS.projectsCreate.access.type).toBe('PROJECT_CREATOR');
     expect(API_ROUTE_CONTRACTS.tasksCreate.access).toEqual({
       permission: 'TASK_CREATE',
       type: 'PROJECT_PERMISSION',
@@ -34,7 +35,22 @@ describe('shared P0 contracts', () => {
   it('preserves the required task status transitions', () => {
     expect(TASK_STATUS_TRANSITIONS.TODO).toContain('IN_PROGRESS');
     expect(TASK_STATUS_TRANSITIONS.PENDING_REVIEW).toContain('COMPLETED');
+    expect(TASK_STATUS_TRANSITIONS.PENDING_REVIEW).not.toContain('IN_PROGRESS');
     expect(TASK_STATUS_TRANSITIONS.COMPLETED).toContain('IN_PROGRESS');
+  });
+
+  it('requires a single comment target in the same project', () => {
+    const target = {
+      targetType: 'TASK' as const,
+      projectId: 'project-1',
+      targetProjectId: 'project-1',
+      taskId: 'task-1',
+    };
+
+    expect(isCommentTargetValid(target)).toBe(true);
+    expect(isCommentTargetValid({ ...target, meetingId: 'meeting-1' })).toBe(false);
+    expect(isCommentTargetValid({ ...target, taskId: null })).toBe(false);
+    expect(isCommentTargetValid({ ...target, targetProjectId: 'project-2' })).toBe(false);
   });
 
   it('validates dates and required length constraints', () => {

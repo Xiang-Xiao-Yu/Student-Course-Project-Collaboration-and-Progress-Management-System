@@ -7,6 +7,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 export type AccessRequirement =
   | { readonly type: 'PUBLIC' }
   | { readonly type: 'AUTHENTICATED' }
+  | { readonly type: 'PROJECT_CREATOR' }
   | { readonly type: 'PLATFORM_ADMIN' }
   | { readonly type: 'PROJECT_PERMISSION'; readonly permission: PermissionAction };
 
@@ -18,6 +19,7 @@ export interface ApiRouteContract {
 
 export const PUBLIC_ACCESS: AccessRequirement = { type: 'PUBLIC' };
 export const AUTHENTICATED_ACCESS: AccessRequirement = { type: 'AUTHENTICATED' };
+export const PROJECT_CREATOR_ACCESS: AccessRequirement = { type: 'PROJECT_CREATOR' };
 export const PLATFORM_ADMIN_ACCESS: AccessRequirement = { type: 'PLATFORM_ADMIN' };
 
 export function projectPermission(permission: PermissionAction): AccessRequirement {
@@ -81,7 +83,7 @@ export const API_ROUTE_CONTRACTS = {
     path: `${API_BASE_PATH}/projects`,
   },
   projectsCreate: {
-    access: AUTHENTICATED_ACCESS,
+    access: PROJECT_CREATOR_ACCESS,
     method: 'POST',
     path: `${API_BASE_PATH}/projects`,
   },

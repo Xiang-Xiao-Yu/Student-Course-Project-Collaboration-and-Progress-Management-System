@@ -1,3 +1,30 @@
+import type { CommentTargetType } from './status';
+
+export interface CommentTargetInput {
+  targetType: CommentTargetType;
+  projectId: string;
+  targetProjectId: string;
+  requirementId?: string | null;
+  taskId?: string | null;
+  meetingId?: string | null;
+}
+
+export function isCommentTargetValid(input: CommentTargetInput): boolean {
+  if (!input.projectId || input.projectId !== input.targetProjectId) {
+    return false;
+  }
+
+  const targets = {
+    REQUIREMENT: input.requirementId,
+    TASK: input.taskId,
+    MEETING: input.meetingId,
+  };
+
+  return Object.entries(targets).every(([type, id]) =>
+    type === input.targetType ? typeof id === 'string' && id.length > 0 : id == null,
+  );
+}
+
 export const REQUEST_VALIDATION_RULES = {
   COMMENT_CONTENT_MIN_LENGTH: 1,
   PASSWORD_MIN_LENGTH: 8,
