@@ -100,10 +100,10 @@
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
 - 当前阶段：P0 基础工程与契约
-- 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领 T-01，任务状态已更新为“已认领”；已创建 `feat/backend-p0` 与独立 worktree。P0.1 已完成：NestJS 启动入口、环境校验、`GET /api/v1/health`、统一成功/失败响应、requestId 中间件、异常过滤与正常/边界/失败测试均已实现并通过验证。P0.2 已完成：核心 Prisma Schema、SQLite 初始 Migration、Prisma Client 和幂等最小种子数据均已建立并通过验证。P0.3 已完成：全局 Prisma 数据访问模块及核心业务模块边界已接入 AppModule。P0.4 已完成：API 路径/访问前置条件、权限矩阵、状态枚举/流转和请求校验规则已输出到 `packages/shared`。
-- 待测试：T-01 的 P0.1～P0.4 已完成并通过本地 lint、类型检查、测试和构建。当前停止 P0 开发，等待 T-03 统一检查和 root 明确解锁；解锁前不得进入 P1。
+- 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
+- 待完成：T-03 统一执行 P0 门禁；在门禁通过并由 root 解锁前保持冻结，不进入 P1。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
 - 必须创建 GitHub Issue；格式至少包含 Issue 链接、提出人标签、关联 `T-01`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
-- 当前：Issue [#11](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/11) `[T-01] Codex@backend 申请认领后端开发任务`，root 审批结论为 `approved`；按 root 要求保持 open，直至 P0 交付并通过复核。
+- 当前：[Issue #11](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/11) `[T-01] Codex@backend 申请认领后端开发任务`，root 审批结论为 `approved`；批准范围为 P0、`FR-01～FR-11`、`AC-01～AC-10`，Issue 保持 open 直至 P0 门禁复核。
