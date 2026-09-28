@@ -1,5 +1,5 @@
-// P0 脚手架：仅提供 generator 与 datasource，供 prisma CLI 与迁移命令使用。
-// 数据模型、枚举、索引和迁移由 T-01 在 P0.2 中按需求基线补充。
+// P0.2 核心数据模型。SQLite 不支持 Prisma enum，状态和角色值由应用层 DTO/Service
+// 按下方注释中的受限取值校验。
 
 generator client {
   provider = "prisma-client-js"
@@ -8,4 +8,303 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  nickname     String
+  avatarUrl    String?
+  status       String   @default("ACTIVE") // ACTIVE | DISABLED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedProjects            Project[]               @relation("ProjectOwner")
+  projectMemberships       ProjectMember[]
+  createdRequirements      Requirement[]           @relation("RequirementCreator")
+  createdTasks             Task[]                  @relation("TaskCreator")
+  assignedTasks            Task[]                  @relation("TaskAssignee")
+  comments                 Comment[]
+  activityLogs             ActivityLog[]
+  createdMeetings          Meeting[]               @relation("MeetingCreator")
+  meetingParticipations    MeetingParticipant[]
+  assignedMeetingActions   MeetingAction[]         @relation("MeetingActionAssignee")
+  createdAcceptances       Acceptance[]            @relation("AcceptanceCreator")
+  acceptanceParticipations AcceptanceParticipant[]
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String    @default("PLANNING") // PLANNING | ACTIVE | PAUSED | COMPLETED | ARCHIVED
+  ownerId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members      ProjectMember[]
+  requirements Requirement[]
+  tasks        Task[]
+  tags         Tag[]
+  iterations   Iteration[]
+  comments     Comment[]
+  activityLogs ActivityLog[]
+  meetings     Meeting[]
+  acceptances  Acceptance[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("MEMBER") // OWNER | MEMBER | OBSERVER
+  joinedAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@index([projectId, role])
+}
+
+model Requirement {
+  id                 String   @id @default(cuid())
+  projectId          String
+  number             String
+  title              String
+  description        String?
+  priority           String   @default("MEDIUM") // HIGH | MEDIUM | LOW
+  acceptanceCriteria String
+  status             String   @default("DRAFT") // DRAFT | CONFIRMED | IN_PROGRESS | PENDING_ACCEPTANCE | COMPLETED | REJECTED
+  creatorId          String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator  User      @relation("RequirementCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  tasks    Task[]
+  comments Comment[]
+
+  @@unique([projectId, number])
+  @@index([projectId, status])
+  @@index([creatorId])
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  projectId      String
+  requirementId  String?
+  iterationId    String?
+  acceptanceId   String?
+  createdById    String
+  assigneeId     String?
+  title          String
+  description    String?
+  priority       String    @default("MEDIUM") // HIGH | MEDIUM | LOW
+  status         String    @default("BACKLOG") // BACKLOG | TODO | IN_PROGRESS | PENDING_REVIEW | COMPLETED | BLOCKED
+  dueDate        DateTime?
+  estimatedHours Float?
+  completionNote String?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirement   Requirement?   @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  iteration     Iteration?     @relation(fields: [iterationId], references: [id], onDelete: SetNull)
+  acceptance    Acceptance?    @relation("TaskAcceptance", fields: [acceptanceId], references: [id], onDelete: SetNull)
+  createdBy     User           @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignee      User?          @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  tags          TaskTag[]
+  comments      Comment[]
+  meetingAction MeetingAction?
+
+  @@index([projectId, status])
+  @@index([requirementId])
+  @@index([iterationId])
+  @@index([acceptanceId])
+  @@index([assigneeId])
+  @@index([dueDate])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  color     String
+  createdAt DateTime @default(now())
+
+  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   TaskTag[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model TaskTag {
+  taskId String
+  tagId  String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@index([tagId])
+}
+
+model Iteration {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  goal      String?
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | CANCELED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([projectId, status])
+  @@index([startDate, endDate])
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  projectId     String
+  targetType    String // REQUIREMENT | TASK | MEETING
+  requirementId String?
+  taskId        String?
+  meetingId     String?
+  authorId      String
+  content       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirement Requirement? @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  task        Task?        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  meeting     Meeting?     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([projectId, targetType])
+  @@index([requirementId])
+  @@index([taskId])
+  @@index([meetingId])
+  @@index([authorId])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  projectId   String
+  actorId     String?
+  action      String
+  targetType  String
+  targetId    String
+  beforeValue String?
+  afterValue  String?
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([targetType, targetId])
+  @@index([actorId])
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  scheduledAt DateTime
+  agenda      String?
+  minutes     String?
+  decisions   String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy    User                 @relation("MeetingCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  participants MeetingParticipant[]
+  actions      MeetingAction[]
+  comments     Comment[]
+
+  @@index([projectId, scheduledAt])
+  @@index([createdById])
+}
+
+model MeetingParticipant {
+  meetingId String
+  userId    String
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([meetingId, userId])
+  @@index([userId])
+}
+
+model MeetingAction {
+  id              String    @id @default(cuid())
+  meetingId       String
+  assigneeId      String?
+  convertedTaskId String?   @unique
+  title           String
+  dueDate         DateTime?
+  status          String    @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED | CANCELED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  meeting       Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  assignee      User?   @relation("MeetingActionAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  convertedTask Task?   @relation(fields: [convertedTaskId], references: [id], onDelete: SetNull)
+
+  @@index([meetingId, status])
+  @@index([assigneeId])
+  @@index([dueDate])
+}
+
+model Acceptance {
+  id             String    @id @default(cuid())
+  projectId      String
+  stageName      String
+  goal           String?
+  acceptanceDate DateTime?
+  standards      String
+  result         String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PASSED | FAILED
+  failureReason  String?
+  createdById    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  project          Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy        User                    @relation("AcceptanceCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  participants     AcceptanceParticipant[]
+  remediationTasks Task[]                  @relation("TaskAcceptance")
+
+  @@index([projectId, acceptanceDate])
+  @@index([createdById])
+  @@index([result])
+}
+
+model AcceptanceParticipant {
+  acceptanceId String
+  userId       String
+
+  acceptance Acceptance @relation(fields: [acceptanceId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([acceptanceId, userId])
+  @@index([userId])
 }

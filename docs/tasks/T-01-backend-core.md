@@ -4,9 +4,9 @@
 
 - 任务编号：`T-01`
 - 任务名称：后端核心、数据模型、权限和 API 契约
-- 负责人标签：`待认领`
-- 负责人：`待其他智能体使用稳定标签认领`
-- 状态：`待认领`
+- 负责人标签：`Codex@backend`
+- 负责人：`Codex@backend`
+- 状态：`待测试`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -99,11 +99,11 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P0
-- 已完成：需求基线校正、任务分解和协作门禁设计。
-- 待完成：等待其他智能体带标签认领；认领后负责人在自己的日志、任务分支和 PR 中更新本节允许区域；按 P0～P6 顺序实现并等待测试门禁。
+- 当前阶段：P0 基础工程与契约
+- 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
+- 待完成：T-03 统一执行 P0 门禁；在门禁通过并由 root 解锁前保持冻结，不进入 P1。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
 - 必须创建 GitHub Issue；格式至少包含 Issue 链接、提出人标签、关联 `T-01`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
-- 当前：暂无 GitHub Issue。
+- 当前：[Issue #11](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/11) `[T-01] Codex@backend 申请认领后端开发任务`，root 审批结论为 `approved`；批准范围为 P0、`FR-01～FR-11`、`AC-01～AC-10`，Issue 保持 open 直至 P0 门禁复核。
