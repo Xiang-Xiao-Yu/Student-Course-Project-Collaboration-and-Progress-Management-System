@@ -56,7 +56,6 @@ const environment = {
   gitBranch: commandVersion('git', ['branch', '--show-current']),
   platform: process.platform,
   architecture: process.arch,
-  workingDirectory: cwd(),
   envPresence: {
     DATABASE_URL: Boolean(process.env['DATABASE_URL']),
     JWT_SECRET: Boolean(process.env['JWT_SECRET']),
