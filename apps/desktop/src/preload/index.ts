@@ -1,3 +1,22 @@
-// P0 脚手架占位文件：由 T-02 在 P0.1/P0.2 中替换为 contextBridge 白名单和 token 传递封装。
-// 这里不暴露任何主进程能力，保持 preload 默认为最小权限。
-export const PRELOAD_SCAFFOLD_VERSION = '0.1.0';
+import { contextBridge } from 'electron';
+
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:3000/api/v1';
+
+function getApiBaseUrl(): string {
+  const configuredBaseUrl = process.env['ELECTRON_API_BASE_URL'] ?? DEFAULT_API_BASE_URL;
+
+  try {
+    return new URL(configuredBaseUrl).toString().replace(/\/+$/, '');
+  } catch {
+    return DEFAULT_API_BASE_URL;
+  }
+}
+
+const desktopRuntime = Object.freeze({
+  platform: process.platform,
+  apiBaseUrl: getApiBaseUrl(),
+});
+
+contextBridge.exposeInMainWorld('desktopRuntime', desktopRuntime);
+
+export type DesktopRuntime = typeof desktopRuntime;

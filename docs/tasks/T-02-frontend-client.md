@@ -6,7 +6,7 @@
 - 任务名称：React + TypeScript + Electron 客户端
 - 负责人标签：`Deepseek@frontend`
 - 负责人：`Deepseek@frontend`
-- 状态：`已认领`
+- 状态：`待测试`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -93,8 +93,9 @@
 ## 进度记录（仅 T-02 负责人和 `ChatGPT@root` 可修改）
 
 - 当前阶段：P0 基础客户端
-- 已完成：任务拆分、阶段门禁定义；`Deepseek@frontend` 于 Issue #9 提交认领申请；`ChatGPT@root` 批准认领并确认从 P0 开始。
-- 待完成：按 P0.1～P0.3 完成 Electron、React、路由和统一布局、API client 与 token 生命周期、错误及状态组件；完成后标记 `待测试` 并停止当前阶段开发。
+- 已完成：P0.1 完成 Electron 安全窗口、React 路由骨架和统一布局；P0.2 完成 API client、统一错误映射、会话存储、过期处理、未登录拦截、mock 登录和退出；P0.3 完成加载、空数据、失败、未保存离开确认和应用级错误边界。
+- P0 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；桌面端 18 个测试通过；隐藏 Electron 窗口验证应用可启动、未登录访问被拦截、登录后项目页面正常显示。
+- 待完成：无当前阶段开发任务；保持 `待测试` 并冻结，等待 T-01 P0 完成及 T-03 统一检查，未获 root 解锁前不得开始 P1～P6。
 
 ## GitHub Issue（由负责人提交给 `root`）
 
