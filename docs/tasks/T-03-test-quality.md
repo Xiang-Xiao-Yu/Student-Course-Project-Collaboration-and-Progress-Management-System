@@ -104,8 +104,8 @@
 
 - 当前阶段：P0
 - 已完成：测试阶段、小功能和阶段门禁定义；建立 `docs/test/test-plan.md`、P0 证据模板、环境采集和 API 契约冒烟检查；增加 `pnpm test:p0-env` 与 `pnpm test:p0-smoke` 独立命令；T-01、T-02 均已提交 P0 冻结候选。
-- 当前检查：P0-R1 对冻结提交 `b4a1ca35ae67e3967ce6804085a106a7475d7d08` 的自动化测试、构建、迁移和 API 冒烟部分通过；缺少 JWT_SECRET 时输出内部路径/堆栈，P0 门禁结论为失败。补齐锁定 Electron 版本的本地运行时后桌面启动成功；未登录及 API 错误自动化测试通过，但 API 不可用的界面级运行检查尚未执行。证据见 `docs/test/p0-evidence-2026-09-29.md`。
-- 待完成：T-01/T-02 按 root 指定范围修复并再次冻结；T-03 对修复后的新提交复测。PR #15 当前为 Draft/Open、无评审和 CI checks，不满足合并条件；P1 未解锁。
+- 当前检查：2026-10-11 已在 T-01 修复提交 `e6fc7183cf052994c5e6ebf9c94b000c072ec5de` 与 PR #15 head `7724e1b3af514f97b6879d53e315f4eb46405219` 的组合候选上完成完整 P0 复测。启动日志脱敏、未登录拦截、桌面端 API 错误提示与重试、Migration/Seed、API health/error smoke、lint、typecheck、36 项测试和 build 全部通过。详细证据见 `docs/test/p0-r1-retest-2026-10-11.md`。
+- 待完成：先通过 T-01 独立 PR 将修复合入 main，再刷新 PR #15 基线并核对最终检查/评审；仅在条件仍通过时按项目组长授权合并 PR #15。P1 未解锁。
 
 ## GitHub Issue（由提出人提交给 `root`）
 
