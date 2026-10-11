@@ -6,7 +6,7 @@
 - 任务名称：后端核心、数据模型、权限和 API 契约
 - 负责人标签：`Codex@backend`
 - 负责人：`Codex@backend`
-- 状态：`待测试`
+- 状态：`进行中`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -99,13 +99,14 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P0 基础工程与契约
+- 当前阶段：P1 用户认证（已解锁）
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
 - P0-R1 修复结果（2026-10-11，ChatGPT@root）：main.ts 缓冲 Nest 启动日志并在成功监听后刷新；环境校验错误只输出安全白名单消息，其他启动异常显示通用提示。新增进程级 startup-error.spec.ts。API 9 项测试、全仓 lint/typecheck/test/build 和正向 API 冒烟检查均通过；缺少 JWT_SECRET 的构建后进程检查确认非零退出、错误清楚且无绝对路径、堆栈或占位密钥。等待 T-03 在与 PR #15 组合的候选版本上执行最终 P0 复测。
-- 待完成：P0-R1 修复及组合候选 T-03 复测已通过；将通过独立 PR 合入 main，再刷新 PR #15 基线并按项目组长授权执行最终合并。P1 未解锁。
+- P0 门禁结论（2026-10-11）：修复已通过 PR #17 合入，PR #15 已合并；最新 main 上全套自动复测通过，项目组长完成人工桌面检查并确认通过。root 已记录 P0 验收通过并解锁 P1，详见 `docs/test/p0-r1-retest-2026-10-11.md`。
+- 下一步：按既定 P1.1～P1.3 开发注册、用户名唯一校验、安全哈希、登录/退出/会话失效、当前用户资料和个人任务接口；覆盖 AC-01 正常、边界和失败场景。完成后停止并标记待测试。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
 - 必须创建 GitHub Issue；格式至少包含 Issue 链接、提出人标签、关联 `T-01`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
-- 当前：[Issue #11](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/11) `[T-01] Codex@backend 申请认领后端开发任务`，root 审批结论为 `approved`；批准范围为 P0、`FR-01～FR-11`、`AC-01～AC-10`，Issue 保持 open 直至 P0 门禁复核。
+- 当前：[Issue #11](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/11) `[T-01] Codex@backend 申请认领后端开发任务`，root 审批结论为 `approved`；批准范围为 P0、`FR-01～FR-11`、`AC-01～AC-10`，P0 门禁已通过，Issue 随本次 P0 验收同步 PR 合并关闭。

@@ -102,10 +102,10 @@
 
 ## 进度记录（仅 `ChatGPT@root` 可修改）
 
-- 当前阶段：P0
+- 当前阶段：P1 认证测试（已解锁）
 - 已完成：测试阶段、小功能和阶段门禁定义；建立 `docs/test/test-plan.md`、P0 证据模板、环境采集和 API 契约冒烟检查；增加 `pnpm test:p0-env` 与 `pnpm test:p0-smoke` 独立命令；T-01、T-02 均已提交 P0 冻结候选。
-- 当前检查：2026-10-11 已在 T-01 修复提交 `e6fc7183cf052994c5e6ebf9c94b000c072ec5de` 与 PR #15 head `7724e1b3af514f97b6879d53e315f4eb46405219` 的组合候选上完成完整 P0 复测。启动日志脱敏、未登录拦截、桌面端 API 错误提示与重试、Migration/Seed、API health/error smoke、lint、typecheck、36 项测试和 build 全部通过。详细证据见 `docs/test/p0-r1-retest-2026-10-11.md`。
-- 待完成：先通过 T-01 独立 PR 将修复合入 main，再刷新 PR #15 基线并核对最终检查/评审；仅在条件仍通过时按项目组长授权合并 PR #15。P1 未解锁。
+- 当前检查：2026-10-11 在 PR #15 合并后的最新 main 提交 `28d9e077b3875452e1ed477a4ad49260580b550c` 全新隔离工作区重新执行完整自动门禁：冻结安装、Prisma generate/Migration/Seed 两次、lint、typecheck、36 项测试、build、API health/error smoke、缺少 JWT_SECRET 启动回归和无效数据库配置检查全部通过。项目组长完成人工桌面检查并确认通过；root 已记录 P0 门禁通过，P1 已解锁。详细证据见 `docs/test/p0-r1-retest-2026-10-11.md`。
+- 待完成：T-01、T-02 按已批准的 P1.1～P1.3 范围完成认证功能后标记待测试；T-03 再执行 AC-01 正常、边界、失败和权限场景。P2 及后续阶段保持锁定。
 
 ## GitHub Issue（由提出人提交给 `root`）
 
