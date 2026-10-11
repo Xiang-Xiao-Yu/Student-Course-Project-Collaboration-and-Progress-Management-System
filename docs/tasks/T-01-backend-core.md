@@ -101,7 +101,8 @@
 
 - 当前阶段：P0 基础工程与契约
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
-- 待完成：T-03 统一执行 P0 门禁；在门禁通过并由 root 解锁前保持冻结，不进入 P1。
+- root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
+- 待完成：按上述范围修复 P0-R1 门禁失败；在 T-03 复测通过并由 root 解锁前保持冻结，不进入 P1。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 

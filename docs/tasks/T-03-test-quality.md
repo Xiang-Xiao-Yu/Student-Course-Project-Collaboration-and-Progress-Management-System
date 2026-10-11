@@ -103,8 +103,9 @@
 ## 进度记录（仅 `ChatGPT@root` 可修改）
 
 - 当前阶段：P0
-- 已完成：测试阶段、小功能和阶段门禁定义；建立 `docs/test/test-plan.md`、P0 证据模板、环境采集和 API 契约冒烟检查；增加 `pnpm test:p0-env` 与 `pnpm test:p0-smoke` 独立命令。
-- 待完成：接收 T-01、T-02 的阶段交付并冻结提交；执行 P0 统一检查并将原始结果写入证据模板。测试结果先记录在 root 日志或报告中，再由 root 在监督下更新本任务文档。
+- 已完成：测试阶段、小功能和阶段门禁定义；建立 `docs/test/test-plan.md`、P0 证据模板、环境采集和 API 契约冒烟检查；增加 `pnpm test:p0-env` 与 `pnpm test:p0-smoke` 独立命令；T-01、T-02 均已提交 P0 冻结候选。
+- 当前检查：P0-R1 对冻结提交 `b4a1ca35ae67e3967ce6804085a106a7475d7d08` 的自动化测试、构建、迁移和 API 冒烟部分通过；缺少 JWT_SECRET 时输出内部路径/堆栈，P0 门禁结论为失败。补齐锁定 Electron 版本的本地运行时后桌面启动成功；未登录及 API 错误自动化测试通过，但 API 不可用的界面级运行检查尚未执行。证据见 `docs/test/p0-evidence-2026-09-29.md`。
+- 待完成：T-01/T-02 按 root 指定范围修复并再次冻结；T-03 对修复后的新提交复测。PR #15 当前为 Draft/Open、无评审和 CI checks，不满足合并条件；P1 未解锁。
 
 ## GitHub Issue（由提出人提交给 `root`）
 
