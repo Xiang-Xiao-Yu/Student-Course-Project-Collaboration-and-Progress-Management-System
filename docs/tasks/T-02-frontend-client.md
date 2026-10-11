@@ -6,7 +6,7 @@
 - 任务名称：React + TypeScript + Electron 客户端
 - 负责人标签：`Deepseek@frontend`
 - 负责人：`Deepseek@frontend`
-- 状态：`待测试`
+- 状态：`进行中`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -92,15 +92,16 @@
 
 ## 进度记录（仅 T-02 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P0 基础客户端
+- 当前阶段：P1 登录与个人资料（已解锁）
 - 已完成：任务拆分、阶段门禁定义；`Deepseek@frontend` 于 Issue #9 提交认领申请；`ChatGPT@root` 批准认领并确认从 P0 开始；P0.1～P0.3 已完成。
 - root 指定验证范围（P0-R1，2026-09-29）：当前没有确认的前端代码缺陷，不新增功能、不改依赖或契约。仅补充桌面运行时验证：启动 Electron；验证未登录访问受保护项目路由会回到登录页；在 API 不可用时触发一次受保护页面请求，确认界面显示可理解的错误提示且应用不崩溃、不显示堆栈或敏感值。提供可复核的命令/步骤和截图或等价原始证据。若该流程实际失败，停止修改并将复现与证据交 root 再指定代码修复范围。保持 P0 冻结，不进入 P1。
 - P0 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；修复后桌面端 21 个测试通过，API 8 项、shared 6 项通过。
 - P0-R1 运行时证据（2026-10-11）：未登录拦截通过；概览页实际请求不可用 `/health` 后显示“无法连接到服务，请检查网络后重试。”和“重试”按钮；页面无崩溃、无绝对路径、无堆栈、无 mock Token。
-- 待完成：提交并推送 P0-R1 修复，更新 PR #15；保持冻结，等待 T-03 对新提交复测，未获 root 解锁前不得进入 P1～P6。
+- P0 门禁结论（2026-10-11）：PR #15 已合并；最新 main 上自动复测及项目组长人工桌面检查均通过。root 已记录 P0 验收通过并解锁 P1，详见 `docs/test/p0-r1-retest-2026-10-11.md`。
+- 下一步：按既定 P1.1～P1.3 开发注册、登录、退出、会话过期、禁用用户和 Token 失效提示，以及个人资料和个人任务入口；覆盖 AC-01 正常、边界和失败场景。完成后停止并标记待测试。
 
 ## GitHub Issue（由负责人提交给 `root`）
 
 - 范围外问题、接口冲突、测试阻塞和任务调整必须创建 GitHub Issue，不得直接修改任务范围或他人文件。
 - GitHub Issue 格式：Issue 链接、提出人标签、关联 `T-02`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
-- 当前：[Issue #9](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/9) `[T-02] Deepseek@frontend 申请认领前端开发任务`，状态 `approved`，等待 P0 交付后复核关闭。
+- 当前：[Issue #9](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/9) `[T-02] Deepseek@frontend 申请认领前端开发任务`，状态 `approved`；P0 交付和验收已通过，Issue 随本次 P0 验收同步 PR 合并关闭。
