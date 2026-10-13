@@ -18,6 +18,20 @@ export interface AuthUserRecord {
   username: string;
 }
 
+export interface LoginUserRecord extends AuthUserRecord {
+  passwordHash: string;
+  status: string;
+  tokenVersion: number;
+}
+
+export interface AuthSessionUserRecord {
+  id: string;
+  nickname: string;
+  status: string;
+  tokenVersion: number;
+  username: string;
+}
+
 @Injectable()
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -49,6 +63,58 @@ export class AuthRepository {
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new AppException(HttpStatus.CONFLICT, 'AUTH_USERNAME_TAKEN', '用户名已存在');
+      }
+
+      throw error;
+    }
+  }
+
+  async findUserForLogin(username: string): Promise<LoginUserRecord | null> {
+    return this.prisma.user.findUnique({
+      select: {
+        createdAt: true,
+        id: true,
+        nickname: true,
+        passwordHash: true,
+        status: true,
+        tokenVersion: true,
+        username: true,
+      },
+      where: { username },
+    });
+  }
+
+  async findSessionUserById(userId: string): Promise<AuthSessionUserRecord | null> {
+    return this.prisma.user.findUnique({
+      select: {
+        id: true,
+        nickname: true,
+        status: true,
+        tokenVersion: true,
+        username: true,
+      },
+      where: { id: userId },
+    });
+  }
+
+  async incrementTokenVersion(userId: string): Promise<void> {
+    try {
+      await this.prisma.user.update({
+        data: {
+          tokenVersion: {
+            increment: 1,
+          },
+        },
+        select: { id: true },
+        where: { id: userId },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new AppException(
+          HttpStatus.UNAUTHORIZED,
+          'AUTH_SESSION_EXPIRED',
+          '登录会话已失效，请重新登录',
+        );
       }
 
       throw error;

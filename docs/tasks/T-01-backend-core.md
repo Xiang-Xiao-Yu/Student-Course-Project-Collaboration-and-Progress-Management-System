@@ -104,8 +104,9 @@
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
 - P0-R1 修复结果（2026-10-11，ChatGPT@root）：main.ts 缓冲 Nest 启动日志并在成功监听后刷新；环境校验错误只输出安全白名单消息，其他启动异常显示通用提示。新增进程级 startup-error.spec.ts。API 9 项测试、全仓 lint/typecheck/test/build 和正向 API 冒烟检查均通过；缺少 JWT_SECRET 的构建后进程检查确认非零退出、错误清楚且无绝对路径、堆栈或占位密钥。等待 T-03 在与 PR #15 组合的候选版本上执行最终 P0 复测。
 - P0 门禁结论（2026-10-11）：修复已通过 PR #17 合入，PR #15 已合并；最新 main 上全套自动复测通过，项目组长完成人工桌面检查并确认通过。root 已记录 P0 验收通过并解锁 P1，详见 `docs/test/p0-r1-retest-2026-10-11.md`。
-- P1.1 完成（2026-10-13）：`POST /api/v1/auth/register` 已实现，包含 DTO 校验、用户名预检查和唯一约束竞态处理、scrypt 随机盐密码哈希、安全用户响应和稳定 `AUTH_USERNAME_TAKEN` 错误码。新增 DTO、哈希服务、Service、Repository 和 HTTP 集成测试；全仓 lint、typecheck、test、build 通过。
-- 下一步：继续 P1.2 登录、退出、会话过期、禁用用户拦截和服务端 Token 失效，然后完成 P1.3 当前用户资料和个人任务查询；P1 全部完成后停止并标记待测试。
+- P1.1 完成（2026-10-13）：`POST /api/v1/auth/register` 已实现，包含 DTO 校验、用户名预检查和唯一约束竞态处理、scrypt 随机盐密码哈希、安全用户响应和稳定 `AUTH_USERNAME_TAKEN` 错误码。
+- P1.2 完成（2026-10-13）：`POST /api/v1/auth/login` 与 `POST /api/v1/auth/logout` 已实现；JWT 使用环境中的密钥和过期时间；`User.tokenVersion` Migration 支持服务端 Token 失效；认证 Guard 覆盖缺失/无效/过期 Token、退出后的旧 Token 和禁用用户。API 测试 27 项及全仓 lint、typecheck、test、build 通过。
+- 下一步：完成 P1.3 当前用户资料和个人任务查询；P1 全部完成后停止并标记待测试。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
