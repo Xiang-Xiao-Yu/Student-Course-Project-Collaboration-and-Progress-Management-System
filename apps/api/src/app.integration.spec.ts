@@ -137,6 +137,18 @@ describe('API integration', () => {
     expect(Array.isArray(body.error.details)).toBe(true);
   });
 
+  it('requires authentication for the current user profile and tasks', async () => {
+    const profileResponse = await fetch(`${baseUrl}/users/me`);
+    const profileBody = (await profileResponse.json()) as ApiErrorResponse;
+    const tasksResponse = await fetch(`${baseUrl}/users/me/tasks`);
+    const tasksBody = (await tasksResponse.json()) as ApiErrorResponse;
+
+    expect(profileResponse.status).toBe(401);
+    expect(profileBody.error.code).toBe('AUTH_SESSION_EXPIRED');
+    expect(tasksResponse.status).toBe(401);
+    expect(tasksBody.error.code).toBe('AUTH_SESSION_EXPIRED');
+  });
+
   it('does not leak unexpected error details', async () => {
     const response = await fetch(`${baseUrl}/_test-errors/unexpected`);
     const body = (await response.json()) as ApiErrorResponse;

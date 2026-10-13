@@ -1,11 +1,11 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 
 import { AppException } from '../../common/errors/app.exception';
+import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import type { AuthenticatedRequest } from './interfaces/authenticated-request';
 import type { LoginResponse, LogoutResponse } from './interfaces/login-response';
 import type { RegisterResponse } from './interfaces/register-response';
 

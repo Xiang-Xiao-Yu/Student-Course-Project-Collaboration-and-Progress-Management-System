@@ -3,8 +3,8 @@ import type { ExecutionContext } from '@nestjs/common';
 import type { JwtService } from '@nestjs/jwt';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
 import { AuthGuard } from './auth.guard';
-import type { AuthenticatedRequest } from './interfaces/authenticated-request';
 import type { AuthRepository } from './repositories/auth.repository';
 
 function createGuard(): {

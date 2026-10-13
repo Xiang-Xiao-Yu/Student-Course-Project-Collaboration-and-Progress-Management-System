@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, HttpStatus, Injectable } from '@nestjs/c
 import { JwtService } from '@nestjs/jwt';
 
 import { AppException } from '../../common/errors/app.exception';
-import type { AuthenticatedRequest } from './interfaces/authenticated-request';
+import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
 import { AuthRepository } from './repositories/auth.repository';
 
 interface AuthTokenPayload {

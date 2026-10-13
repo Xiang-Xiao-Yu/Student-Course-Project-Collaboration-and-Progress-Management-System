@@ -10,7 +10,7 @@ import { PasswordHasherService } from './services/password-hasher.service';
 
 @Module({
   controllers: [AuthController],
-  exports: [AuthGuard, AuthService],
+  exports: [AuthGuard, AuthRepository, AuthService, JwtModule],
   imports: [
     JwtModule.registerAsync({
       inject: [ConfigService],

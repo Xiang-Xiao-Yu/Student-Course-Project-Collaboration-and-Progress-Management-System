@@ -106,7 +106,8 @@
 - P0 门禁结论（2026-10-11）：修复已通过 PR #17 合入，PR #15 已合并；最新 main 上全套自动复测通过，项目组长完成人工桌面检查并确认通过。root 已记录 P0 验收通过并解锁 P1，详见 `docs/test/p0-r1-retest-2026-10-11.md`。
 - P1.1 完成（2026-10-13）：`POST /api/v1/auth/register` 已实现，包含 DTO 校验、用户名预检查和唯一约束竞态处理、scrypt 随机盐密码哈希、安全用户响应和稳定 `AUTH_USERNAME_TAKEN` 错误码。
 - P1.2 完成（2026-10-13）：`POST /api/v1/auth/login` 与 `POST /api/v1/auth/logout` 已实现；JWT 使用环境中的密钥和过期时间；`User.tokenVersion` Migration 支持服务端 Token 失效；认证 Guard 覆盖缺失/无效/过期 Token、退出后的旧 Token 和禁用用户。API 测试 27 项及全仓 lint、typecheck、test、build 通过。
-- 下一步：完成 P1.3 当前用户资料和个人任务查询；P1 全部完成后停止并标记待测试。
+- P1.3 完成（2026-10-13）：`GET /api/v1/users/me` 和 `GET /api/v1/users/me/tasks` 已实现，统一使用认证 Guard；返回安全用户资料和按截止日期排序的个人任务；缺少认证时返回 `AUTH_SESSION_EXPIRED`。
+- P1 已完成待测试：P1.1～P1.3 均已实现并通过 lint、typecheck、test、build；当前停止 P1 开发，等待 root/T-03 检查，不得进入 P2。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 

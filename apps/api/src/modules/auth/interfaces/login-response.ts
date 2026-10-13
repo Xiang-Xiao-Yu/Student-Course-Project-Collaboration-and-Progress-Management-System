@@ -1,14 +1,10 @@
-export interface SessionUser {
-  id: string;
-  nickname: string;
-  username: string;
-}
+import type { AuthenticatedUser } from '../../../common/http/authenticated-request';
 
 export interface LoginResponse {
   accessToken: string;
   expiresIn: string;
   tokenType: 'Bearer';
-  user: SessionUser;
+  user: AuthenticatedUser;
 }
 
 export interface LogoutResponse {
