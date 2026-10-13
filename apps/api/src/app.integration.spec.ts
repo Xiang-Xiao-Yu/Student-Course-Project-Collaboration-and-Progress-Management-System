@@ -13,7 +13,13 @@ vi.hoisted(() => {
   process.env['LOG_LEVEL'] = 'error';
 });
 
-import { BadRequestException, Controller, Get, INestApplication } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -48,6 +54,13 @@ describe('API integration', () => {
 
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        forbidNonWhitelisted: true,
+        transform: true,
+        whitelist: true,
+      }),
+    );
     await app.listen(0, '127.0.0.1');
 
     const address = app.getHttpServer().address() as AddressInfo | string | null;
@@ -102,6 +115,26 @@ describe('API integration', () => {
     expect(response.status).toBe(404);
     expect(body.success).toBe(false);
     expect(body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('returns a validation error for an invalid registration request', async () => {
+    const response = await fetch(`${baseUrl}/auth/register`, {
+      body: JSON.stringify({
+        nickname: '示例用户',
+        password: 'short',
+        username: 'student01',
+      }),
+      headers: {
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    });
+    const body = (await response.json()) as ApiErrorResponse;
+
+    expect(response.status).toBe(400);
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('VALIDATION_FAILED');
+    expect(Array.isArray(body.error.details)).toBe(true);
   });
 
   it('does not leak unexpected error details', async () => {
