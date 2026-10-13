@@ -6,7 +6,7 @@
 - 任务名称：React + TypeScript + Electron 客户端
 - 负责人标签：`Deepseek@frontend`
 - 负责人：`Deepseek@frontend`
-- 状态：`进行中`
+- 状态：`待测试`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -98,7 +98,10 @@
 - P0 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；修复后桌面端 21 个测试通过，API 8 项、shared 6 项通过。
 - P0-R1 运行时证据（2026-10-11）：未登录拦截通过；概览页实际请求不可用 `/health` 后显示“无法连接到服务，请检查网络后重试。”和“重试”按钮；页面无崩溃、无绝对路径、无堆栈、无 mock Token。
 - P0 门禁结论（2026-10-11）：PR #15 已合并；最新 main 上自动复测及项目组长人工桌面检查均通过。root 已记录 P0 验收通过并解锁 P1，详见 `docs/test/p0-r1-retest-2026-10-11.md`。
-- 下一步：按既定 P1.1～P1.3 开发注册、登录、退出、会话过期、禁用用户和 Token 失效提示，以及个人资料和个人任务入口；覆盖 AC-01 正常、边界和失败场景。完成后停止并标记待测试。
+- P1 已完成：注册、登录、退出、会话过期提示、禁用用户和 Token 失效提示，以及个人资料和个人任务入口。
+- P1 接口依赖：按 T-01 P1 PR #19 的 `/auth/register`、`/auth/login`、`/auth/logout`、`/users/me` 和 `/users/me/tasks` 契约实现，未修改共享契约或后端。
+- P1 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；桌面端 8 个测试文件、27 项测试通过。
+- 下一步：保持 `待测试` 并停止开发；等待 T-01 P1 PR #19 合并后由 T-03 统一检查并执行 AC-01 正常、边界、失败场景复测，未获 root 解锁前不进入 P2。
 
 ## GitHub Issue（由负责人提交给 `root`）
 

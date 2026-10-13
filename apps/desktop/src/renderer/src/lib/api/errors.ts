@@ -20,6 +20,8 @@ export class ApiError extends Error {
 const messageByCode: Record<string, string> = {
   AUTH_INVALID_CREDENTIALS: '用户名或密码错误。',
   AUTH_SESSION_EXPIRED: '登录状态已失效，请重新登录。',
+  AUTH_USER_DISABLED: '用户已被禁用，请联系平台管理员。',
+  AUTH_USERNAME_TAKEN: '用户名已存在。',
   AUTH_FORBIDDEN: '当前账号没有执行此操作的权限。',
   NETWORK_ERROR: '无法连接到服务，请检查网络后重试。',
   API_INVALID_RESPONSE: '服务响应异常，请稍后重试。',

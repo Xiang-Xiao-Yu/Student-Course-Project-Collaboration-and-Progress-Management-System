@@ -1,5 +1,4 @@
 const SESSION_STORAGE_KEY = 'scpc.auth.session';
-const MOCK_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
 
 export interface SessionUser {
   readonly id: string;
@@ -88,18 +87,6 @@ export function writeStoredSession(storage: KeyValueStorage | null, session: Aut
 
 export function clearStoredSession(storage: KeyValueStorage | null): void {
   storage?.removeItem(SESSION_STORAGE_KEY);
-}
-
-export function createMockSession(now = Date.now()): AuthSession {
-  return {
-    accessToken: 'mock-access-token',
-    expiresAt: now + MOCK_SESSION_DURATION_MS,
-    user: {
-      id: 'user-demo',
-      username: 'demo',
-      displayName: '演示用户',
-    },
-  };
 }
 
 export function createMemoryStorage(initialValue: string | null = null): KeyValueStorage {

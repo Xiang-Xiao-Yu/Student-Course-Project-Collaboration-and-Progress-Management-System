@@ -11,10 +11,11 @@ import type { PropsWithChildren } from 'react';
 
 import { ApiClient } from '../../lib/api/client';
 import { getDesktopRuntimeConfig } from '../../lib/runtime';
+import type { LoginInput, RegisterInput, RegisterResponseDto } from './auth-api';
+import { registerUser, signInWithPassword, signOutCurrentUser } from './auth-api';
 import type { AuthSession } from './session-storage';
 import {
   clearStoredSession,
-  createMockSession,
   getBrowserSessionStorage,
   readStoredSession,
   writeStoredSession,
@@ -27,7 +28,8 @@ interface SessionContextValue {
   readonly reason: SessionEndReason;
   readonly session: AuthSession | null;
   readonly status: 'anonymous' | 'authenticated';
-  readonly signInWithMock: () => Promise<void>;
+  readonly registerAccount: (input: RegisterInput) => Promise<RegisterResponseDto>;
+  readonly signIn: (input: LoginInput) => Promise<void>;
   readonly signOut: () => Promise<void>;
 }
 
@@ -59,18 +61,31 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [clearSession],
   );
 
-  const signInWithMock = useCallback(async () => {
-    const nextSession = createMockSession();
+  const signIn = useCallback(
+    async (input: LoginInput) => {
+      const nextSession = await signInWithPassword(api, input);
 
-    sessionRef.current = nextSession;
-    setSession(nextSession);
-    setReason(null);
-    writeStoredSession(storage, nextSession);
-  }, [storage]);
+      sessionRef.current = nextSession;
+      setSession(nextSession);
+      setReason(null);
+      writeStoredSession(storage, nextSession);
+    },
+    [api, storage],
+  );
+
+  const registerAccount = useCallback((input: RegisterInput) => registerUser(api, input), [api]);
 
   const signOut = useCallback(async () => {
-    clearSession('signed-out');
-  }, [clearSession]);
+    try {
+      if (sessionRef.current) {
+        await signOutCurrentUser(api);
+      }
+    } catch {
+      // Local logout must still complete when the API is unavailable.
+    } finally {
+      clearSession('signed-out');
+    }
+  }, [api, clearSession]);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -101,12 +116,13 @@ export function SessionProvider({ children }: PropsWithChildren) {
     () => ({
       api,
       reason,
+      registerAccount,
       session,
+      signIn,
       status: session ? 'authenticated' : 'anonymous',
-      signInWithMock,
       signOut,
     }),
-    [api, reason, session, signInWithMock, signOut],
+    [api, reason, registerAccount, session, signIn, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

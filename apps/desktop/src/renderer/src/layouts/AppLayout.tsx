@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 
 import { buildProjectPath, navigationGroups } from '../app/navigation';
 import { useSession } from '../features/auth/session';
@@ -80,6 +80,12 @@ export function AppLayout() {
           </div>
 
           <div className="topbar__account">
+            <Link className="account-link" to="/account/tasks">
+              我的任务
+            </Link>
+            <Link className="account-link" to="/account/profile">
+              个人资料
+            </Link>
             <div className="user-chip">
               <span className="user-chip__avatar" aria-hidden="true">
                 {session?.user.displayName.slice(0, 1) ?? '项'}
