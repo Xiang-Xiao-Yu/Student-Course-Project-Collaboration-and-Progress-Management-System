@@ -1,13 +1,12 @@
-export type ServerLogoutResult =
-  { readonly status: 'completed' } | { readonly error: unknown; readonly status: 'failed' };
-
-export async function requestServerLogout(
+export async function completeServerLogout(
   request: () => Promise<void>,
-): Promise<ServerLogoutResult> {
+  onSuccess: () => void,
+  onFailure: (error: unknown) => void,
+): Promise<void> {
   try {
     await request();
-    return { status: 'completed' };
+    onSuccess();
   } catch (error: unknown) {
-    return { error, status: 'failed' };
+    onFailure(error);
   }
 }

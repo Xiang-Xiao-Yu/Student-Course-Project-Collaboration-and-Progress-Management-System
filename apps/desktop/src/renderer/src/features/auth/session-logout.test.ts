@@ -1,22 +1,29 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { requestServerLogout } from './session-logout';
+import { completeServerLogout } from './session-logout';
 
 describe('server logout request', () => {
-  it('reports completion after the server accepts logout', async () => {
+  it('clears local session after the server accepts logout', async () => {
     const request = vi.fn().mockResolvedValue(undefined);
+    const clearSession = vi.fn();
+    const reportFailure = vi.fn();
 
-    await expect(requestServerLogout(request)).resolves.toEqual({ status: 'completed' });
+    await completeServerLogout(request, clearSession, reportFailure);
+
     expect(request).toHaveBeenCalledOnce();
+    expect(clearSession).toHaveBeenCalledOnce();
+    expect(reportFailure).not.toHaveBeenCalled();
   });
 
-  it('does not report completion when the server request fails', async () => {
+  it('keeps the local session and reports the error when logout fails', async () => {
     const failure = new Error('network unavailable');
     const request = vi.fn().mockRejectedValue(failure);
+    const clearSession = vi.fn();
+    const reportFailure = vi.fn();
 
-    await expect(requestServerLogout(request)).resolves.toEqual({
-      error: failure,
-      status: 'failed',
-    });
+    await completeServerLogout(request, clearSession, reportFailure);
+
+    expect(clearSession).not.toHaveBeenCalled();
+    expect(reportFailure).toHaveBeenCalledWith(failure);
   });
 });

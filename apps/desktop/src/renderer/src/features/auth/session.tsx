@@ -14,7 +14,7 @@ import { getUserFacingError } from '../../lib/api/errors';
 import { getDesktopRuntimeConfig } from '../../lib/runtime';
 import type { LoginInput, RegisterInput, RegisterResponseDto } from './auth-api';
 import { registerUser, signInWithPassword, signOutCurrentUser } from './auth-api';
-import { requestServerLogout } from './session-logout';
+import { completeServerLogout } from './session-logout';
 import type { AuthSession } from './session-storage';
 import {
   clearStoredSession,
@@ -89,16 +89,15 @@ export function SessionProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    const result = await requestServerLogout(() => signOutCurrentUser(api));
-
-    if (result.status === 'completed') {
-      clearSession('signed-out');
-      return;
-    }
-
-    if (sessionRef.current) {
-      setSignOutError(getUserFacingError(result.error));
-    }
+    await completeServerLogout(
+      () => signOutCurrentUser(api),
+      () => clearSession('signed-out'),
+      (error) => {
+        if (sessionRef.current) {
+          setSignOutError(getUserFacingError(error));
+        }
+      },
+    );
   }, [api, clearSession]);
 
   useEffect(() => {
