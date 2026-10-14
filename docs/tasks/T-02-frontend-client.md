@@ -102,6 +102,7 @@
 - P1 接口依赖：按 T-01 P1 PR #19 的 `/auth/register`、`/auth/login`、`/auth/logout`、`/users/me` 和 `/users/me/tasks` 契约实现，未修改共享契约或后端。
 - root 修复（2026-10-14）：服务端注销成功后才清理本地会话；网络或服务端失败时保留会话、显示错误提示并允许重试。服务端以 401 确认会话失效时仍由 API client 清理本地会话。
 - P1 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；桌面端 9 个测试文件、29 项测试通过。
+- P1 界面证据：`docs/test/p1-logout-network-error.png` 显示 API 不可用时退出失败提示及保留的账户界面。
 - 下一步：PR #19 已合并；T-02 保持 `待测试` 并停止开发，等待 T-03 统一检查并执行 AC-01 正常、边界、失败场景复测。未获 root 解锁前不进入 P2。
 
 ## GitHub Issue（由负责人提交给 `root`）

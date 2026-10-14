@@ -94,7 +94,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       () => clearSession('signed-out'),
       (error) => {
         if (sessionRef.current) {
-          setSignOutError(getUserFacingError(error));
+          setSignOutError(`退出未完成：${getUserFacingError(error)}`);
         }
       },
     );
