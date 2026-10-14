@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
@@ -21,6 +21,13 @@ async function bootstrap(): Promise<void> {
   const corsOrigins = configService.getOrThrow<string[]>('CORS_ORIGINS');
 
   app.setGlobalPrefix(GLOBAL_PREFIX);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
   app.enableCors({
     origin: corsOrigins,
   });

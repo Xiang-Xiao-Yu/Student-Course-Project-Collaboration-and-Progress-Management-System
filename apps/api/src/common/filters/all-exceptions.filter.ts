@@ -54,6 +54,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function readSafeErrorCode(value: unknown, fallback: string): string {
+  return typeof value === 'string' && /^[A-Z][A-Z0-9_]*$/.test(value) ? value : fallback;
+}
+
 function resolveException(exception: unknown): ResolvedException {
   if (!(exception instanceof HttpException)) {
     return {
@@ -81,6 +85,8 @@ function resolveException(exception: unknown): ResolvedException {
   }
 
   if (isRecord(response)) {
+    const responseCode = readSafeErrorCode(response['code'], definition.code);
+    const responseDetails = response['details'] ?? null;
     const responseMessage = response['message'];
 
     if (
@@ -98,9 +104,19 @@ function resolveException(exception: unknown): ResolvedException {
     if (typeof responseMessage === 'string') {
       return {
         ...definition,
-        details: null,
+        code: responseCode,
+        details: responseDetails,
         status,
         message: responseMessage,
+      };
+    }
+
+    if (response['code'] !== undefined || response['details'] !== undefined) {
+      return {
+        ...definition,
+        code: responseCode,
+        details: responseDetails,
+        status,
       };
     }
   }

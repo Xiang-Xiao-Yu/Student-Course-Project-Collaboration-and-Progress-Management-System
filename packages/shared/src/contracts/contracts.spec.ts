@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   API_BASE_PATH,
   API_ROUTE_CONTRACTS,
+  ERROR_CODES,
   REQUEST_VALIDATION_RULES,
   TASK_STATUS_TRANSITIONS,
   hasProjectPermission,
@@ -58,6 +59,9 @@ describe('shared P0 contracts', () => {
     expect(isDateRangeValid(new Date('2026-10-01'), new Date('2026-09-30'))).toBe(false);
     expect(isTaskDueDateValid(new Date('2026-08-31'), new Date('2026-09-01'))).toBe(false);
     expect(REQUEST_VALIDATION_RULES.PASSWORD_MIN_LENGTH).toBe(8);
+    expect(REQUEST_VALIDATION_RULES.PASSWORD_MAX_LENGTH).toBe(128);
+    expect(REQUEST_VALIDATION_RULES.USERNAME_MAX_LENGTH).toBe(64);
     expect(REQUEST_VALIDATION_RULES.REQUIREMENT_TITLE_MAX_LENGTH).toBe(100);
+    expect(ERROR_CODES.AUTH_USERNAME_TAKEN).toBe('AUTH_USERNAME_TAKEN');
   });
 });
