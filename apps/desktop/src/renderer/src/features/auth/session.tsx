@@ -10,11 +10,14 @@ import {
 import type { PropsWithChildren } from 'react';
 
 import { ApiClient } from '../../lib/api/client';
+import { getUserFacingError } from '../../lib/api/errors';
 import { getDesktopRuntimeConfig } from '../../lib/runtime';
+import type { LoginInput, RegisterInput, RegisterResponseDto } from './auth-api';
+import { registerUser, signInWithPassword, signOutCurrentUser } from './auth-api';
+import { completeServerLogout } from './session-logout';
 import type { AuthSession } from './session-storage';
 import {
   clearStoredSession,
-  createMockSession,
   getBrowserSessionStorage,
   readStoredSession,
   writeStoredSession,
@@ -25,9 +28,11 @@ export type SessionEndReason = 'expired' | 'signed-out' | null;
 interface SessionContextValue {
   readonly api: ApiClient;
   readonly reason: SessionEndReason;
+  readonly signOutError: string | null;
   readonly session: AuthSession | null;
   readonly status: 'anonymous' | 'authenticated';
-  readonly signInWithMock: () => Promise<void>;
+  readonly registerAccount: (input: RegisterInput) => Promise<RegisterResponseDto>;
+  readonly signIn: (input: LoginInput) => Promise<void>;
   readonly signOut: () => Promise<void>;
 }
 
@@ -37,6 +42,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const storage = useMemo(() => getBrowserSessionStorage(), []);
   const [session, setSession] = useState<AuthSession | null>(() => readStoredSession(storage));
   const [reason, setReason] = useState<SessionEndReason>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const sessionRef = useRef<AuthSession | null>(session);
 
   const clearSession = useCallback(
@@ -44,6 +50,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       sessionRef.current = null;
       setSession(null);
       setReason(nextReason);
+      setSignOutError(null);
       clearStoredSession(storage);
     },
     [storage],
@@ -59,18 +66,39 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [clearSession],
   );
 
-  const signInWithMock = useCallback(async () => {
-    const nextSession = createMockSession();
+  const signIn = useCallback(
+    async (input: LoginInput) => {
+      const nextSession = await signInWithPassword(api, input);
 
-    sessionRef.current = nextSession;
-    setSession(nextSession);
-    setReason(null);
-    writeStoredSession(storage, nextSession);
-  }, [storage]);
+      sessionRef.current = nextSession;
+      setSession(nextSession);
+      setReason(null);
+      setSignOutError(null);
+      writeStoredSession(storage, nextSession);
+    },
+    [api, storage],
+  );
+
+  const registerAccount = useCallback((input: RegisterInput) => registerUser(api, input), [api]);
 
   const signOut = useCallback(async () => {
-    clearSession('signed-out');
-  }, [clearSession]);
+    setSignOutError(null);
+
+    if (!sessionRef.current) {
+      clearSession('signed-out');
+      return;
+    }
+
+    await completeServerLogout(
+      () => signOutCurrentUser(api),
+      () => clearSession('signed-out'),
+      (error) => {
+        if (sessionRef.current) {
+          setSignOutError(`退出未完成：${getUserFacingError(error)}`);
+        }
+      },
+    );
+  }, [api, clearSession]);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -101,12 +129,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
     () => ({
       api,
       reason,
+      registerAccount,
       session,
+      signOutError,
+      signIn,
       status: session ? 'authenticated' : 'anonymous',
-      signInWithMock,
       signOut,
     }),
-    [api, reason, session, signInWithMock, signOut],
+    [api, reason, registerAccount, session, signOutError, signIn, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

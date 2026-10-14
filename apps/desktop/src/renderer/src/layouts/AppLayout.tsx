@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 
 import { buildProjectPath, navigationGroups } from '../app/navigation';
+import { ErrorNotice } from '../components/ErrorNotice';
 import { useSession } from '../features/auth/session';
 
 function getProjectLabel(projectId: string): string {
@@ -12,7 +13,7 @@ export function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { projectId = 'demo-project' } = useParams<{ projectId: string }>();
   const projectLabel = getProjectLabel(projectId);
-  const { session, signOut } = useSession();
+  const { session, signOut, signOutError } = useSession();
 
   return (
     <div className={`app-shell${isMenuOpen ? ' sidebar-open' : ''}`}>
@@ -80,6 +81,12 @@ export function AppLayout() {
           </div>
 
           <div className="topbar__account">
+            <Link className="account-link" to="/account/tasks">
+              我的任务
+            </Link>
+            <Link className="account-link" to="/account/profile">
+              个人资料
+            </Link>
             <div className="user-chip">
               <span className="user-chip__avatar" aria-hidden="true">
                 {session?.user.displayName.slice(0, 1) ?? '项'}
@@ -96,6 +103,7 @@ export function AppLayout() {
         </header>
 
         <main className="content">
+          {signOutError ? <ErrorNotice message={signOutError} /> : null}
           <Outlet />
         </main>
       </div>
