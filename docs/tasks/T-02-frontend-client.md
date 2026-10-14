@@ -100,8 +100,9 @@
 - P0 门禁结论（2026-10-11）：PR #15 已合并；最新 main 上自动复测及项目组长人工桌面检查均通过。root 已记录 P0 验收通过并解锁 P1，详见 `docs/test/p0-r1-retest-2026-10-11.md`。
 - P1 已完成：注册、登录、退出、会话过期提示、禁用用户和 Token 失效提示，以及个人资料和个人任务入口。
 - P1 接口依赖：按 T-01 P1 PR #19 的 `/auth/register`、`/auth/login`、`/auth/logout`、`/users/me` 和 `/users/me/tasks` 契约实现，未修改共享契约或后端。
-- P1 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；桌面端 8 个测试文件、27 项测试通过。
-- 下一步：保持 `待测试` 并停止开发；等待 T-01 P1 PR #19 合并后由 T-03 统一检查并执行 AC-01 正常、边界、失败场景复测，未获 root 解锁前不进入 P2。
+- root 修复（2026-10-14）：服务端注销成功后才清理本地会话；网络或服务端失败时保留会话、显示错误提示并允许重试。服务端以 401 确认会话失效时仍由 API client 清理本地会话。
+- P1 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；桌面端 9 个测试文件、29 项测试通过。
+- 下一步：PR #19 已合并；T-02 保持 `待测试` 并停止开发，等待 T-03 统一检查并执行 AC-01 正常、边界、失败场景复测。未获 root 解锁前不进入 P2。
 
 ## GitHub Issue（由负责人提交给 `root`）
 

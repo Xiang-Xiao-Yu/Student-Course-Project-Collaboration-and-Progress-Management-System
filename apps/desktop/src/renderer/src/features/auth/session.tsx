@@ -10,9 +10,11 @@ import {
 import type { PropsWithChildren } from 'react';
 
 import { ApiClient } from '../../lib/api/client';
+import { getUserFacingError } from '../../lib/api/errors';
 import { getDesktopRuntimeConfig } from '../../lib/runtime';
 import type { LoginInput, RegisterInput, RegisterResponseDto } from './auth-api';
 import { registerUser, signInWithPassword, signOutCurrentUser } from './auth-api';
+import { requestServerLogout } from './session-logout';
 import type { AuthSession } from './session-storage';
 import {
   clearStoredSession,
@@ -26,6 +28,7 @@ export type SessionEndReason = 'expired' | 'signed-out' | null;
 interface SessionContextValue {
   readonly api: ApiClient;
   readonly reason: SessionEndReason;
+  readonly signOutError: string | null;
   readonly session: AuthSession | null;
   readonly status: 'anonymous' | 'authenticated';
   readonly registerAccount: (input: RegisterInput) => Promise<RegisterResponseDto>;
@@ -39,6 +42,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const storage = useMemo(() => getBrowserSessionStorage(), []);
   const [session, setSession] = useState<AuthSession | null>(() => readStoredSession(storage));
   const [reason, setReason] = useState<SessionEndReason>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const sessionRef = useRef<AuthSession | null>(session);
 
   const clearSession = useCallback(
@@ -46,6 +50,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       sessionRef.current = null;
       setSession(null);
       setReason(nextReason);
+      setSignOutError(null);
       clearStoredSession(storage);
     },
     [storage],
@@ -68,6 +73,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       sessionRef.current = nextSession;
       setSession(nextSession);
       setReason(null);
+      setSignOutError(null);
       writeStoredSession(storage, nextSession);
     },
     [api, storage],
@@ -76,14 +82,22 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const registerAccount = useCallback((input: RegisterInput) => registerUser(api, input), [api]);
 
   const signOut = useCallback(async () => {
-    try {
-      if (sessionRef.current) {
-        await signOutCurrentUser(api);
-      }
-    } catch {
-      // Local logout must still complete when the API is unavailable.
-    } finally {
+    setSignOutError(null);
+
+    if (!sessionRef.current) {
       clearSession('signed-out');
+      return;
+    }
+
+    const result = await requestServerLogout(() => signOutCurrentUser(api));
+
+    if (result.status === 'completed') {
+      clearSession('signed-out');
+      return;
+    }
+
+    if (sessionRef.current) {
+      setSignOutError(getUserFacingError(result.error));
     }
   }, [api, clearSession]);
 
@@ -118,11 +132,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
       reason,
       registerAccount,
       session,
+      signOutError,
       signIn,
       status: session ? 'authenticated' : 'anonymous',
       signOut,
     }),
-    [api, reason, registerAccount, session, signIn, signOut],
+    [api, reason, registerAccount, session, signOutError, signIn, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -1,9 +1,10 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 
+import { ErrorNotice } from '../components/ErrorNotice';
 import { useSession } from '../features/auth/session';
 
 export function AccountLayout() {
-  const { session, signOut } = useSession();
+  const { session, signOut, signOutError } = useSession();
 
   return (
     <div className="account-shell">
@@ -42,6 +43,7 @@ export function AccountLayout() {
       </header>
 
       <main className="account-content">
+        {signOutError ? <ErrorNotice message={signOutError} /> : null}
         <Outlet />
       </main>
     </div>

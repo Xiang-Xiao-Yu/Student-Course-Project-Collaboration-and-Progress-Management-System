@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 
 import { buildProjectPath, navigationGroups } from '../app/navigation';
+import { ErrorNotice } from '../components/ErrorNotice';
 import { useSession } from '../features/auth/session';
 
 function getProjectLabel(projectId: string): string {
@@ -12,7 +13,7 @@ export function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { projectId = 'demo-project' } = useParams<{ projectId: string }>();
   const projectLabel = getProjectLabel(projectId);
-  const { session, signOut } = useSession();
+  const { session, signOut, signOutError } = useSession();
 
   return (
     <div className={`app-shell${isMenuOpen ? ' sidebar-open' : ''}`}>
@@ -102,6 +103,7 @@ export function AppLayout() {
         </header>
 
         <main className="content">
+          {signOutError ? <ErrorNotice message={signOutError} /> : null}
           <Outlet />
         </main>
       </div>
