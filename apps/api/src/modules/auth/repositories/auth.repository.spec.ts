@@ -29,3 +29,24 @@ describe('AuthRepository.createUser', () => {
     });
   });
 });
+
+describe('AuthRepository.updatePasswordAndIncrementTokenVersion', () => {
+  it('maps a missing user to AUTH_SESSION_EXPIRED', async () => {
+    const missingUserError = new Prisma.PrismaClientKnownRequestError('Record not found', {
+      clientVersion: '6.19.3',
+      code: 'P2025',
+    });
+    const prisma = {
+      user: {
+        update: vi.fn().mockRejectedValue(missingUserError),
+      },
+    };
+    const repository = new AuthRepository(prisma as unknown as PrismaService);
+
+    await expect(
+      repository.updatePasswordAndIncrementTokenVersion('missing-user', 'scrypt$salt$hash'),
+    ).rejects.toMatchObject({
+      status: HttpStatus.UNAUTHORIZED,
+    });
+  });
+});

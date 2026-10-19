@@ -8,12 +8,14 @@ function createService(): {
   repository: {
     findAssignedTasks: ReturnType<typeof vi.fn>;
     findProfileById: ReturnType<typeof vi.fn>;
+    updateProfile: ReturnType<typeof vi.fn>;
   };
   service: UsersService;
 } {
   const repository = {
     findAssignedTasks: vi.fn(),
     findProfileById: vi.fn(),
+    updateProfile: vi.fn(),
   };
   const service = new UsersService(repository as unknown as UsersRepository);
 
@@ -86,5 +88,59 @@ describe('UsersService', () => {
 
     repository.findAssignedTasks.mockResolvedValue([]);
     await expect(service.getAssignedTasks('user-without-tasks')).resolves.toEqual([]);
+  });
+});
+
+describe('UsersService.updateProfile', () => {
+  it('updates nickname and avatar and returns the safe profile', async () => {
+    const { repository, service } = createService();
+
+    repository.updateProfile.mockResolvedValue({
+      avatarUrl: 'https://example.com/avatar.png',
+      createdAt: new Date('2026-10-13T10:00:00.000Z'),
+      id: 'user-1',
+      nickname: '新昵称',
+      status: 'ACTIVE',
+      updatedAt: new Date('2026-10-19T10:00:00.000Z'),
+      username: 'student01',
+    });
+
+    await expect(
+      service.updateProfile('user-1', {
+        avatarUrl: 'https://example.com/avatar.png',
+        nickname: '新昵称',
+      }),
+    ).resolves.toEqual({
+      avatarUrl: 'https://example.com/avatar.png',
+      createdAt: '2026-10-13T10:00:00.000Z',
+      id: 'user-1',
+      nickname: '新昵称',
+      status: 'ACTIVE',
+      updatedAt: '2026-10-19T10:00:00.000Z',
+      username: 'student01',
+    });
+    expect(repository.updateProfile).toHaveBeenCalledWith('user-1', {
+      avatarUrl: 'https://example.com/avatar.png',
+      nickname: '新昵称',
+    });
+  });
+
+  it('rejects an empty profile update', async () => {
+    const { repository, service } = createService();
+
+    await expect(service.updateProfile('user-1', {})).rejects.toMatchObject({
+      status: HttpStatus.UNPROCESSABLE_ENTITY,
+    });
+    expect(repository.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it('rejects an update when the session user no longer exists', async () => {
+    const { repository, service } = createService();
+
+    repository.updateProfile.mockResolvedValue(null);
+
+    await expect(
+      service.updateProfile('missing-user', { nickname: '新昵称' }),
+    ).rejects.toMatchObject({ status: HttpStatus.UNAUTHORIZED });
   });
 });

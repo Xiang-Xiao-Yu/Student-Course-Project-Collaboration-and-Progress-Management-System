@@ -3,8 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { AppException } from '../../common/errors/app.exception';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import type { ChangePasswordResponse } from './interfaces/change-password-response';
 import type { LoginResponse, LogoutResponse } from './interfaces/login-response';
 import type { RegisterResponse } from './interfaces/register-response';
 import { AuthRepository } from './repositories/auth.repository';
@@ -84,5 +86,55 @@ export class AuthService {
     await this.authRepository.incrementTokenVersion(userId);
 
     return { loggedOut: true };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<ChangePasswordResponse> {
+    const user = await this.authRepository.findPasswordUserById(userId);
+
+    if (!user) {
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        'AUTH_SESSION_EXPIRED',
+        '登录会话已失效，请重新登录',
+      );
+    }
+
+    if (user.status !== 'ACTIVE') {
+      throw new AppException(
+        HttpStatus.FORBIDDEN,
+        'AUTH_USER_DISABLED',
+        '用户已被禁用，请联系平台管理员',
+      );
+    }
+
+    const currentPasswordMatches = await this.passwordHasher.verify(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+
+    if (!currentPasswordMatches) {
+      throw new AppException(
+        HttpStatus.UNAUTHORIZED,
+        'AUTH_CURRENT_PASSWORD_INVALID',
+        '当前密码不正确',
+      );
+    }
+
+    const passwordHash = await this.passwordHasher.hash(dto.newPassword);
+    const updatedUser = await this.authRepository.updatePasswordAndIncrementTokenVersion(
+      userId,
+      passwordHash,
+    );
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      tokenVersion: updatedUser.tokenVersion,
+      username: updatedUser.username,
+    });
+
+    return {
+      accessToken,
+      expiresIn: this.configService.getOrThrow<string>('JWT_EXPIRES_IN'),
+      tokenType: 'Bearer',
+    };
   }
 }

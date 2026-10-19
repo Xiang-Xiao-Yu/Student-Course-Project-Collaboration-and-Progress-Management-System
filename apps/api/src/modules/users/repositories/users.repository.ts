@@ -1,6 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../prisma/prisma.service';
+
+const userProfileSelect = {
+  avatarUrl: true,
+  createdAt: true,
+  id: true,
+  nickname: true,
+  status: true,
+  updatedAt: true,
+  username: true,
+} satisfies Prisma.UserSelect;
 
 export interface UserProfileRecord {
   avatarUrl: string | null;
@@ -31,17 +42,41 @@ export class UsersRepository {
 
   async findProfileById(userId: string): Promise<UserProfileRecord | null> {
     return this.prisma.user.findUnique({
-      select: {
-        avatarUrl: true,
-        createdAt: true,
-        id: true,
-        nickname: true,
-        status: true,
-        updatedAt: true,
-        username: true,
-      },
+      select: userProfileSelect,
       where: { id: userId },
     });
+  }
+
+  async updateProfile(
+    userId: string,
+    input: {
+      avatarUrl?: string | null;
+      nickname?: string;
+    },
+  ): Promise<UserProfileRecord | null> {
+    const data: Prisma.UserUpdateInput = {};
+
+    if (input.nickname !== undefined) {
+      data.nickname = input.nickname;
+    }
+
+    if (input.avatarUrl !== undefined) {
+      data.avatarUrl = input.avatarUrl;
+    }
+
+    try {
+      return await this.prisma.user.update({
+        data,
+        select: userProfileSelect,
+        where: { id: userId },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   async findAssignedTasks(userId: string): Promise<UserTaskRecord[]> {

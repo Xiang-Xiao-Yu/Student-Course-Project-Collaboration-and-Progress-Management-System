@@ -6,9 +6,11 @@ const ids = {
   activity: 'seed-activity-project-created',
   admin: 'seed-user-admin',
   iteration: 'seed-iteration-p0',
+  member: 'seed-user-member',
   project: 'seed-project-demo',
   requirement: 'seed-requirement-p0',
   task: 'seed-task-p0',
+  taskMember: 'seed-task-member',
 } as const;
 
 // Generated with scrypt for local development only. No plaintext password is stored in Git.
@@ -24,6 +26,17 @@ async function main(): Promise<void> {
       nickname: '项目管理员',
       passwordHash: seedPasswordHash,
       username: 'admin',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { id: ids.member },
+    update: { nickname: '示例成员', status: 'ACTIVE' },
+    create: {
+      id: ids.member,
+      nickname: '示例成员',
+      passwordHash: seedPasswordHash,
+      username: 'member',
     },
   });
 
@@ -45,6 +58,14 @@ async function main(): Promise<void> {
     },
     update: { role: 'OWNER' },
     create: { projectId: ids.project, role: 'OWNER', userId: ids.admin },
+  });
+
+  await prisma.projectMember.upsert({
+    where: {
+      projectId_userId: { projectId: ids.project, userId: ids.member },
+    },
+    update: { role: 'MEMBER' },
+    create: { projectId: ids.project, role: 'MEMBER', userId: ids.member },
   });
 
   await prisma.iteration.upsert({
@@ -81,12 +102,14 @@ async function main(): Promise<void> {
   await prisma.task.upsert({
     where: { id: ids.task },
     update: {
+      assigneeId: ids.admin,
       iterationId: ids.iteration,
       requirementId: ids.requirement,
       status: 'IN_PROGRESS',
       title: '完成 Prisma Schema 与 Migration',
     },
     create: {
+      assigneeId: ids.admin,
       createdById: ids.admin,
       dueDate: new Date('2026-10-01T23:59:59.000Z'),
       estimatedHours: 12,
@@ -97,6 +120,30 @@ async function main(): Promise<void> {
       requirementId: ids.requirement,
       status: 'IN_PROGRESS',
       title: '完成 Prisma Schema 与 Migration',
+    },
+  });
+
+  await prisma.task.upsert({
+    where: { id: ids.taskMember },
+    update: {
+      assigneeId: ids.member,
+      iterationId: ids.iteration,
+      requirementId: ids.requirement,
+      status: 'TODO',
+      title: '示例成员个人任务',
+    },
+    create: {
+      assigneeId: ids.member,
+      createdById: ids.admin,
+      dueDate: new Date('2026-10-20T23:59:59.000Z'),
+      estimatedHours: 4,
+      id: ids.taskMember,
+      iterationId: ids.iteration,
+      priority: 'MEDIUM',
+      projectId: ids.project,
+      requirementId: ids.requirement,
+      status: 'TODO',
+      title: '示例成员个人任务',
     },
   });
 

@@ -13,17 +13,21 @@ function createService(): {
   jwt: { signAsync: ReturnType<typeof vi.fn> };
   repository: {
     createUser: ReturnType<typeof vi.fn>;
+    findPasswordUserById: ReturnType<typeof vi.fn>;
     findUserForLogin: ReturnType<typeof vi.fn>;
     findUserIdByUsername: ReturnType<typeof vi.fn>;
     incrementTokenVersion: ReturnType<typeof vi.fn>;
+    updatePasswordAndIncrementTokenVersion: ReturnType<typeof vi.fn>;
   };
   service: AuthService;
 } {
   const repository = {
     createUser: vi.fn(),
+    findPasswordUserById: vi.fn(),
     findUserForLogin: vi.fn(),
     findUserIdByUsername: vi.fn(),
     incrementTokenVersion: vi.fn(),
+    updatePasswordAndIncrementTokenVersion: vi.fn(),
   };
   const hasher = {
     hash: vi.fn(),
@@ -182,5 +186,71 @@ describe('AuthService.logout', () => {
 
     await expect(service.logout('user-1')).resolves.toEqual({ loggedOut: true });
     expect(repository.incrementTokenVersion).toHaveBeenCalledWith('user-1');
+  });
+});
+
+describe('AuthService.changePassword', () => {
+  it('changes the password, rotates tokenVersion and returns a new token', async () => {
+    const { config, hasher, jwt, repository, service } = createService();
+
+    repository.findPasswordUserById.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: 'scrypt$old-salt$old-hash',
+      status: 'ACTIVE',
+      tokenVersion: 4,
+      username: 'student01',
+    });
+    hasher.verify.mockResolvedValue(true);
+    hasher.hash.mockResolvedValue('scrypt$new-salt$new-hash');
+    repository.updatePasswordAndIncrementTokenVersion.mockResolvedValue({
+      tokenVersion: 5,
+      username: 'student01',
+    });
+    jwt.signAsync.mockResolvedValue('new-access-token');
+    config.getOrThrow.mockReturnValue('2h');
+
+    const result = await service.changePassword('user-1', {
+      currentPassword: 'old-password',
+      newPassword: 'new-password',
+    });
+
+    expect(hasher.verify).toHaveBeenCalledWith('old-password', 'scrypt$old-salt$old-hash');
+    expect(hasher.hash).toHaveBeenCalledWith('new-password');
+    expect(repository.updatePasswordAndIncrementTokenVersion).toHaveBeenCalledWith(
+      'user-1',
+      'scrypt$new-salt$new-hash',
+    );
+    expect(jwt.signAsync).toHaveBeenCalledWith({
+      sub: 'user-1',
+      tokenVersion: 5,
+      username: 'student01',
+    });
+    expect(result).toEqual({
+      accessToken: 'new-access-token',
+      expiresIn: '2h',
+      tokenType: 'Bearer',
+    });
+  });
+
+  it('rejects an incorrect current password without changing credentials', async () => {
+    const { hasher, repository, service } = createService();
+
+    repository.findPasswordUserById.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: 'scrypt$old-salt$old-hash',
+      status: 'ACTIVE',
+      tokenVersion: 4,
+      username: 'student01',
+    });
+    hasher.verify.mockResolvedValue(false);
+
+    await expect(
+      service.changePassword('user-1', {
+        currentPassword: 'wrong-password',
+        newPassword: 'new-password',
+      }),
+    ).rejects.toMatchObject({ status: HttpStatus.UNAUTHORIZED });
+    expect(hasher.hash).not.toHaveBeenCalled();
+    expect(repository.updatePasswordAndIncrementTokenVersion).not.toHaveBeenCalled();
   });
 });

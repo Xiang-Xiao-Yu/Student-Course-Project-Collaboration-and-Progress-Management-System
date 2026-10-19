@@ -108,6 +108,7 @@
 - P1.2 完成（2026-10-13）：`POST /api/v1/auth/login` 与 `POST /api/v1/auth/logout` 已实现；JWT 使用环境中的密钥和过期时间；`User.tokenVersion` Migration 支持服务端 Token 失效；认证 Guard 覆盖缺失/无效/过期 Token、退出后的旧 Token 和禁用用户。API 测试 27 项及全仓 lint、typecheck、test、build 通过。
 - P1.3 完成（2026-10-13）：`GET /api/v1/users/me` 和 `GET /api/v1/users/me/tasks` 已实现，统一使用认证 Guard；返回安全用户资料和按截止日期排序的个人任务；缺少认证时返回 `AUTH_SESSION_EXPIRED`。
 - P1 已完成待测试：P1.1～P1.3 均已实现并通过 lint、typecheck、test、build；当前停止 P1 开发，等待 root/T-03 检查，不得进入 P2。
+- P1-R1 完成（2026-10-19，Issue #21）：补齐 `PATCH /api/v1/users/me` 和 `PATCH /api/v1/users/me/password`；资料更新返回安全资料，改密先验证当前密码，成功后递增 `tokenVersion` 并返回新 Token，旧 Token 立即失效；开发种子新增 `admin`/`member` 两个用户及各自非空个人任务夹具。全仓 lint、typecheck、test、build 通过，种子连续执行两次且任务归属正确；等待 T-03 复测。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 

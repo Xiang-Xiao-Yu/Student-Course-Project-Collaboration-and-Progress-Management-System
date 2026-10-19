@@ -26,6 +26,7 @@ export function isCommentTargetValid(input: CommentTargetInput): boolean {
 }
 
 export const REQUEST_VALIDATION_RULES = {
+  AVATAR_URL_MAX_LENGTH: 2048,
   COMMENT_CONTENT_MIN_LENGTH: 1,
   NICKNAME_MAX_LENGTH: 50,
   NICKNAME_MIN_LENGTH: 1,

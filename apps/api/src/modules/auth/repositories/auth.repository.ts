@@ -32,6 +32,14 @@ export interface AuthSessionUserRecord {
   username: string;
 }
 
+export interface PasswordUserRecord {
+  id: string;
+  passwordHash: string;
+  status: string;
+  tokenVersion: number;
+  username: string;
+}
+
 @Injectable()
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -106,6 +114,50 @@ export class AuthRepository {
           },
         },
         select: { id: true },
+        where: { id: userId },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new AppException(
+          HttpStatus.UNAUTHORIZED,
+          'AUTH_SESSION_EXPIRED',
+          '登录会话已失效，请重新登录',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  async findPasswordUserById(userId: string): Promise<PasswordUserRecord | null> {
+    return this.prisma.user.findUnique({
+      select: {
+        id: true,
+        passwordHash: true,
+        status: true,
+        tokenVersion: true,
+        username: true,
+      },
+      where: { id: userId },
+    });
+  }
+
+  async updatePasswordAndIncrementTokenVersion(
+    userId: string,
+    passwordHash: string,
+  ): Promise<{ tokenVersion: number; username: string }> {
+    try {
+      return await this.prisma.user.update({
+        data: {
+          passwordHash,
+          tokenVersion: {
+            increment: 1,
+          },
+        },
+        select: {
+          tokenVersion: true,
+          username: true,
+        },
         where: { id: userId },
       });
     } catch (error: unknown) {
