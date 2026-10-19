@@ -142,11 +142,30 @@ describe('API integration', () => {
     const profileBody = (await profileResponse.json()) as ApiErrorResponse;
     const tasksResponse = await fetch(`${baseUrl}/users/me/tasks`);
     const tasksBody = (await tasksResponse.json()) as ApiErrorResponse;
+    const updateProfileResponse = await fetch(`${baseUrl}/users/me`, {
+      body: JSON.stringify({ nickname: '新昵称' }),
+      headers: { 'content-type': 'application/json' },
+      method: 'PATCH',
+    });
+    const updateProfileBody = (await updateProfileResponse.json()) as ApiErrorResponse;
+    const changePasswordResponse = await fetch(`${baseUrl}/users/me/password`, {
+      body: JSON.stringify({
+        currentPassword: 'old-password',
+        newPassword: 'new-password',
+      }),
+      headers: { 'content-type': 'application/json' },
+      method: 'PATCH',
+    });
+    const changePasswordBody = (await changePasswordResponse.json()) as ApiErrorResponse;
 
     expect(profileResponse.status).toBe(401);
     expect(profileBody.error.code).toBe('AUTH_SESSION_EXPIRED');
     expect(tasksResponse.status).toBe(401);
     expect(tasksBody.error.code).toBe('AUTH_SESSION_EXPIRED');
+    expect(updateProfileResponse.status).toBe(401);
+    expect(updateProfileBody.error.code).toBe('AUTH_SESSION_EXPIRED');
+    expect(changePasswordResponse.status).toBe(401);
+    expect(changePasswordBody.error.code).toBe('AUTH_SESSION_EXPIRED');
   });
 
   it('does not leak unexpected error details', async () => {
