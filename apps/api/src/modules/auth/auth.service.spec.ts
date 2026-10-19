@@ -219,6 +219,7 @@ describe('AuthService.changePassword', () => {
     expect(repository.updatePasswordAndIncrementTokenVersion).toHaveBeenCalledWith(
       'user-1',
       'scrypt$new-salt$new-hash',
+      { passwordHash: 'scrypt$old-salt$old-hash', tokenVersion: 4 },
     );
     expect(jwt.signAsync).toHaveBeenCalledWith({
       sub: 'user-1',
@@ -249,7 +250,10 @@ describe('AuthService.changePassword', () => {
         currentPassword: 'wrong-password',
         newPassword: 'new-password',
       }),
-    ).rejects.toMatchObject({ status: HttpStatus.UNAUTHORIZED });
+    ).rejects.toMatchObject({
+      status: HttpStatus.UNPROCESSABLE_ENTITY,
+      response: { code: 'AUTH_CURRENT_PASSWORD_INVALID' },
+    });
     expect(hasher.hash).not.toHaveBeenCalled();
     expect(repository.updatePasswordAndIncrementTokenVersion).not.toHaveBeenCalled();
   });

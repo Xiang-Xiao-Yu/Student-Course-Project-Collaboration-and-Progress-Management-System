@@ -21,6 +21,30 @@ function successEnvelope<T>(data: T): object {
 }
 
 describe('ApiClient', () => {
+  it('当前密码错误返回 422 时保留会话', async () => {
+    const onUnauthorized = vi.fn();
+    const client = new ApiClient({
+      baseUrl: 'http://127.0.0.1:3000/api/v1',
+      getAccessToken: () => 'mock-access-token',
+      onUnauthorized,
+      fetchImpl: async () =>
+        jsonResponse(
+          {
+            success: false,
+            error: { code: 'AUTH_CURRENT_PASSWORD_INVALID', message: '当前密码不正确' },
+            meta: { requestId: 'password-error', timestamp: '2026-10-19T00:00:00.000Z' },
+          },
+          422,
+        ),
+    });
+
+    await expect(client.request('/users/me/password', { method: 'PATCH' })).rejects.toMatchObject({
+      code: 'AUTH_CURRENT_PASSWORD_INVALID',
+      status: 422,
+    });
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
   it('正常场景解析成功响应并附加 Bearer Token', async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse(successEnvelope({ id: 'project-1' })),
