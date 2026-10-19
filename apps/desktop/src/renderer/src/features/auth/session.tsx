@@ -12,8 +12,22 @@ import type { PropsWithChildren } from 'react';
 import { ApiClient } from '../../lib/api/client';
 import { getUserFacingError } from '../../lib/api/errors';
 import { getDesktopRuntimeConfig } from '../../lib/runtime';
-import type { LoginInput, RegisterInput, RegisterResponseDto } from './auth-api';
-import { registerUser, signInWithPassword, signOutCurrentUser } from './auth-api';
+import type {
+  ChangePasswordInput,
+  LoginInput,
+  RegisterInput,
+  RegisterResponseDto,
+  UpdateProfileInput,
+  UserProfileDto,
+} from './auth-api';
+import {
+  changeCurrentUserPassword,
+  createSessionAfterPasswordChange,
+  registerUser,
+  signInWithPassword,
+  signOutCurrentUser,
+  updateCurrentUserProfile,
+} from './auth-api';
 import { completeServerLogout } from './session-logout';
 import type { AuthSession } from './session-storage';
 import {
@@ -27,6 +41,7 @@ export type SessionEndReason = 'expired' | 'signed-out' | null;
 
 interface SessionContextValue {
   readonly api: ApiClient;
+  readonly changePassword: (input: ChangePasswordInput) => Promise<void>;
   readonly reason: SessionEndReason;
   readonly signOutError: string | null;
   readonly session: AuthSession | null;
@@ -34,6 +49,7 @@ interface SessionContextValue {
   readonly registerAccount: (input: RegisterInput) => Promise<RegisterResponseDto>;
   readonly signIn: (input: LoginInput) => Promise<void>;
   readonly signOut: () => Promise<void>;
+  readonly updateProfile: (input: UpdateProfileInput) => Promise<UserProfileDto>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -80,6 +96,47 @@ export function SessionProvider({ children }: PropsWithChildren) {
   );
 
   const registerAccount = useCallback((input: RegisterInput) => registerUser(api, input), [api]);
+
+  const updateProfile = useCallback(
+    async (input: UpdateProfileInput) => {
+      const profile = await updateCurrentUserProfile(api, input);
+      const currentSession = sessionRef.current;
+
+      if (currentSession) {
+        const nextSession: AuthSession = {
+          ...currentSession,
+          user: {
+            ...currentSession.user,
+            displayName: profile.nickname,
+            username: profile.username,
+          },
+        };
+
+        sessionRef.current = nextSession;
+        setSession(nextSession);
+        writeStoredSession(storage, nextSession);
+      }
+
+      return profile;
+    },
+    [api, storage],
+  );
+
+  const changePassword = useCallback(
+    async (input: ChangePasswordInput) => {
+      const response = await changeCurrentUserPassword(api, input);
+      const currentSession = sessionRef.current;
+
+      if (currentSession) {
+        const nextSession = createSessionAfterPasswordChange(currentSession, response);
+
+        sessionRef.current = nextSession;
+        setSession(nextSession);
+        writeStoredSession(storage, nextSession);
+      }
+    },
+    [api, storage],
+  );
 
   const signOut = useCallback(async () => {
     setSignOutError(null);
@@ -128,6 +185,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const value = useMemo<SessionContextValue>(
     () => ({
       api,
+      changePassword,
       reason,
       registerAccount,
       session,
@@ -135,8 +193,19 @@ export function SessionProvider({ children }: PropsWithChildren) {
       signIn,
       status: session ? 'authenticated' : 'anonymous',
       signOut,
+      updateProfile,
     }),
-    [api, reason, registerAccount, session, signOutError, signIn, signOut],
+    [
+      api,
+      changePassword,
+      reason,
+      registerAccount,
+      session,
+      signOutError,
+      signIn,
+      signOut,
+      updateProfile,
+    ],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -34,6 +34,22 @@ export interface RegisterResponseDto {
   readonly username: string;
 }
 
+export interface UpdateProfileInput {
+  readonly avatarUrl?: string | null;
+  readonly nickname?: string;
+}
+
+export interface ChangePasswordInput {
+  readonly currentPassword: string;
+  readonly newPassword: string;
+}
+
+export interface ChangePasswordResponseDto {
+  readonly accessToken: string;
+  readonly expiresIn: string;
+  readonly tokenType: 'Bearer';
+}
+
 export interface UserProfileDto {
   readonly avatarUrl: string | null;
   readonly createdAt: string;
@@ -75,6 +91,18 @@ export function parseSessionDuration(expiresIn: string, now = Date.now()): numbe
   return multiplier ? now + amount * multiplier : now + DEFAULT_SESSION_DURATION_MS;
 }
 
+export function createSessionAfterPasswordChange(
+  session: AuthSession,
+  response: ChangePasswordResponseDto,
+  now = Date.now(),
+): AuthSession {
+  return {
+    ...session,
+    accessToken: response.accessToken,
+    expiresAt: parseSessionDuration(response.expiresIn, now),
+  };
+}
+
 export async function signInWithPassword(
   api: Pick<ApiClient, 'post'>,
   input: LoginInput,
@@ -109,4 +137,18 @@ export function getCurrentUserProfile(api: Pick<ApiClient, 'get'>): Promise<User
 
 export function getCurrentUserTasks(api: Pick<ApiClient, 'get'>): Promise<UserTaskDto[]> {
   return api.get<UserTaskDto[]>('/users/me/tasks');
+}
+
+export function updateCurrentUserProfile(
+  api: Pick<ApiClient, 'patch'>,
+  input: UpdateProfileInput,
+): Promise<UserProfileDto> {
+  return api.patch<UserProfileDto, UpdateProfileInput>('/users/me', input);
+}
+
+export function changeCurrentUserPassword(
+  api: Pick<ApiClient, 'patch'>,
+  input: ChangePasswordInput,
+): Promise<ChangePasswordResponseDto> {
+  return api.patch<ChangePasswordResponseDto, ChangePasswordInput>('/users/me/password', input);
 }

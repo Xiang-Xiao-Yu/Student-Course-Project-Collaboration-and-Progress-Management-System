@@ -148,4 +148,11 @@ export class ApiClient {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   }
+
+  patch<TResponse, TBody = never>(path: string, body?: TBody): Promise<TResponse> {
+    return this.request<TResponse>(path, {
+      method: 'PATCH',
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
 }
