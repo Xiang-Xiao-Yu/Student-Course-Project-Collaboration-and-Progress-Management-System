@@ -145,6 +145,7 @@ export class AuthRepository {
   async updatePasswordAndIncrementTokenVersion(
     userId: string,
     passwordHash: string,
+    expected: { passwordHash: string; tokenVersion: number },
   ): Promise<{ tokenVersion: number; username: string }> {
     try {
       return await this.prisma.user.update({
@@ -158,7 +159,12 @@ export class AuthRepository {
           tokenVersion: true,
           username: true,
         },
-        where: { id: userId },
+        where: {
+          id: userId,
+          passwordHash: expected.passwordHash,
+          status: 'ACTIVE',
+          tokenVersion: expected.tokenVersion,
+        },
       });
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

@@ -5,6 +5,21 @@ import { describe, expect, it } from 'vitest';
 import { UpdateProfileDto } from './update-profile.dto';
 
 describe('UpdateProfileDto', () => {
+  it('rejects an explicit null nickname', async () => {
+    const dto = plainToInstance(UpdateProfileDto, { nickname: null });
+    const errors = await validate(dto);
+
+    expect(errors.some((error) => error.property === 'nickname')).toBe(true);
+  });
+
+  it('allows an omitted nickname and an explicit null avatar', async () => {
+    const dto = plainToInstance(UpdateProfileDto, { avatarUrl: null });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.nickname).toBeUndefined();
+    expect(dto.avatarUrl).toBeNull();
+  });
+
   it('trims nickname and avatar URL', async () => {
     const dto = plainToInstance(UpdateProfileDto, {
       avatarUrl: '  https://example.com/avatar.png  ',

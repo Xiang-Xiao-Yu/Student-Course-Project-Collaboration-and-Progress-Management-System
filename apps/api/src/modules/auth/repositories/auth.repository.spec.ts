@@ -44,7 +44,10 @@ describe('AuthRepository.updatePasswordAndIncrementTokenVersion', () => {
     const repository = new AuthRepository(prisma as unknown as PrismaService);
 
     await expect(
-      repository.updatePasswordAndIncrementTokenVersion('missing-user', 'scrypt$salt$hash'),
+      repository.updatePasswordAndIncrementTokenVersion('missing-user', 'scrypt$salt$hash', {
+        passwordHash: 'scrypt$old-salt$old-hash',
+        tokenVersion: 4,
+      }),
     ).rejects.toMatchObject({
       status: HttpStatus.UNAUTHORIZED,
     });

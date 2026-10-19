@@ -114,7 +114,7 @@ export class AuthService {
 
     if (!currentPasswordMatches) {
       throw new AppException(
-        HttpStatus.UNAUTHORIZED,
+        HttpStatus.UNPROCESSABLE_ENTITY,
         'AUTH_CURRENT_PASSWORD_INVALID',
         '当前密码不正确',
       );
@@ -124,6 +124,7 @@ export class AuthService {
     const updatedUser = await this.authRepository.updatePasswordAndIncrementTokenVersion(
       userId,
       passwordHash,
+      { passwordHash: user.passwordHash, tokenVersion: user.tokenVersion },
     );
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
