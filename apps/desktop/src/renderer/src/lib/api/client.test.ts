@@ -80,6 +80,34 @@ describe('ApiClient', () => {
     expect(requestHeaders.has('Authorization')).toBe(false);
   });
 
+  it('binds the native fetch to globalThis in Chromium', async () => {
+    const nativeFetch = vi.fn(function (
+      this: unknown,
+      _input: RequestInfo | URL,
+      _init?: RequestInit,
+    ) {
+      if (this !== globalThis) {
+        throw new TypeError('Illegal invocation');
+      }
+
+      return Promise.resolve(jsonResponse(successEnvelope({ ok: true })));
+    });
+    vi.stubGlobal('fetch', nativeFetch);
+
+    try {
+      const client = new ApiClient({
+        baseUrl: 'http://127.0.0.1:3000/api/v1',
+        getAccessToken: () => null,
+        onUnauthorized: vi.fn(),
+      });
+
+      await expect(client.get<{ ok: boolean }>('/health')).resolves.toEqual({ ok: true });
+      expect(nativeFetch).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('失败场景在 401 时清理会话并抛出稳定错误码', async () => {
     const onUnauthorized = vi.fn();
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>

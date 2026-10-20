@@ -7,27 +7,13 @@ import { PageHeader } from '../components/PageHeader';
 import type { UserTaskDto } from '../features/auth/auth-api';
 import { getCurrentUserTasks } from '../features/auth/auth-api';
 import { useSession } from '../features/auth/session';
+import { getTaskPriorityLabel, getTaskStatusLabel } from '../features/tasks/task-presentation';
 import { getUserFacingError } from '../lib/api/errors';
 
 type TasksState =
   | { readonly status: 'loading' }
   | { readonly status: 'ready'; readonly tasks: UserTaskDto[] }
   | { readonly message: string; readonly status: 'error' };
-
-const statusLabels: Record<string, string> = {
-  BLOCKED: '已阻塞',
-  COMPLETED: '已完成',
-  IN_PROGRESS: '进行中',
-  PENDING_REVIEW: '待审核',
-  PLANNED: '待规划',
-  TODO: '待开始',
-};
-
-const priorityLabels: Record<string, string> = {
-  HIGH: '高',
-  LOW: '低',
-  MEDIUM: '中',
-};
 
 function formatDate(value: string | null): string {
   if (!value) {
@@ -102,8 +88,8 @@ export function MyTasksPage() {
                 <span>{task.projectName}</span>
               </div>
               <div className="task-row__meta">
-                <span className="tag">{statusLabels[task.status] ?? task.status}</span>
-                <span>优先级：{priorityLabels[task.priority] ?? task.priority}</span>
+                <span className="tag">{getTaskStatusLabel(task.status)}</span>
+                <span>优先级：{getTaskPriorityLabel(task.priority)}</span>
                 <span>截止：{formatDate(task.dueDate)}</span>
               </div>
             </article>

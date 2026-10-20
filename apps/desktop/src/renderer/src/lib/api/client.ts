@@ -60,7 +60,9 @@ export class ApiClient {
     this.baseUrl = options.baseUrl;
     this.getAccessToken = options.getAccessToken;
     this.onUnauthorized = options.onUnauthorized;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    const fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
+
+    this.fetchImpl = (input, init) => fetchImpl(input, init);
   }
 
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
