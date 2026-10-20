@@ -29,6 +29,7 @@ import {
   updateCurrentUserProfile,
 } from './auth-api';
 import { completeServerLogout } from './session-logout';
+import { shouldClearSessionForUnauthorized } from './session-unauthorized';
 import type { AuthSession } from './session-storage';
 import {
   clearStoredSession,
@@ -77,7 +78,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
       new ApiClient({
         baseUrl: getDesktopRuntimeConfig().apiBaseUrl,
         getAccessToken: () => sessionRef.current?.accessToken ?? null,
-        onUnauthorized: () => clearSession('expired'),
+        onUnauthorized: (requestAccessToken) => {
+          if (
+            shouldClearSessionForUnauthorized(
+              sessionRef.current?.accessToken ?? null,
+              requestAccessToken,
+            )
+          ) {
+            clearSession('expired');
+          }
+        },
       }),
     [clearSession],
   );

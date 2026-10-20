@@ -110,7 +110,7 @@ describe('ApiClient', () => {
       code: 'AUTH_SESSION_EXPIRED',
       status: 401,
     });
-    expect(onUnauthorized).toHaveBeenCalledOnce();
+    expect(onUnauthorized).toHaveBeenCalledWith('expired-token');
   });
 
   it('失败场景将网络异常转换为 NETWORK_ERROR', async () => {

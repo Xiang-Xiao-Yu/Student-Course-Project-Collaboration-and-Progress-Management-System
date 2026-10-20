@@ -4,9 +4,14 @@ import type { FormEvent } from 'react';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { ErrorState } from '../components/feedback/ErrorState';
 import { LoadingState } from '../components/feedback/LoadingState';
+import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import type { UserProfileDto } from '../features/auth/auth-api';
 import { getCurrentUserProfile } from '../features/auth/auth-api';
+import {
+  hasUnsavedPasswordChanges,
+  hasUnsavedProfileChanges,
+} from '../features/auth/profile-form-state';
 import type { PasswordFormErrors, ProfileFormErrors } from '../features/auth/auth-validation';
 import {
   hasFormErrors,
@@ -133,6 +138,11 @@ export function ProfilePage() {
     }
   }
 
+  const hasUnsavedChanges =
+    state.status === 'ready' &&
+    (hasUnsavedProfileChanges(state.profile, nickname, avatarUrl) ||
+      hasUnsavedPasswordChanges(currentPassword, newPassword, confirmPassword));
+
   if (state.status === 'loading') {
     return (
       <div className="page-stack">
@@ -158,6 +168,10 @@ export function ProfilePage() {
 
   return (
     <div className="page-stack">
+      <UnsavedChangesGuard
+        message="个人资料或密码尚未保存，离开后修改将丢失。"
+        when={hasUnsavedChanges}
+      />
       <PageHeader title="个人资料" description="查看并维护当前账号信息。" />
 
       <div className="profile-sections">
