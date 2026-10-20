@@ -107,7 +107,10 @@
 - P1-R1 验证：资料与密码 API 适配、表单校验和会话 Token 替换已覆盖；桌面端 11 个测试文件、36 项测试通过；真实 API 验证资料更新成功、旧 Token 401、新 Token 200、旧密码 401、新密码 200。
 - P1-R2 审查修复（2026-10-20，PR #24）：API client 的 401 回调携带请求 Token，仅当请求 Token 仍是当前 Token 时清理会话，避免旧请求延迟 401 清除改密后的新会话；资料页接入 `UnsavedChangesGuard`，昵称、头像或密码修改未保存时离开提示，保存/改密成功后自动清除脏状态。
 - P1-R2 验证：desktop 13 个测试文件、42 项通过；API 13 个文件、49 项通过；shared 2 个文件、6 项通过；lint、typecheck、test、build 全部通过。
-- 下一步：更新 PR #24 并交由 T-03 复测；保持 `待测试` 和 P1 冻结，不进入 P2。
+- P1-R2-D01 修复（2026-10-20）：ApiClient 默认将原生 `fetch` 绑定到 `globalThis`，避免 Chromium `Illegal invocation`；新增原生浏览器调用上下文回归测试。
+- P1-R2-D02 修复（2026-10-20）：任务状态展示统一由 `getTaskStatusLabel` 处理，补齐 `BACKLOG → 待规划` 及完整状态映射。
+- P1-R2 最终验证：desktop 14 个测试文件、46 项通过；API 49 项、shared 6 项通过；真实 Electron 注册、登录、资料更新、改密、新 Token 使用和旧 Token/旧密码失效全部通过。
+- 下一步：提交 P1-R2 修复并交由 T-03 复测；保持 `待测试` 和 P1 冻结，不进入 P2。
 
 ## GitHub Issue（由负责人提交给 `root`）
 
