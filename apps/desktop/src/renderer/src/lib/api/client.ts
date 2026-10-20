@@ -26,7 +26,7 @@ type ApiEnvelope<T> = ApiSuccessEnvelope<T> | ApiErrorEnvelope;
 export interface ApiClientOptions {
   readonly baseUrl: string;
   readonly getAccessToken: () => string | null | Promise<string | null>;
-  readonly onUnauthorized: () => void;
+  readonly onUnauthorized: (requestAccessToken: string | null) => void;
   readonly fetchImpl?: typeof fetch;
 }
 
@@ -53,7 +53,7 @@ function joinUrl(baseUrl: string, path: string): string {
 export class ApiClient {
   private readonly baseUrl: string;
   private readonly getAccessToken: () => string | null | Promise<string | null>;
-  private readonly onUnauthorized: () => void;
+  private readonly onUnauthorized: (requestAccessToken: string | null) => void;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: ApiClientOptions) {
@@ -100,7 +100,7 @@ export class ApiClient {
     }
 
     if (response.status === 401) {
-      this.onUnauthorized();
+      this.onUnauthorized(accessToken);
 
       if (isApiEnvelope<never>(payload) && !payload.success) {
         throw new ApiError({
@@ -145,6 +145,13 @@ export class ApiClient {
   post<TResponse, TBody = never>(path: string, body?: TBody): Promise<TResponse> {
     return this.request<TResponse>(path, {
       method: 'POST',
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
+
+  patch<TResponse, TBody = never>(path: string, body?: TBody): Promise<TResponse> {
+    return this.request<TResponse>(path, {
+      method: 'PATCH',
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   }
