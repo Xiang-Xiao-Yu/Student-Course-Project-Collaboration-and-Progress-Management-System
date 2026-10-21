@@ -114,6 +114,7 @@
 - P1-R3 后端复测通过（2026-10-20）：API 全量 65 项通过；P1 API 回归 24/24 通过；覆盖认证、格式/大小、伪造内容、用户目录隔离、替换失败回滚和统一错误响应。API 与全仓 lint、typecheck、test、build 均通过。AC-11 交项目组长复核，P2 仍锁定。
 
 - P1 最终门禁（2026-10-21）：冻结代码审查及 126 项测试、真实 Electron 9/9、lint/typecheck/build 通过。项目组长明确授权通过后解锁 P2，root 已开放后端 P2.1～P2.3（FR-02/FR-03、AC-02/AC-08），不得进入 P3。最终报告见 `docs/test/p1-final-gate-2026-10-21.md`。
+- P2.1 完成（2026-10-21）：项目创建、列表、详情、编辑、状态流转、归档和带项目名二次确认的删除 API 已实现；项目访问按平台管理员、OWNER、MEMBER、OBSERVER 判定。新增 `User.isPlatformAdmin` 和项目权限 Migration；无效日期、非法状态流转、归档只读和非成员隔离已有服务端校验与测试。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
