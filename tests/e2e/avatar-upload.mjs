@@ -60,6 +60,22 @@ function check(condition, label) {
   if (!condition) throw new Error(label);
 }
 
+async function captureScreenshot(filename) {
+  const options = {
+    path: join(runDirectory, filename),
+    animations: 'disabled',
+    timeout: 15000,
+  };
+  await page.bringToFront();
+  try {
+    await page.screenshot(options);
+  } catch {
+    console.log('Retrying screenshot capture: ' + filename);
+    await page.bringToFront();
+    await page.screenshot(options);
+  }
+}
+
 function runSetup(args) {
   const result = spawnSync(process.execPath, args, {
     cwd: root,
@@ -178,7 +194,7 @@ try {
       ),
       'Avatar bytes were written into session storage',
     );
-    await page.screenshot({ path: join(runDirectory, 'header-avatar.png'), timeout: 15000 });
+    await captureScreenshot('header-avatar.png');
     await page.getByRole('link', { name: '个人资料', exact: true }).click();
     await page.getByRole('button', { name: '保存资料', exact: true }).waitFor();
   }
@@ -293,10 +309,7 @@ try {
       );
       check(storedBytes.equals(png), 'Server stored different image bytes');
       await checkWorkspaceAvatar(preview);
-      await page.screenshot({
-        path: join(runDirectory, 'avatar-upload-success.png'),
-        timeout: 15000,
-      });
+      await captureScreenshot('avatar-upload-success.png');
 
       await page.reload();
       await page.getByRole('button', { name: '保存资料', exact: true }).waitFor();
@@ -481,10 +494,7 @@ try {
       );
       const user = await prisma.user.findUniqueOrThrow({ where: { username } });
       check(user.avatarUrl === persistedReference, 'Failed upload changed the stored avatar');
-      await page.screenshot({
-        path: join(runDirectory, 'avatar-upload-rejected.png'),
-        timeout: 15000,
-      });
+      await captureScreenshot('avatar-upload-rejected.png');
     },
   );
   await runCase('Password change rotates the session and preserves the saved avatar', async () => {
@@ -558,7 +568,7 @@ try {
   console.log(error.message.split('\n').slice(1, 6).join('\n'));
   if (page) {
     console.log('Failure page: ' + (await page.locator('body').innerText()).slice(0, 650));
-    await page.screenshot({ path: join(runDirectory, 'failure.png') }).catch(() => {});
+    await captureScreenshot('failure.png').catch(() => {});
   }
   results.push({
     name: 'HARNESS',
