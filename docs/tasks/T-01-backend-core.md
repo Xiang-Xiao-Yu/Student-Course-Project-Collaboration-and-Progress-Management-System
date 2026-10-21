@@ -8,7 +8,7 @@
 - 负责人：`Codex@backend`
 - 状态：`进行中`
 - 优先级：MVP 必须
-- 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
+- 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
 - GitHub 仓库：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System
 - GitHub Issues：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues
@@ -99,7 +99,7 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P1 用户认证（已解锁）
+- 当前阶段：P2 项目、成员与权限（已解锁，限 P2.1～P2.3；P3 及以后锁定）
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
 - P0-R1 修复结果（2026-10-11，ChatGPT@root）：main.ts 缓冲 Nest 启动日志并在成功监听后刷新；环境校验错误只输出安全白名单消息，其他启动异常显示通用提示。新增进程级 startup-error.spec.ts。API 9 项测试、全仓 lint/typecheck/test/build 和正向 API 冒烟检查均通过；缺少 JWT_SECRET 的构建后进程检查确认非零退出、错误清楚且无绝对路径、堆栈或占位密钥。等待 T-03 在与 PR #15 组合的候选版本上执行最终 P0 复测。
@@ -109,8 +109,14 @@
 - P1.3 完成（2026-10-13）：`GET /api/v1/users/me` 和 `GET /api/v1/users/me/tasks` 已实现，统一使用认证 Guard；返回安全用户资料和按截止日期排序的个人任务；缺少认证时返回 `AUTH_SESSION_EXPIRED`。
 - P1 已完成待测试：P1.1～P1.3 均已实现并通过 lint、typecheck、test、build；当前停止 P1 开发，等待 root/T-03 检查，不得进入 P2。
 - P1-R1 完成（2026-10-19，Issue #21）：补齐 `PATCH /api/v1/users/me` 和 `PATCH /api/v1/users/me/password`；资料更新返回安全资料，改密先验证当前密码，成功后递增 `tokenVersion` 并返回新 Token，旧 Token 立即失效；开发种子新增 `admin`/`member` 两个用户及各自非空个人任务夹具。全仓 lint、typecheck、test、build 通过，种子连续执行两次且任务归属正确；等待 T-03 复测。
+- P1-R3 批准（2026-10-20，Issue #26）：root 批准新增 FR-01/AC-11 头像文件上传。后端范围为已认证 multipart 上传、实际格式/大小校验、服务端受控文件存储、profile data URL 兼容和覆盖回滚；不改 Prisma Schema 或依赖。实现与 T-02 同分支，由 root 协调，完成后交 T-03 复测。
+- P1-R3 头像上传（2026-10-20，Issue #26，root 批准）：新增认证头像 multipart API；验证允许的图片签名/大小，使用服务端生成文件标识保存在 `data/avatars`，profile 响应不暴露服务端路径，替换失败保留原头像。无需 Schema Migration 或新依赖，已完成并交 T-03 复测。
+- P1-R3 后端复测通过（2026-10-20）：API 全量 65 项通过；P1 API 回归 24/24 通过；覆盖认证、格式/大小、伪造内容、用户目录隔离、替换失败回滚和统一错误响应。API 与全仓 lint、typecheck、test、build 均通过。AC-11 交项目组长复核，P2 仍锁定。
+
+- P1 最终门禁（2026-10-21）：冻结代码审查及 126 项测试、真实 Electron 9/9、lint/typecheck/build 通过。项目组长明确授权通过后解锁 P2，root 已开放后端 P2.1～P2.3（FR-02/FR-03、AC-02/AC-08），不得进入 P3。最终报告见 `docs/test/p1-final-gate-2026-10-21.md`。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
 - 必须创建 GitHub Issue；格式至少包含 Issue 链接、提出人标签、关联 `T-01`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
 - 当前：[Issue #11](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/11) `[T-01] Codex@backend 申请认领后端开发任务`，root 审批结论为 `approved`；批准范围为 P0、`FR-01～FR-11`、`AC-01～AC-10`，P0 门禁已通过，Issue 随本次 P0 验收同步 PR 合并关闭。
+- 当前范围变更：[Issue #26](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/26) FR-01 头像文件选择与服务端上传，root 状态 `approved`，交 T-03 复测后关闭。

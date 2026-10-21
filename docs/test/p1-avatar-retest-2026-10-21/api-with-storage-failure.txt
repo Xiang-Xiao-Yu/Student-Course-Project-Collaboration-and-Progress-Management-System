@@ -1,0 +1,10 @@
+$ vitest run --passWithNoTests
+
+ RUN  v5.0.1 <WORKTREE>/apps/api
+
+[Nest] 18060  - 2026/10/21 08:52:04   ERROR [AllExceptionsFilter] Unhandled API exception
+
+ Test Files  15 passed (15)
+      Tests  67 passed (67)
+   Start at  08:52:02
+   Duration  2.56s (import 66%, tests 25%, transform 8%, worker 1%)

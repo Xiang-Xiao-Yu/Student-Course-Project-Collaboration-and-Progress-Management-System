@@ -1,0 +1,20 @@
+HARNESS: FAIL locator.waitFor: Timeout 8000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('heading', { name: '登录', exact: true }) to be visible[22m
+
+Failure page: 课
+课程项目协作台
+协作与进度管理
+注册
+
+创建账号后即可加入项目团队。
+
+用户名
+请输入用户名。
+昵称
+密码
+确认密码
+注册
+
+已有账号？返回登录
+{"runDirectory":"<WORKTREE>\\data\\p1-avatar-e2e-1792544499546","passed":0,"failed":1}

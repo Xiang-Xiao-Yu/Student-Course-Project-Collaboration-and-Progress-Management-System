@@ -1,0 +1,23 @@
+Runtime API: http://127.0.0.1:63150/api/v1; isolated API: http://127.0.0.1:63150/api/v1
+Fetch receiver probe: {"window":200,"custom":"Failed to execute 'fetch' on 'Window': Illegal invocation"}
+P1-DESKTOP-003: PASS
+P1-DESKTOP-007: PASS
+P1-DESKTOP-001: PASS
+PR24-unsaved-profile: PASS
+P1-DESKTOP-006-profile: PASS
+PR24-unsaved-password: PASS
+P1-DESKTOP-006-password: PASS
+Request failure: http://127.0.0.1:63150/api/v1/users/me net::ERR_CONNECTION_REFUSED
+P1-DESKTOP-008-profile: PASS
+Request failure: http://127.0.0.1:63150/api/v1/auth/logout net::ERR_CONNECTION_REFUSED
+P1-DESKTOP-008-logout: PASS
+Runtime API: http://127.0.0.1:63150/api/v1; isolated API: http://127.0.0.1:63150/api/v1
+Fetch receiver probe: {"window":200,"custom":"Failed to execute 'fetch' on 'Window': Illegal invocation"}
+P1-DESKTOP-002: PASS
+P1-DESKTOP-004-wrong-password: PASS
+P1-DESKTOP-004-duplicate: PASS
+P1-DESKTOP-004-disabled: PASS
+P1-DESKTOP-006-nonempty-BACKLOG: PASS
+P1-DESKTOP-005-revoked: PASS
+P1-DESKTOP-005-expired: PASS
+{"runDir":"<WORKTREE>\\data\\p1-desktop-1792508366645","passed":16,"failed":0}

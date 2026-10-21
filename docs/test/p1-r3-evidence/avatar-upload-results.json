@@ -1,0 +1,54 @@
+{
+  "frozenCommit": "5860197619426203a1b7260953d68e9f3e604944",
+  "cases": [
+    {
+      "name": "Native file chooser uploads a server-owned avatar and persists it after reload",
+      "status": "PASS"
+    },
+    {
+      "name": "Network failure preserves the previously uploaded avatar",
+      "status": "PASS"
+    },
+    {
+      "name": "Forged image bytes are rejected and the existing avatar remains unchanged",
+      "status": "PASS"
+    }
+  ],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/auth/register",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/users/me/avatar",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/users/me/avatar",
+      "status": 422
+    }
+  ]
+}

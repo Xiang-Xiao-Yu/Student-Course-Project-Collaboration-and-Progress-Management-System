@@ -1,0 +1,47 @@
+Only the file picker is available for editing avatars: PASS
+Canceling the native file chooser leaves the avatar unchanged: PASS
+Selecting a file uploads once, preserves unsaved nickname and persists after reload and login: PASS
+The camera button opens the picker and the selected avatar uploads: PASS
+Unsupported, empty and oversized files are refused before upload: PASS
+Automatic upload during a network failure preserves the old avatar: PASS
+HARNESS: FAIL page.screenshot: Timeout 15000ms exceeded.
+Call log:
+[2m  - taking page screenshot[22m
+[2m  - waiting for fonts to load...[22m
+[2m  - fonts loaded[22m
+
+Failure page: 课
+课程项目协作台
+保存头像回归
+个人资料
+我的任务
+返回项目
+退出
+个人资料
+
+查看并维护当前账号信息。
+
+基本信息
+
+avatar-1792545389498 · 注册于 2026年10月21日 09:16
+
+正常
+图片内容已损坏或无法识别，请重新选择。
+昵称
+头像
+个人头像
+
+JPG、PNG 或 WebP · 不超过 10 MiB
+
+更换图片
+当前头像已保存，更换后自动上传
+保存资料
+修改密码
+
+修改成功后当前会话会自动更新。
+
+当前密码
+新密码
+确认新密码
+更新密码
+{"runDirectory":"<WORKTREE>\\data\\p1-avatar-e2e-1792545387268","passed":6,"failed":1}

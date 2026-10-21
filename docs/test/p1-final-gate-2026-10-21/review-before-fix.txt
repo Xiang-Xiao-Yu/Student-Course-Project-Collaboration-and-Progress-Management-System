@@ -1,0 +1,54 @@
+
+ RUN  v5.0.1 <WORKTREE>/apps/api
+
+ ❯ src/modules/users/avatar-upload.integration.spec.ts (5 tests | 2 failed | 3 skipped) 351ms
+   ❯ FR-01 authenticated avatar upload with SQLite (5)
+     × rolls back the avatar write when the following profile read fails 99ms
+     × rejects extra multipart fields without updating the avatar 86ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/users/avatar-upload.integration.spec.ts > FR-01 authenticated avatar upload with SQLite > rolls back the avatar write when the following profile read fails
+AssertionError: expected 'uploaded:38d56b00-e183-4c80-adb9-0d76…' to be 'https://example.com/current.png' // Object.is equality
+
+Expected: "https://example.com/current.png"
+Received: "uploaded:38d56b00-e183-4c80-adb9-0d76cb4592ca.png"
+
+ ❯ src/modules/users/avatar-upload.integration.spec.ts:226:89
+    224|       repository.updateAvatar(user.id, previous, `uploaded:${randomUUI…
+    225|     ).rejects.toThrow('profile-read-failure');
+    226|     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id…
+       |                                                                                         ^
+    227|   });
+    228|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/modules/users/avatar-upload.integration.spec.ts > FR-01 authenticated avatar upload with SQLite > rejects extra multipart fields without updating the avatar
+AssertionError: expected 200 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 200
+
+ ❯ src/modules/users/avatar-upload.integration.spec.ts:239:29
+    237|       body: form,
+    238|     });
+    239|     expect(response.status).toBe(400);
+       |                             ^
+    240|     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id…
+    241|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 skipped (5)
+   Start at  09:10:50
+   Duration  1.73s (import 64%, tests 22%, transform 14%)
+
+undefined
+<WORKTREE>\apps\api:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/users/avatar-upload.integration.spec.ts -t "rolls back|extra multipart"

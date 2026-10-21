@@ -1,0 +1,10 @@
+Only the file picker is available for editing avatars: PASS
+Canceling the native file chooser leaves the avatar unchanged: PASS
+Selecting a file uploads once, preserves unsaved nickname and persists after reload and login: PASS
+The camera button opens the picker and the selected avatar uploads: PASS
+Unsupported, empty and oversized files are refused before upload: PASS
+Automatic upload during a network failure preserves the old avatar: PASS
+A damaged PNG with a valid signature is rejected before upload and preserves the old avatar: PASS
+Password change rotates the session and preserves the saved avatar: PASS
+Switching to an account without an avatar clears the previous header image: PASS
+{"runDirectory":"<WORKTREE>\\data\\p1-avatar-e2e-1792545465095","passed":9,"failed":0}

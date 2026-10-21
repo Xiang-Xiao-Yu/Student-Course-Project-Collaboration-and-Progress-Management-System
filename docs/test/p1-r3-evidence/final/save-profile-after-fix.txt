@@ -1,0 +1,6 @@
+Canceling the native file chooser leaves the avatar unchanged: PASS
+Save profile uploads the selected avatar and persists it after reload and login: PASS
+The separate upload button still saves an avatar: PASS
+Saving profile during a network failure preserves the old avatar: PASS
+Forged image bytes are rejected and the existing avatar remains unchanged: PASS
+{"runDirectory":"<WORKTREE>\\data\\p1-avatar-e2e-1792510184156","passed":5,"failed":0}
