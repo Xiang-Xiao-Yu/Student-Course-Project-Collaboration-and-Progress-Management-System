@@ -23,6 +23,9 @@ coverage/
 *.db-journal
 *.sqlite
 *.sqlite3
+/data/avatars/
+/data/p1-*/
+/data/*.db.*
 
 # IDE and operating-system files
 .idea/

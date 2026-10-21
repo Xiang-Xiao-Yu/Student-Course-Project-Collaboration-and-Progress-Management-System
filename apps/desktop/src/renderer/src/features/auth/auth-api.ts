@@ -146,6 +146,16 @@ export function updateCurrentUserProfile(
   return api.patch<UserProfileDto, UpdateProfileInput>('/users/me', input);
 }
 
+export function uploadCurrentUserAvatar(
+  api: Pick<ApiClient, 'postFormData'>,
+  file: File,
+): Promise<UserProfileDto> {
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  return api.postFormData<UserProfileDto>('/users/me/avatar', formData);
+}
+
 export function changeCurrentUserPassword(
   api: Pick<ApiClient, 'patch'>,
   input: ChangePasswordInput,

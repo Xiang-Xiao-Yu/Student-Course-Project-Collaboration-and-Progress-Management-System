@@ -151,6 +151,13 @@ export class ApiClient {
     });
   }
 
+  postFormData<TResponse>(path: string, body: FormData): Promise<TResponse> {
+    return this.request<TResponse>(path, {
+      method: 'POST',
+      body,
+    });
+  }
+
   patch<TResponse, TBody = never>(path: string, body?: TBody): Promise<TResponse> {
     return this.request<TResponse>(path, {
       method: 'PATCH',

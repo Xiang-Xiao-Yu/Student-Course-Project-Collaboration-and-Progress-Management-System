@@ -19,6 +19,11 @@ describe('shared P0 contracts', () => {
     }
 
     expect(API_ROUTE_CONTRACTS.health.access.type).toBe('PUBLIC');
+    expect(API_ROUTE_CONTRACTS.usersMeAvatarUpload).toEqual({
+      access: { type: 'AUTHENTICATED' },
+      method: 'POST',
+      path: `${API_BASE_PATH}/users/me/avatar`,
+    });
     expect(API_ROUTE_CONTRACTS.projectsCreate.access.type).toBe('PROJECT_CREATOR');
     expect(API_ROUTE_CONTRACTS.tasksCreate.access).toEqual({
       permission: 'TASK_CREATE',

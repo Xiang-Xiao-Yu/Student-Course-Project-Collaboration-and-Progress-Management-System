@@ -44,6 +44,10 @@ const ERROR_DEFINITIONS: Readonly<Record<number, Omit<ResolvedException, 'detail
     code: 'VALIDATION_FAILED',
     message: '业务校验失败',
   },
+  [HttpStatus.PAYLOAD_TOO_LARGE]: {
+    code: 'PAYLOAD_TOO_LARGE',
+    message: '请求内容过大',
+  },
   [HttpStatus.INTERNAL_SERVER_ERROR]: {
     code: 'INTERNAL_SERVER_ERROR',
     message: '服务器内部错误',
@@ -58,7 +62,7 @@ function readSafeErrorCode(value: unknown, fallback: string): string {
   return typeof value === 'string' && /^[A-Z][A-Z0-9_]*$/.test(value) ? value : fallback;
 }
 
-function resolveException(exception: unknown): ResolvedException {
+function resolveException(exception: unknown, isAvatarUpload: boolean): ResolvedException {
   if (!(exception instanceof HttpException)) {
     return {
       code: 'INTERNAL_SERVER_ERROR',
@@ -73,6 +77,16 @@ function resolveException(exception: unknown): ResolvedException {
     code: 'HTTP_ERROR',
     message: '请求处理失败',
   };
+
+  if (status === HttpStatus.PAYLOAD_TOO_LARGE && isAvatarUpload) {
+    return {
+      code: 'AVATAR_FILE_TOO_LARGE',
+      details: null,
+      message: '头像图片不能超过 10 MiB',
+      status,
+    };
+  }
+
   const response = exception.getResponse();
 
   if (typeof response === 'string') {
@@ -136,7 +150,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
     const request = context.getRequest<RequestWithId>();
-    const resolved = resolveException(exception);
+    const isAvatarUpload =
+      request.method === 'POST' &&
+      ['/api/v1/users/me/avatar', '/users/me/avatar'].includes(request.path);
+    const resolved = resolveException(exception, isAvatarUpload);
 
     if (resolved.status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error('Unhandled API exception');

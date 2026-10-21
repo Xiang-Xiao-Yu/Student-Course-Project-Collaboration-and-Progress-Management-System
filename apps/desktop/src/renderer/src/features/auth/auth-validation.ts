@@ -18,12 +18,10 @@ export interface AuthFormErrors {
 }
 
 export interface ProfileFormInput {
-  readonly avatarUrl: string;
   readonly nickname: string;
 }
 
 export interface ProfileFormErrors {
-  avatarUrl?: string;
   nickname?: string;
 }
 
@@ -37,6 +35,25 @@ export interface PasswordFormErrors {
   confirmPassword?: string;
   currentPassword?: string;
   newPassword?: string;
+}
+
+export const MAX_AVATAR_FILE_BYTES = 10 * 1024 * 1024;
+const allowedAvatarMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+export function validateAvatarFile(file: Pick<File, 'size' | 'type'>): string | null {
+  if (!allowedAvatarMimeTypes.has(file.type)) {
+    return '请选择 JPEG、PNG 或 WebP 图片。';
+  }
+
+  if (file.size === 0) {
+    return '所选图片为空文件。';
+  }
+
+  if (file.size > MAX_AVATAR_FILE_BYTES) {
+    return '头像图片不能超过 10 MiB。';
+  }
+
+  return null;
 }
 
 export function validateLoginForm(input: LoginFormInput): AuthFormErrors {
@@ -90,16 +107,11 @@ export function validateRegisterForm(input: RegisterFormInput): AuthFormErrors {
 export function validateProfileForm(input: ProfileFormInput): ProfileFormErrors {
   const errors: ProfileFormErrors = {};
   const nickname = input.nickname.trim();
-  const avatarUrl = input.avatarUrl.trim();
 
   if (!nickname) {
     errors.nickname = '请输入昵称。';
   } else if (nickname.length > 50) {
     errors.nickname = '昵称不能超过 50 个字符。';
-  }
-
-  if (avatarUrl.length > 2048) {
-    errors.avatarUrl = '头像地址不能超过 2048 个字符。';
   }
 
   return errors;

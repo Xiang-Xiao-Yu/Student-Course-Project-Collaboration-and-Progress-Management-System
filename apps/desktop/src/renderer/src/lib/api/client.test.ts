@@ -21,6 +21,30 @@ function successEnvelope<T>(data: T): object {
 }
 
 describe('ApiClient', () => {
+  it('posts multipart form data without forcing a JSON content type', async () => {
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse(successEnvelope({ avatarUrl: 'data:image/png;base64,AA==' })),
+    );
+    const client = new ApiClient({
+      baseUrl: 'http://127.0.0.1:3000/api/v1',
+      getAccessToken: () => 'avatar-access-token',
+      onUnauthorized: vi.fn(),
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const formData = new FormData();
+    formData.append('avatar', new Blob(['image-bytes'], { type: 'image/png' }), 'avatar.png');
+
+    await expect(client.postFormData('/users/me/avatar', formData)).resolves.toEqual({
+      avatarUrl: 'data:image/png;base64,AA==',
+    });
+    const request = fetchImpl.mock.calls[0]?.[1];
+    const requestHeaders = request?.headers as Headers;
+
+    expect(request?.body).toBe(formData);
+    expect(requestHeaders.get('Authorization')).toBe('Bearer avatar-access-token');
+    expect(requestHeaders.has('Content-Type')).toBe(false);
+  });
+
   it('当前密码错误返回 422 时保留会话', async () => {
     const onUnauthorized = vi.fn();
     const client = new ApiClient({

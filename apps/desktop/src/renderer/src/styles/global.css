@@ -265,7 +265,7 @@ a {
   gap: 10px;
 }
 
-.user-chip__avatar {
+.user-chip .user-chip__avatar {
   display: grid;
   width: 34px;
   height: 34px;
@@ -275,6 +275,14 @@ a {
   background: var(--teal);
   font-size: 13px;
   font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-chip__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-chip strong,

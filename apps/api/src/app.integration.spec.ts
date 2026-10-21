@@ -18,6 +18,7 @@ import {
   Controller,
   Get,
   INestApplication,
+  PayloadTooLargeException,
   ValidationPipe,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -31,6 +32,11 @@ import { PrismaService } from './prisma/prisma.service';
 
 @Controller('_test-errors')
 class TestErrorsController {
+  @Get('too-large')
+  tooLarge(): never {
+    throw new PayloadTooLargeException('请求内容过大');
+  }
+
   @Get('bad-request')
   badRequest(): never {
     throw new BadRequestException({ message: '参数错误' });
@@ -178,5 +184,13 @@ describe('API integration', () => {
     expect(body.error.code).toBe('INTERNAL_SERVER_ERROR');
     expect(body.error.message).toBe('服务器内部错误');
     expect(serialized).not.toContain('sensitive-value-must-not-leak');
+  });
+
+  it('does not label a non-avatar payload limit as an avatar error', async () => {
+    const response = await fetch(`${baseUrl}/_test-errors/too-large`);
+    const body = (await response.json()) as ApiErrorResponse;
+    expect(response.status).toBe(413);
+    expect(body.error.code).toBe('PAYLOAD_TOO_LARGE');
+    expect(body.error.message).toBe('请求内容过大');
   });
 });

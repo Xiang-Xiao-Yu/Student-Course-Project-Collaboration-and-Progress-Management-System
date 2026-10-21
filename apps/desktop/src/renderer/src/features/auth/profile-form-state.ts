@@ -1,11 +1,10 @@
 import type { UserProfileDto } from './auth-api';
 
 export function hasUnsavedProfileChanges(
-  profile: Pick<UserProfileDto, 'avatarUrl' | 'nickname'>,
+  profile: Pick<UserProfileDto, 'nickname'>,
   nickname: string,
-  avatarUrl: string,
 ): boolean {
-  return profile.nickname !== nickname.trim() || profile.avatarUrl !== (avatarUrl.trim() || null);
+  return profile.nickname !== nickname.trim();
 }
 
 export function hasUnsavedPasswordChanges(

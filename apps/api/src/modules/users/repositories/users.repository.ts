@@ -79,6 +79,25 @@ export class UsersRepository {
     }
   }
 
+  async updateAvatar(
+    userId: string,
+    expectedAvatarUrl: string | null,
+    avatarUrl: string,
+  ): Promise<UserProfileRecord | null> {
+    return this.prisma.$transaction(async (transaction) => {
+      const result = await transaction.user.updateMany({
+        data: { avatarUrl },
+        where: { avatarUrl: expectedAvatarUrl, id: userId },
+      });
+
+      if (result.count !== 1) {
+        return null;
+      }
+
+      return transaction.user.findUnique({ select: userProfileSelect, where: { id: userId } });
+    });
+  }
+
   async findAssignedTasks(userId: string): Promise<UserTaskRecord[]> {
     return this.prisma.task.findMany({
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],

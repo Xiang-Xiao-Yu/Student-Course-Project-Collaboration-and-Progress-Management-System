@@ -1,4 +1,17 @@
-import { Body, Controller, Get, HttpStatus, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { AppException } from '../../common/errors/app.exception';
 import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
@@ -6,6 +19,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import type { ChangePasswordResponse } from '../auth/interfaces/change-password-response';
+import { MAX_AVATAR_UPLOAD_BYTES } from './avatar-storage.service';
+import type { AvatarUploadFile } from './avatar-storage.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import type { UserProfileResponse, UserTaskItem } from './interfaces/user-profile-response';
 import { UsersService } from './users.service';
@@ -34,6 +49,20 @@ export class UsersController {
     @Body() dto: UpdateProfileDto,
   ): Promise<UserProfileResponse> {
     return this.usersService.updateProfile(this.requireUserId(request), dto);
+  }
+
+  @Post('me/avatar')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      limits: { fileSize: MAX_AVATAR_UPLOAD_BYTES, files: 1, fields: 0 },
+    }),
+  )
+  uploadAvatar(
+    @Req() request: AuthenticatedRequest,
+    @UploadedFile() file: AvatarUploadFile | undefined,
+  ): Promise<UserProfileResponse> {
+    return this.usersService.uploadAvatar(this.requireUserId(request), file);
   }
 
   @Patch('me/password')
