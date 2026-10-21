@@ -57,6 +57,11 @@ export const API_ROUTE_CONTRACTS = {
     method: 'PATCH',
     path: `${API_BASE_PATH}/users/me`,
   },
+  usersMeAvatarUpload: {
+    access: AUTHENTICATED_ACCESS,
+    method: 'POST',
+    path: `${API_BASE_PATH}/users/me/avatar`,
+  },
   usersMePassword: {
     access: AUTHENTICATED_ACCESS,
     method: 'PATCH',

@@ -6,9 +6,9 @@
 - 任务名称：React + TypeScript + Electron 客户端
 - 负责人标签：`Deepseek@frontend`
 - 负责人：`Deepseek@frontend`
-- 状态：`待测试`
+- 状态：`进行中`
 - 优先级：MVP 必须
-- 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-10
+- 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
 - GitHub 仓库：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System
 - GitHub Issues：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues
@@ -92,7 +92,7 @@
 
 ## 进度记录（仅 T-02 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P1 登录与个人资料（已解锁）
+- 当前阶段：P2 项目、成员与权限界面（已解锁，限 P2.1～P2.3；P3 及以后锁定）
 - 已完成：任务拆分、阶段门禁定义；`Deepseek@frontend` 于 Issue #9 提交认领申请；`ChatGPT@root` 批准认领并确认从 P0 开始；P0.1～P0.3 已完成。
 - root 指定验证范围（P0-R1，2026-09-29）：当前没有确认的前端代码缺陷，不新增功能、不改依赖或契约。仅补充桌面运行时验证：启动 Electron；验证未登录访问受保护项目路由会回到登录页；在 API 不可用时触发一次受保护页面请求，确认界面显示可理解的错误提示且应用不崩溃、不显示堆栈或敏感值。提供可复核的命令/步骤和截图或等价原始证据。若该流程实际失败，停止修改并将复现与证据交 root 再指定代码修复范围。保持 P0 冻结，不进入 P1。
 - P0 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；修复后桌面端 21 个测试通过，API 8 项、shared 6 项通过。
@@ -111,9 +111,19 @@
 - P1-R2-D02 修复（2026-10-20）：任务状态展示统一由 `getTaskStatusLabel` 处理，补齐 `BACKLOG → 待规划` 及完整状态映射。
 - P1-R2 最终验证：desktop 14 个测试文件、46 项通过；API 49 项、shared 6 项通过；真实 Electron 注册、登录、资料更新、改密、新 Token 使用和旧 Token/旧密码失效全部通过。
 - 下一步：提交 P1-R2 修复并交由 T-03 复测；保持 `待测试` 和 P1 冻结，不进入 P2。
+- P1-R3 批准（2026-10-20，Issue #26）：root 批准新增 FR-01/AC-11 头像文件选择与上传。本轮使用 Electron 原生文件输入对话框，展示本地预览、验证格式/大小并经 API 上传；失败保留当前头像，保留旧 URL 编辑兼容；不新增依赖或修改 Schema。完成后冻结并交 T-03 复测。
+- P1-R3 头像上传（2026-10-20，Issue #26，root 批准）：个人资料页改为系统文件选择器，可预览并上传头像；服务端成功后显示持久化头像，取消/失败保留原值。T-01/T-02 P1 重新进入开发，已完成并交 T-03 复测。
+- P1-R3 桌面复测通过（2026-10-20）：桌面端全量 52 项及 P1 回归 16/16 通过；真实 Electron 4/4 黑盒场景通过，覆盖原生文件选择器取消、上传后刷新持久化、网络失败回退和伪造图片拒绝；lint、typecheck、build 通过。AC-11 交项目组长复核，P2 仍锁定。
+- P1-R3-D01 人工黑盒修复（2026-10-20）：修复选图后直接保存未上传、旧资料覆盖预览的问题；保存资料会上传所选文件且不再发送清除新头像的空 URL，读取/上传/保存互斥。真实 Electron 5/5 通过，补测直接保存、重复保存、刷新/重新登录和保存期间断网；全量 123 项测试、lint、桌面 typecheck/build 通过。证据见 P1-R3 报告 D01；等待项目组长复核，P2 仍锁定。
+- P1-R3-D02 顶部同步修复（2026-10-20）：顶部账号区改为显示已保存头像；会话内存同步保存/独立上传结果，登录和刷新时重新读取；无图/加载失败显示昵称首字，退出清理且按用户隔离。真实 Electron 6/6 通过，覆盖顶部解码、即时同步、刷新/重新登录、跨账号及不写入 sessionStorage；全量 123 项测试、typecheck、lint、桌面 build 通过。证据见 P1-R3 报告 D02，等待项目组长复核，P2 仍锁定。
+- P1-R3-D03 单一上传渠道（2026-10-21）：个人资料页删除头像 URL 输入与校验；保存资料只提交昵称，文件上传更新头像；旧头像值在未上传新文件时保持不变。等待项目组长人工确认，P2 仍锁定。
+- P1-R3-D06 自动上传（2026-10-21）：按需求 0.1.4 删除手动上传按钮，有效选图后自动上传一次；相机与更换图片共用选择器；保留未保存昵称、上传失败恢复旧头像，保存资料只更新昵称。全仓 123 项测试、真实 Electron 8/8、lint、桌面 typecheck/build 通过；详情见头像自动上传复测报告，等待项目组长人工确认，P2 仍锁定。
+
+- P1 最终门禁（2026-10-21）：冻结代码审查及 126 项测试、真实 Electron 9/9、lint/typecheck/build 通过；包含改密/旧 Token 与旧密码失效、自动头像、昵称隔离和异常回退。项目组长明确授权通过后解锁 P2，root 已开放前端 P2.1～P2.3（FR-02/FR-03、AC-02/AC-08），不得进入 P3。最终报告见 `docs/test/p1-final-gate-2026-10-21.md`。
 
 ## GitHub Issue（由负责人提交给 `root`）
 
 - 范围外问题、接口冲突、测试阻塞和任务调整必须创建 GitHub Issue，不得直接修改任务范围或他人文件。
 - GitHub Issue 格式：Issue 链接、提出人标签、关联 `T-02`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
 - 当前：[Issue #9](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/9) `[T-02] Deepseek@frontend 申请认领前端开发任务`，状态 `approved`；P0 交付和验收已通过，Issue 随本次 P0 验收同步 PR 合并关闭。
+- 当前范围变更：[Issue #26](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/26) FR-01 头像文件选择与服务端上传，root 状态 `approved`，交 T-03 复测后关闭。

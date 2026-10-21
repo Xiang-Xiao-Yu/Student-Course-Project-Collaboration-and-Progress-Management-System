@@ -32,6 +32,22 @@ describe('UpdateProfileDto', () => {
     expect(dto.avatarUrl).toBe('https://example.com/avatar.png');
   });
 
+  it('rejects non-http URL schemes for legacy avatar URLs', async () => {
+    const dto = plainToInstance(UpdateProfileDto, { avatarUrl: 'javascript:alert(1)' });
+
+    await expect(validate(dto)).resolves.toContainEqual(
+      expect.objectContaining({ property: 'avatarUrl' }),
+    );
+  });
+
+  it('rejects a non-http avatar URL', async () => {
+    const dto = plainToInstance(UpdateProfileDto, { avatarUrl: 'javascript:alert(1)' });
+
+    await expect(validate(dto)).resolves.toContainEqual(
+      expect.objectContaining({ property: 'avatarUrl' }),
+    );
+  });
+
   it('treats an empty avatar URL as a clear operation', async () => {
     const dto = plainToInstance(UpdateProfileDto, {
       avatarUrl: '',

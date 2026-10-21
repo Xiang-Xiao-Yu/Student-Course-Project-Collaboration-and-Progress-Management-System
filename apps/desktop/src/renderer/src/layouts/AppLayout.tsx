@@ -11,9 +11,10 @@ function getProjectLabel(projectId: string): string {
 
 export function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const { projectId = 'demo-project' } = useParams<{ projectId: string }>();
   const projectLabel = getProjectLabel(projectId);
-  const { session, signOut, signOutError } = useSession();
+  const { avatarUrl, session, signOut, signOutError } = useSession();
 
   return (
     <div className={`app-shell${isMenuOpen ? ' sidebar-open' : ''}`}>
@@ -88,8 +89,16 @@ export function AppLayout() {
               个人资料
             </Link>
             <div className="user-chip">
-              <span className="user-chip__avatar" aria-hidden="true">
-                {session?.user.displayName.slice(0, 1) ?? '项'}
+              <span className="user-chip__avatar">
+                {avatarUrl && avatarUrl !== failedAvatarUrl ? (
+                  <img
+                    alt="当前账号头像"
+                    onError={() => setFailedAvatarUrl(avatarUrl)}
+                    src={avatarUrl}
+                  />
+                ) : (
+                  <span aria-hidden="true">{session?.user.displayName.slice(0, 1) ?? '项'}</span>
+                )}
               </span>
               <div>
                 <strong>{session?.user.displayName ?? '项目成员'}</strong>

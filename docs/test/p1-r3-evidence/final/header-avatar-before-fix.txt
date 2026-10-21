@@ -1,0 +1,3 @@
+Canceling the native file chooser leaves the avatar unchanged: PASS
+HARNESS: FAIL locator.waitFor: Timeout 8000ms exceeded.
+{"runDirectory":"<WORKTREE>\\data\\p1-avatar-e2e-1792510636249","passed":1,"failed":1}

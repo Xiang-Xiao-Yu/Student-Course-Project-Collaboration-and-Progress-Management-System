@@ -23,10 +23,12 @@ import type {
 import {
   changeCurrentUserPassword,
   createSessionAfterPasswordChange,
+  getCurrentUserProfile,
   registerUser,
   signInWithPassword,
   signOutCurrentUser,
   updateCurrentUserProfile,
+  uploadCurrentUserAvatar,
 } from './auth-api';
 import { completeServerLogout } from './session-logout';
 import { shouldClearSessionForUnauthorized } from './session-unauthorized';
@@ -42,6 +44,7 @@ export type SessionEndReason = 'expired' | 'signed-out' | null;
 
 interface SessionContextValue {
   readonly api: ApiClient;
+  readonly avatarUrl: string | null;
   readonly changePassword: (input: ChangePasswordInput) => Promise<void>;
   readonly reason: SessionEndReason;
   readonly signOutError: string | null;
@@ -51,6 +54,7 @@ interface SessionContextValue {
   readonly signIn: (input: LoginInput) => Promise<void>;
   readonly signOut: () => Promise<void>;
   readonly updateProfile: (input: UpdateProfileInput) => Promise<UserProfileDto>;
+  readonly uploadAvatar: (file: File) => Promise<UserProfileDto>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -60,12 +64,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthSession | null>(() => readStoredSession(storage));
   const [reason, setReason] = useState<SessionEndReason>(null);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<{ userId: string; url: string | null } | null>(null);
+  const avatarRevision = useRef(0);
   const sessionRef = useRef<AuthSession | null>(session);
 
   const clearSession = useCallback(
     (nextReason: SessionEndReason) => {
       sessionRef.current = null;
       setSession(null);
+      setAvatar(null);
+      avatarRevision.current += 1;
       setReason(nextReason);
       setSignOutError(null);
       clearStoredSession(storage);
@@ -98,6 +106,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
       sessionRef.current = nextSession;
       setSession(nextSession);
+      setAvatar(null);
+      avatarRevision.current += 1;
       setReason(null);
       setSignOutError(null);
       writeStoredSession(storage, nextSession);
@@ -112,7 +122,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
       const profile = await updateCurrentUserProfile(api, input);
       const currentSession = sessionRef.current;
 
-      if (currentSession) {
+      if (currentSession?.user.id === profile.id) {
+        avatarRevision.current += 1;
+        setAvatar({ userId: profile.id, url: profile.avatarUrl });
         const nextSession: AuthSession = {
           ...currentSession,
           user: {
@@ -130,6 +142,20 @@ export function SessionProvider({ children }: PropsWithChildren) {
       return profile;
     },
     [api, storage],
+  );
+
+  const uploadAvatar = useCallback(
+    async (file: File) => {
+      const profile = await uploadCurrentUserAvatar(api, file);
+
+      if (sessionRef.current?.user.id === profile.id) {
+        avatarRevision.current += 1;
+        setAvatar({ userId: profile.id, url: profile.avatarUrl });
+      }
+
+      return profile;
+    },
+    [api],
   );
 
   const changePassword = useCallback(
@@ -171,6 +197,35 @@ export function SessionProvider({ children }: PropsWithChildren) {
     sessionRef.current = session;
   }, [session]);
 
+  const avatarUserId = session?.user.id;
+  const avatarAccessToken = session?.accessToken;
+
+  useEffect(() => {
+    if (!avatarUserId || !avatarAccessToken) {
+      return;
+    }
+
+    let isCancelled = false;
+    const revision = avatarRevision.current;
+    void getCurrentUserProfile(api)
+      .then((profile) => {
+        if (
+          !isCancelled &&
+          revision === avatarRevision.current &&
+          sessionRef.current?.user.id === profile.id
+        ) {
+          setAvatar({ userId: profile.id, url: profile.avatarUrl });
+        }
+      })
+      .catch(() => {
+        // Keep the initials fallback if this optional header request fails.
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [api, avatarAccessToken, avatarUserId]);
+
   useEffect(() => {
     if (!session) {
       return;
@@ -195,6 +250,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const value = useMemo<SessionContextValue>(
     () => ({
       api,
+      avatarUrl: avatar?.userId === session?.user.id ? (avatar?.url ?? null) : null,
       changePassword,
       reason,
       registerAccount,
@@ -204,9 +260,11 @@ export function SessionProvider({ children }: PropsWithChildren) {
       status: session ? 'authenticated' : 'anonymous',
       signOut,
       updateProfile,
+      uploadAvatar,
     }),
     [
       api,
+      avatar,
       changePassword,
       reason,
       registerAccount,
@@ -215,6 +273,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       signIn,
       signOut,
       updateProfile,
+      uploadAvatar,
     ],
   );
 

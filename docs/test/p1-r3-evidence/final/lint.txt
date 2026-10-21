@@ -1,0 +1,10 @@
+$ eslint . && prettier --check .
+
+<WORKTREE>\tests\e2e\avatar-upload.mjs
+  305:7   error  'page' is not defined  no-undef
+  307:47  error  'page' is not defined  no-undef
+  308:13  error  'page' is not defined  no-undef
+
+✖ 3 problems (3 errors, 0 warnings)
+
+[ELIFECYCLE] Command failed with exit code 1.

@@ -1,0 +1,24 @@
+$ pnpm -r --if-present test
+Scope: 3 of 4 workspace projects
+apps/api test$ vitest run --passWithNoTests
+apps/desktop test$ vitest run --passWithNoTests
+packages/shared test$ vitest run
+apps/desktop test:  RUN  v5.0.1 <WORKTREE>/apps/desktop
+apps/desktop test:  Test Files  14 passed (14)
+apps/desktop test:       Tests  50 passed (50)
+apps/desktop test:    Start at  08:49:23
+apps/desktop test:    Duration  871ms (transform 60%, import 31%, tests 5%, worker 4%)
+apps/desktop test: Done
+apps/api test:  RUN  v5.0.1 <WORKTREE>/apps/api
+packages/shared test:  RUN  v5.0.1 <WORKTREE>/packages/shared
+packages/shared test:  Test Files  2 passed (2)
+packages/shared test:       Tests  6 passed (6)
+packages/shared test:    Start at  08:49:24
+packages/shared test:    Duration  473ms (import 57%, transform 36%, worker 4%, tests 3%)
+packages/shared test: Done
+apps/api test: [Nest] 45512  - 2026/10/21 08:49:26   ERROR [AllExceptionsFilter] Unhandled API exception
+apps/api test:  Test Files  15 passed (15)
+apps/api test:       Tests  65 passed (65)
+apps/api test:    Start at  08:49:24
+apps/api test:    Duration  7.57s (import 53%, tests 39%, transform 7%)
+apps/api test: Done

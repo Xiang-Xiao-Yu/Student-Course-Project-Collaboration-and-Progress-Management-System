@@ -1,0 +1,3 @@
+Canceling the native file chooser leaves the avatar unchanged: PASS
+HARNESS: FAIL Saving profile left the avatar selection pending
+{"runDirectory":"<WORKTREE>\\data\\p1-avatar-e2e-1792510043057","passed":1,"failed":1}

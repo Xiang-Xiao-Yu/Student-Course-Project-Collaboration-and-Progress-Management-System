@@ -1,0 +1,27 @@
+$ pnpm -r --if-present test
+Scope: 3 of 4 workspace projects
+apps/api test$ vitest run --passWithNoTests
+apps/desktop test$ vitest run --passWithNoTests
+packages/shared test$ vitest run
+packages/shared test:  RUN  v5.0.1 <WORKTREE>/packages/shared
+apps/api test:  RUN  v5.0.1 <WORKTREE>/apps/api
+apps/desktop test:  RUN  v5.0.1 <WORKTREE>/apps/desktop
+packages/shared test:  Test Files  2 passed (2)
+packages/shared test:       Tests  6 passed (6)
+packages/shared test:    Start at  23:30:52
+packages/shared test:    Duration  468ms (transform 51%, import 41%, worker 5%, tests 3%)
+packages/shared test: Done
+apps/desktop test:  Test Files  14 passed (14)
+apps/desktop test:       Tests  52 passed (52)
+apps/desktop test:    Start at  23:30:52
+apps/desktop test:    Duration  1.05s (transform 64%, import 29%, tests 4%, worker 3%)
+apps/desktop test:   Transform  transforming modules took 2.37s · 64% of tracked time, re-done on every run
+apps/desktop test:              persist transforms across runs with fsModuleCache: true
+apps/desktop test:              learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+apps/desktop test: Done
+apps/api test: [Nest] 50172  - 2026/10/20 23:30:54   ERROR [AllExceptionsFilter] Unhandled API exception
+apps/api test:  Test Files  15 passed (15)
+apps/api test:       Tests  65 passed (65)
+apps/api test:    Start at  23:30:52
+apps/api test:    Duration  3.05s (import 67%, tests 22%, transform 10%, worker 1%)
+apps/api test: Done

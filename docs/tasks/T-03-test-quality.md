@@ -8,7 +8,7 @@
 - 负责人：`root`
 - 状态：`已认领`
 - 优先级：MVP 必须
-- 对应需求：MVP 范围内的 AC-01～AC-10；覆盖 FR-01～FR-11
+- 对应需求：MVP 范围内的 AC-01～AC-11；覆盖 FR-01～FR-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段测试范围。若项目组长要求提前验证，必须先创建 GitHub Issue 并经 `root` 批准。
 - GitHub 仓库：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System
 - GitHub Issues：https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues
@@ -102,13 +102,22 @@
 
 ## 进度记录（仅 `ChatGPT@root` 可修改）
 
-- 当前阶段：P1 认证测试（已解锁）
+- 当前阶段：P2 项目、成员与权限（已解锁；等待 T-01/T-02 完成当前阶段后冻结测试）
 - 已完成：测试阶段、小功能和阶段门禁定义；建立 `docs/test/test-plan.md`、P0 证据模板、环境采集和 API 契约冒烟检查；增加 `pnpm test:p0-env` 与 `pnpm test:p0-smoke` 独立命令；T-01、T-02 均已提交 P0 冻结候选。
 - 当前检查：2026-10-11 在 PR #15 合并后的最新 main 提交 `28d9e077b3875452e1ed477a4ad49260580b550c` 全新隔离工作区重新执行完整自动门禁：冻结安装、Prisma generate/Migration/Seed 两次、lint、typecheck、36 项测试、build、API health/error smoke、缺少 JWT_SECRET 启动回归和无效数据库配置检查全部通过。项目组长完成人工桌面检查并确认通过；root 已记录 P0 门禁通过，P1 已解锁。详细证据见 `docs/test/p0-r1-retest-2026-10-11.md`。
-- 待完成：T-01、T-02 按已批准的 P1.1～P1.3 范围完成认证功能后标记待测试；T-03 再执行 AC-01 正常、边界、失败和权限场景。P2 及后续阶段保持锁定。
+- 待完成：P2 的 AC-02/AC-08 测试，须等待 T-01/T-02 的 P2 实现冻结。P1 已通过最终审查与复测，依据项目组长本轮条件授权由 root 解锁 P2；P3 及后续阶段继续锁定。详见 [P1 最终门禁与 P2 解锁](../test/p1-final-gate-2026-10-21.md)。
+- P1-R3 重开（2026-10-20，Issue #26）：项目组长批准 FR-01 头像文件选择、服务端上传和新增 AC-11；此前 P1-R2 30 项认证结论保留为历史结果，AC-11 必须补充正常/边界/失败/安全证据后重新复核门禁，P2 保持锁定。用例见 [P1-R3 头像上传测试](../test/p1-r3-avatar-upload.md)。
+- P1-R3 复测结论（2026-10-20）：`pnpm lint`、`pnpm typecheck`、`pnpm test`（123/123）、`pnpm build`、Electron 黑盒脚本语法检查和 `git diff --check` 全部通过；P1 API 24/24、桌面 16/16 回归通过，真实 Electron AC-11 4/4 通过。原始输出及截图位于 `docs/test/p1-r3-evidence/final/`。AC-11 标记复测通过并等待项目组长复核；P2 未解锁。详情见 [P1-R3 头像上传测试](../test/p1-r3-avatar-upload.md)。
+- P1-R3-D01 补充复测（2026-10-20）：项目组长发现选图后直接保存会丢失预览，证实首次 4 场景遗漏保存入口；修复后真实 Electron 5/5 通过（直接保存含昵称变更、刷新/重新登录、重复保存、独立上传、断网与伪造内容），全量 123 项测试及 lint、桌面 typecheck/build 通过。保留修复前失败和修复后通过证据，详见 P1-R3 报告 D01。AC-11 重新交项目组长复核，P2 仍锁定。
+- P1-R3-D02 补充复测（2026-10-20）：新增项目页顶部头像校验，修复前图片定位失败，修复后真实 Electron 6/6 通过。确认保存/独立上传同步、刷新/重新登录持久、头像内容可解码、无头像账号回退自身首字且不泄漏旧图、头像不写入 sessionStorage；全量 123 项测试、typecheck、lint、桌面 build 通过，证据见 P1-R3 报告 D02。AC-11 等待项目组长人工复核；P2 仍锁定。
+- P1-R3-D03 范围收窄（2026-10-21）：项目组长要求移除头像 URL 输入，只保留文件上传渠道；需求基线更新至 0.1.3。等待人工确认页面无 URL 输入、头像上传仍可用、只保存昵称保留当前头像；本轮未执行自动测试。P2 仍锁定。详情见 P1-R3 报告 D03。
+- 当前功能完整复测（2026-10-21）：项目组长要求执行测试；单元/集成共 123 个唯一用例通过（API 67、桌面 50、shared 6），真实 Electron 8/8 运行组通过，覆盖 D03 单一渠道、相机鼠标/键盘、文件边界、忙碌禁用及旧图保留；全仓 lint/typecheck/build 通过。证据与范围限制见 [当前头像功能复测](../test/p1-avatar-retest-2026-10-21.md)。测试工作树仍有未提交改动，已记录源文件哈希清单；P2 未解锁。
+- D06 自动上传复测（2026-10-21）：需求 0.1.4，有效选择自动上传、手动上传按钮移除；全仓 123/123、真实 Electron 8/8、lint、桌面 typecheck/build 通过，确认单次请求、保留未保存昵称、资料保存不重复上传及失败回退。首轮脚本路由等待问题已修正并保留原始输出。详情见 [自动上传复测](../test/p1-avatar-auto-upload-2026-10-21.md)，等待项目组长人工确认；P2 未解锁。
+
+- P1 最终门禁（2026-10-21）：业务提交 `1e414253a17c443dcebb25c79bb31f3be375f22c`、取证脚本提交 `7e9d429e012151910aca2d24b68c0957c880243b`；126/126 测试、真实 Electron 9/9、lint/typecheck/build 通过，审查发现的边界已修复并回归。项目组长明确授权通过后解锁 P2，root 已开放 P2，范围为 AC-02/AC-08；报告、原始证据与遗留发布边界见最终门禁报告。
 
 ## GitHub Issue（由提出人提交给 `root`）
 
 - 失败测试、阻塞、质量风险和任务调整必须创建 GitHub Issue，不得直接修改业务实现或任务范围。
 - GitHub Issue 格式：Issue 链接、提出人标签、关联 `T-03`、关联 FR/AC、类型、证据、影响、建议方案、紧急程度和状态。
-- 当前：暂无 GitHub Issue。
+- 当前：[Issue #26](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues/26)，FR-01 头像文件选择与服务端上传，状态 `approved`；P1-R3 复测通过，等待项目组长复核后再决定是否关闭。

@@ -23,6 +23,7 @@ const messageByCode: Record<string, string> = {
   AUTH_CURRENT_PASSWORD_INVALID: '当前密码不正确。',
   AUTH_USER_DISABLED: '用户已被禁用，请联系平台管理员。',
   AUTH_USERNAME_TAKEN: '用户名已存在。',
+  AVATAR_FILE_TOO_LARGE: '头像图片不能超过 10 MiB。',
   AUTH_FORBIDDEN: '当前账号没有执行此操作的权限。',
   NETWORK_ERROR: '无法连接到服务，请检查网络后重试。',
   API_INVALID_RESPONSE: '服务响应异常，请稍后重试。',
