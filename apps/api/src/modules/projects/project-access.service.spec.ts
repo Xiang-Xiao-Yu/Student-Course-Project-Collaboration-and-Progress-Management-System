@@ -82,4 +82,19 @@ describe('ProjectAccessService', () => {
       service.requirePermission('project-1', 'outsider-1', 'PROJECT_VIEW'),
     ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
   });
+
+  it('keeps observers read-only', async () => {
+    const { repository, service } = createService();
+
+    repository.findUserAccess.mockResolvedValue({ isPlatformAdmin: false });
+    repository.findProjectById.mockResolvedValue(project);
+    repository.findMembershipRole.mockResolvedValue('OBSERVER');
+
+    await expect(
+      service.requirePermission('project-1', 'observer-1', 'PROJECT_VIEW'),
+    ).resolves.toMatchObject({ role: 'OBSERVER' });
+    await expect(
+      service.requirePermission('project-1', 'observer-1', 'MEMBER_INVITE'),
+    ).rejects.toMatchObject({ status: HttpStatus.FORBIDDEN });
+  });
 });

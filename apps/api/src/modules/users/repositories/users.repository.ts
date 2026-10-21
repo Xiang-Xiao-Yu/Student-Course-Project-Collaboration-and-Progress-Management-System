@@ -117,6 +117,11 @@ export class UsersRepository {
       },
       where: {
         assigneeId: userId,
+        project: {
+          members: {
+            some: { userId },
+          },
+        },
       },
     });
   }
