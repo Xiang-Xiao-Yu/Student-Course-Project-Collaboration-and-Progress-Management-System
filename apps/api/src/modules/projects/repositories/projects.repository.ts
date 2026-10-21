@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { AppException } from '../../../common/errors/app.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { ProjectRole, ProjectStatus } from '../project.constants';
 
@@ -15,6 +16,20 @@ const projectSelect = {
   status: true,
   updatedAt: true,
 } satisfies Prisma.ProjectSelect;
+
+const projectMemberSelect = {
+  id: true,
+  joinedAt: true,
+  role: true,
+  user: {
+    select: {
+      avatarUrl: true,
+      id: true,
+      nickname: true,
+      username: true,
+    },
+  },
+} satisfies Prisma.ProjectMemberSelect;
 
 export interface ProjectRecord {
   createdAt: Date;
@@ -37,6 +52,18 @@ export interface ProjectWriteInput {
   endDate?: Date | null;
   name?: string;
   startDate?: Date | null;
+}
+
+export interface ProjectMemberRecord {
+  id: string;
+  joinedAt: Date;
+  role: string;
+  user: {
+    avatarUrl: string | null;
+    id: string;
+    nickname: string;
+    username: string;
+  };
 }
 
 @Injectable()
@@ -199,6 +226,199 @@ export class ProjectsRepository {
   async deleteProject(projectId: string): Promise<void> {
     await this.prisma.project.delete({
       where: { id: projectId },
+    });
+  }
+
+  async findUserByUsername(username: string): Promise<{
+    avatarUrl: string | null;
+    id: string;
+    nickname: string;
+    username: string;
+  } | null> {
+    return this.prisma.user.findUnique({
+      select: {
+        avatarUrl: true,
+        id: true,
+        nickname: true,
+        username: true,
+      },
+      where: { username },
+    });
+  }
+
+  async findMemberByUserId(projectId: string, userId: string): Promise<ProjectMemberRecord | null> {
+    return this.prisma.projectMember.findUnique({
+      select: projectMemberSelect,
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+  }
+
+  async listMembers(projectId: string): Promise<ProjectMemberRecord[]> {
+    return this.prisma.projectMember.findMany({
+      orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+      select: projectMemberSelect,
+      where: { projectId },
+    });
+  }
+
+  async addMember(
+    projectId: string,
+    actorId: string,
+    userId: string,
+    role: 'MEMBER' | 'OBSERVER',
+  ): Promise<ProjectMemberRecord> {
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const member = await transaction.projectMember.create({
+          data: {
+            projectId,
+            role,
+            userId,
+          },
+          select: projectMemberSelect,
+        });
+
+        await transaction.activityLog.create({
+          data: {
+            action: 'PROJECT_MEMBER_ADDED',
+            actorId,
+            afterValue: JSON.stringify({ role, userId }),
+            projectId,
+            targetId: userId,
+            targetType: 'MEMBER',
+          },
+        });
+
+        return member;
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'PROJECT_MEMBER_EXISTS',
+          '该用户已经是项目成员',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  async updateMemberRole(
+    projectId: string,
+    actorId: string,
+    userId: string,
+    role: ProjectRole,
+    previousRole: ProjectRole,
+  ): Promise<ProjectMemberRecord> {
+    return this.prisma.$transaction(async (transaction) => {
+      const member = await transaction.projectMember.update({
+        data: { role },
+        select: projectMemberSelect,
+        where: {
+          projectId_userId: {
+            projectId,
+            userId,
+          },
+        },
+      });
+
+      await transaction.activityLog.create({
+        data: {
+          action: 'PROJECT_MEMBER_ROLE_CHANGED',
+          actorId,
+          afterValue: JSON.stringify({ role, userId }),
+          beforeValue: JSON.stringify({ role: previousRole, userId }),
+          projectId,
+          targetId: userId,
+          targetType: 'MEMBER',
+        },
+      });
+
+      return member;
+    });
+  }
+
+  async removeMember(
+    projectId: string,
+    actorId: string,
+    userId: string,
+    removedRole: ProjectRole,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.projectMember.delete({
+        where: {
+          projectId_userId: {
+            projectId,
+            userId,
+          },
+        },
+      });
+
+      await transaction.activityLog.create({
+        data: {
+          action: 'PROJECT_MEMBER_REMOVED',
+          actorId,
+          beforeValue: JSON.stringify({ role: removedRole, userId }),
+          projectId,
+          targetId: userId,
+          targetType: 'MEMBER',
+        },
+      });
+    });
+  }
+
+  async transferOwnership(
+    projectId: string,
+    actorId: string,
+    previousOwnerId: string,
+    newOwnerId: string,
+  ): Promise<ProjectMemberRecord> {
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.project.update({
+        data: { ownerId: newOwnerId },
+        select: { id: true },
+        where: { id: projectId },
+      });
+      await transaction.projectMember.update({
+        data: { role: 'MEMBER' },
+        select: { id: true },
+        where: {
+          projectId_userId: {
+            projectId,
+            userId: previousOwnerId,
+          },
+        },
+      });
+      const member = await transaction.projectMember.update({
+        data: { role: 'OWNER' },
+        select: projectMemberSelect,
+        where: {
+          projectId_userId: {
+            projectId,
+            userId: newOwnerId,
+          },
+        },
+      });
+
+      await transaction.activityLog.create({
+        data: {
+          action: 'PROJECT_OWNER_TRANSFERRED',
+          actorId,
+          afterValue: JSON.stringify({ ownerId: newOwnerId }),
+          beforeValue: JSON.stringify({ ownerId: previousOwnerId }),
+          projectId,
+          targetId: projectId,
+          targetType: 'PROJECT',
+        },
+      });
+
+      return member;
     });
   }
 }
