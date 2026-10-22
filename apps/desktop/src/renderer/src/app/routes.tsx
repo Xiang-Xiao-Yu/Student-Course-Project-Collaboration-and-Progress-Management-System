@@ -5,6 +5,7 @@ import { RequireSession } from '../features/auth/RequireSession';
 import { AccountLayout } from '../layouts/AccountLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { LoginPage } from '../pages/LoginPage';
+import { MembersPage } from '../pages/MembersPage';
 import { MyTasksPage } from '../pages/MyTasksPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { OverviewPage } from '../pages/OverviewPage';
@@ -98,7 +99,7 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: 'members',
-            element: <SectionPage section="members" />,
+            element: <MembersPage />,
           },
           {
             path: 'settings',
