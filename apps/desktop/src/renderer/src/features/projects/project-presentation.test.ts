@@ -5,6 +5,7 @@ import {
   canManageProject,
   formatProjectDate,
   getProjectRoleLabel,
+  getProjectStatusActionLabel,
   getProjectStatusLabel,
   getProjectStatusTransitions,
   isProjectArchived,
@@ -17,12 +18,15 @@ describe('P2 project presentation', () => {
     expect(getProjectRoleLabel('OBSERVER')).toBe('观察者');
     expect(getProjectStatusTransitions('ACTIVE')).toEqual(['PAUSED', 'COMPLETED']);
     expect(getProjectStatusTransitions('ARCHIVED')).toEqual([]);
+    expect(getProjectStatusActionLabel('PLANNING', 'ACTIVE')).toBe('开始项目');
+    expect(getProjectStatusActionLabel('PAUSED', 'ACTIVE')).toBe('恢复为进行中');
   });
 
   it('边界场景只允许负责人和管理员进入管理界面', () => {
     expect(canManageProject('OWNER')).toBe(true);
     expect(canManageProject('ADMIN')).toBe(true);
     expect(canManageProject('MEMBER')).toBe(false);
+    expect(canManageProject('OBSERVER')).toBe(false);
     expect(canManageMembers(null)).toBe(false);
     expect(isProjectArchived('ARCHIVED')).toBe(true);
   });

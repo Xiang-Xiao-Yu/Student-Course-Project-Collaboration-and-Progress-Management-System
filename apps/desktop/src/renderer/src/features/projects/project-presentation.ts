@@ -35,6 +35,24 @@ export function getProjectStatusTransitions(status: ProjectStatus): readonly Pro
   return projectStatusTransitions[status];
 }
 
+export function getProjectStatusActionLabel(
+  currentStatus: ProjectStatus,
+  targetStatus: ProjectStatus,
+): string {
+  switch (targetStatus) {
+    case 'ACTIVE':
+      return currentStatus === 'PAUSED' ? '恢复为进行中' : '开始项目';
+    case 'PAUSED':
+      return '暂停项目';
+    case 'COMPLETED':
+      return '标记为已完成';
+    case 'ARCHIVED':
+      return '归档项目';
+    default:
+      return getProjectStatusLabel(targetStatus);
+  }
+}
+
 export function canManageProject(accessRole: ProjectAccessRole | null | undefined): boolean {
   return accessRole === 'OWNER' || accessRole === 'ADMIN';
 }

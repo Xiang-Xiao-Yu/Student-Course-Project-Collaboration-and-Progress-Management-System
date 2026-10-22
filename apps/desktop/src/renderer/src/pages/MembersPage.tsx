@@ -449,7 +449,11 @@ export function MembersPage() {
         <ConfirmDialog
           confirmLabel="确认移交"
           isPending={Boolean(busyUserId)}
-          message={`移交后你将成为普通成员，${memberToTransfer.nickname} 将获得项目负责人权限。`}
+          message={
+            project.accessRole === 'ADMIN'
+              ? `移交后原项目负责人将降为普通成员，${memberToTransfer.nickname} 将获得项目负责人权限。`
+              : `移交后你将成为普通成员，${memberToTransfer.nickname} 将获得项目负责人权限。`
+          }
           onCancel={() => setMemberToTransfer(null)}
           onConfirm={() => void handleTransferOwnership()}
           title="移交项目负责人"

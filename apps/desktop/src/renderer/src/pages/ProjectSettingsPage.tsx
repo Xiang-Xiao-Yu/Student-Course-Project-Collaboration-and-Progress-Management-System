@@ -21,6 +21,7 @@ import {
   canManageProject,
   formatProjectDate,
   getProjectRoleLabel,
+  getProjectStatusActionLabel,
   getProjectStatusLabel,
   getProjectStatusTransitions,
   isProjectArchived,
@@ -385,13 +386,7 @@ export function ProjectSettingsPage() {
                 }}
                 type="button"
               >
-                {status === 'PAUSED'
-                  ? '暂停项目'
-                  : status === 'COMPLETED'
-                    ? '标记为已完成'
-                    : status === 'ARCHIVED'
-                      ? '归档项目'
-                      : '恢复为进行中'}
+                {getProjectStatusActionLabel(project.status, status)}
               </button>
             ))}
           </div>

@@ -48,5 +48,14 @@ describe('getUserFacingError', () => {
         }),
       ),
     ).toBe('当前账号没有执行此项目操作的权限。');
+    expect(
+      getUserFacingError(
+        new ApiError({
+          code: 'PROJECT_NOT_FOUND',
+          message: '',
+          status: 404,
+        }),
+      ),
+    ).toBe('项目不存在或你无权访问该项目。');
   });
 });
