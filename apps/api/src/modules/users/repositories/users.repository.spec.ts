@@ -23,6 +23,32 @@ describe('UsersRepository.updateProfile', () => {
   });
 });
 
+describe('UsersRepository.findAssignedTasks', () => {
+  it('limits personal tasks to projects where the user is still a member', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = {
+      task: {
+        findMany,
+      },
+    };
+    const repository = new UsersRepository(prisma as unknown as PrismaService);
+
+    await expect(repository.findAssignedTasks('user-1')).resolves.toEqual([]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          assigneeId: 'user-1',
+          project: {
+            members: {
+              some: { userId: 'user-1' },
+            },
+          },
+        },
+      }),
+    );
+  });
+});
+
 describe('UsersRepository.updateAvatar', () => {
   it('uses the expected prior value so concurrent uploads cannot overwrite each other', async () => {
     const updatedProfile = {
