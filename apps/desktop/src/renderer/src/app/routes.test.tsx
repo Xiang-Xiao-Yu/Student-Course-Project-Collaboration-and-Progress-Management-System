@@ -11,6 +11,13 @@ describe('P0.1 路由骨架', () => {
     expect(matches?.at(-1)?.route.path).toBe('overview');
   });
 
+  it('项目中心与项目设置路由均可匹配', () => {
+    expect(matchRoutes(appRoutes, '/projects')?.at(-1)?.route.index).toBe(true);
+    expect(matchRoutes(appRoutes, '/projects/demo-project/settings')?.at(-1)?.route.path).toBe(
+      'settings',
+    );
+  });
+
   it('边界场景可以匹配带尾斜杠的深层路由', () => {
     const matches = matchRoutes(appRoutes, '/projects/demo-project/board/');
 

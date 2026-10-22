@@ -8,10 +8,12 @@ export interface ProjectSection {
     | 'meetings'
     | 'acceptance'
     | 'reports'
-    | 'members';
+    | 'members'
+    | 'settings';
   readonly label: string;
   readonly description: string;
   readonly emptyTitle: string;
+  readonly managerOnly?: boolean;
 }
 
 export const projectSections = [
@@ -70,6 +72,14 @@ export const projectSections = [
     label: '成员管理',
     description: '查看成员角色和任务完成情况。',
     emptyTitle: '暂无成员数据',
+  },
+  {
+    group: '项目管理',
+    path: 'settings',
+    label: '项目设置',
+    description: '维护项目基本信息、状态和归档操作。',
+    emptyTitle: '暂无项目设置',
+    managerOnly: true,
   },
 ] as const satisfies readonly ProjectSection[];
 

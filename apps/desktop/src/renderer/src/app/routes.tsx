@@ -5,10 +5,13 @@ import { RequireSession } from '../features/auth/RequireSession';
 import { AccountLayout } from '../layouts/AccountLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { LoginPage } from '../pages/LoginPage';
+import { MembersPage } from '../pages/MembersPage';
 import { MyTasksPage } from '../pages/MyTasksPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { OverviewPage } from '../pages/OverviewPage';
 import { ProfilePage } from '../pages/ProfilePage';
+import { ProjectsPage } from '../pages/ProjectsPage';
+import { ProjectSettingsPage } from '../pages/ProjectSettingsPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { SectionPage } from '../pages/SectionPage';
 
@@ -45,10 +48,10 @@ export const appRoutes: RouteObject[] = [
   },
   {
     path: '/',
-    element: <Navigate to="/projects/demo-project/overview" replace />,
+    element: <Navigate to="/projects" replace />,
   },
   {
-    path: '/projects/:projectId',
+    path: '/projects',
     element: (
       <RequireSession>
         <AppLayout />
@@ -57,39 +60,52 @@ export const appRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <Navigate to="overview" replace />,
+        element: <ProjectsPage />,
       },
       {
-        path: 'overview',
-        element: <OverviewPage />,
-      },
-      {
-        path: 'requirements',
-        element: <SectionPage section="requirements" />,
-      },
-      {
-        path: 'board',
-        element: <SectionPage section="board" />,
-      },
-      {
-        path: 'iterations',
-        element: <SectionPage section="iterations" />,
-      },
-      {
-        path: 'meetings',
-        element: <SectionPage section="meetings" />,
-      },
-      {
-        path: 'acceptance',
-        element: <SectionPage section="acceptance" />,
-      },
-      {
-        path: 'reports',
-        element: <SectionPage section="reports" />,
-      },
-      {
-        path: 'members',
-        element: <SectionPage section="members" />,
+        path: ':projectId',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="overview" replace />,
+          },
+          {
+            path: 'overview',
+            element: <OverviewPage />,
+          },
+          {
+            path: 'requirements',
+            element: <SectionPage section="requirements" />,
+          },
+          {
+            path: 'board',
+            element: <SectionPage section="board" />,
+          },
+          {
+            path: 'iterations',
+            element: <SectionPage section="iterations" />,
+          },
+          {
+            path: 'meetings',
+            element: <SectionPage section="meetings" />,
+          },
+          {
+            path: 'acceptance',
+            element: <SectionPage section="acceptance" />,
+          },
+          {
+            path: 'reports',
+            element: <SectionPage section="reports" />,
+          },
+          {
+            path: 'members',
+            element: <MembersPage />,
+          },
+          {
+            path: 'settings',
+            element: <ProjectSettingsPage />,
+          },
+        ],
       },
     ],
   },

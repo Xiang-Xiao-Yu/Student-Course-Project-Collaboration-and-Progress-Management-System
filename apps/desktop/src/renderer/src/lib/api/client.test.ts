@@ -45,6 +45,31 @@ describe('ApiClient', () => {
     expect(requestHeaders.has('Content-Type')).toBe(false);
   });
 
+  it('正常场景为 DELETE 携带 JSON 确认信息', async () => {
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      jsonResponse(successEnvelope({ deleted: true })),
+    );
+    const client = new ApiClient({
+      baseUrl: 'http://127.0.0.1:3000/api/v1',
+      getAccessToken: () => 'delete-access-token',
+      onUnauthorized: vi.fn(),
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    await expect(
+      client.delete<{ deleted: true }, { confirmName: string }>('/projects/project-1', {
+        confirmName: '课程项目',
+      }),
+    ).resolves.toEqual({ deleted: true });
+
+    const request = fetchImpl.mock.calls[0]?.[1];
+    const requestHeaders = request?.headers as Headers;
+
+    expect(request?.method).toBe('DELETE');
+    expect(request?.body).toBe(JSON.stringify({ confirmName: '课程项目' }));
+    expect(requestHeaders.get('Content-Type')).toBe('application/json');
+  });
+
   it('当前密码错误返回 422 时保留会话', async () => {
     const onUnauthorized = vi.fn();
     const client = new ApiClient({
