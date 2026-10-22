@@ -28,4 +28,25 @@ describe('getUserFacingError', () => {
       '操作未完成，请稍后重试。',
     );
   });
+
+  it('项目权限与状态错误提供稳定中文提示', () => {
+    expect(
+      getUserFacingError(
+        new ApiError({
+          code: 'PROJECT_STATUS_TRANSITION_INVALID',
+          message: '',
+          status: 422,
+        }),
+      ),
+    ).toBe('当前项目状态不能转换为目标状态。');
+    expect(
+      getUserFacingError(
+        new ApiError({
+          code: 'PROJECT_PERMISSION_DENIED',
+          message: '',
+          status: 403,
+        }),
+      ),
+    ).toBe('当前账号没有执行此项目操作的权限。');
+  });
 });

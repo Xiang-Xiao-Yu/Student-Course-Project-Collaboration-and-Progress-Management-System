@@ -9,7 +9,7 @@ export function AccountLayout() {
   return (
     <div className="account-shell">
       <header className="account-topbar">
-        <Link className="account-brand" to="/projects/demo-project/overview">
+        <Link className="account-brand" to="/projects">
           <span className="brand-mark" aria-hidden="true">
             课
           </span>
@@ -32,8 +32,8 @@ export function AccountLayout() {
           >
             我的任务
           </NavLink>
-          <Link className="account-link" to="/projects/demo-project/overview">
-            返回项目
+          <Link className="account-link" to="/projects">
+            项目中心
           </Link>
         </nav>
 

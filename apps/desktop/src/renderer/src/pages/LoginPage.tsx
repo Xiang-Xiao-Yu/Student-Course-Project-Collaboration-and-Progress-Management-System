@@ -22,7 +22,7 @@ export function LoginPage() {
   const { reason, session, signIn } = useSession();
   const location = useLocation();
   const locationState = location.state as LoginLocationState | null;
-  const destination = locationState?.from ?? '/projects/demo-project/overview';
+  const destination = locationState?.from ?? '/projects';
 
   if (session) {
     return <Navigate replace to={destination} />;
