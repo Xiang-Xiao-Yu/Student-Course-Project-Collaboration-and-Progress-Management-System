@@ -96,6 +96,30 @@ describe('ProjectsService', () => {
     ).rejects.toMatchObject({ status: HttpStatus.CONFLICT });
   });
 
+  it('keeps audit afterValue consistent with an explicit description update', async () => {
+    const { access, repository, service } = createService();
+
+    access.requirePermission.mockResolvedValue({
+      isPlatformAdmin: false,
+      project: { ...project, description: '旧描述' },
+      role: 'OWNER',
+    });
+    repository.updateProject.mockResolvedValue({
+      ...project,
+      description: '',
+    });
+
+    await service.updateProject('owner-1', 'project-1', { description: '' });
+
+    expect(repository.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      'owner-1',
+      { description: '' },
+      expect.objectContaining({ description: '旧描述' }),
+      expect.objectContaining({ description: '' }),
+    );
+  });
+
   it('enforces valid project status transitions', async () => {
     const { access, service } = createService();
 

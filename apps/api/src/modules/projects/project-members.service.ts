@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 
 import { AppException } from '../../common/errors/app.exception';
+import { AvatarStorageService } from '../users/avatar-storage.service';
 import { InviteProjectMemberDto } from './dto/invite-project-member.dto';
 import { UpdateProjectMemberRoleDto } from './dto/update-project-member-role.dto';
 import type { ProjectMemberResponse } from './interfaces/project-member-response';
@@ -11,6 +12,7 @@ import { ProjectsRepository, ProjectMemberRecord } from './repositories/projects
 @Injectable()
 export class ProjectMembersService {
   constructor(
+    private readonly avatarStorage: AvatarStorageService,
     private readonly projectAccessService: ProjectAccessService,
     private readonly projectsRepository: ProjectsRepository,
   ) {}
@@ -19,7 +21,7 @@ export class ProjectMembersService {
     await this.projectAccessService.requirePermission(projectId, userId, 'MEMBER_VIEW');
     const members = await this.projectsRepository.listMembers(projectId);
 
-    return members.map((member) => this.toResponse(member));
+    return Promise.all(members.map((member) => this.toResponse(member)));
   }
 
   async inviteMember(
@@ -157,9 +159,9 @@ export class ProjectMembersService {
     return { removed: true };
   }
 
-  private toResponse(member: ProjectMemberRecord): ProjectMemberResponse {
+  private async toResponse(member: ProjectMemberRecord): Promise<ProjectMemberResponse> {
     return {
-      avatarUrl: member.user.avatarUrl,
+      avatarUrl: await this.avatarStorage.toDataUrl(member.user.id, member.user.avatarUrl),
       id: member.id,
       joinedAt: member.joinedAt.toISOString(),
       nickname: member.user.nickname,

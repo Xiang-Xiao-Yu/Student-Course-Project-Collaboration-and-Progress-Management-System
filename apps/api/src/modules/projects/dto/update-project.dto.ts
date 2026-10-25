@@ -1,23 +1,23 @@
 import { Transform } from 'class-transformer';
-import { IsDateString, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsDateString, IsString, Length, MaxLength, ValidateIf } from 'class-validator';
 
 export class UpdateProjectDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @Length(1, 100)
   name?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MaxLength(1000)
   description?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsDateString()
   startDate?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsDateString()
   endDate?: string;
 }

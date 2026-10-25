@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AvatarStorageService } from '../users/avatar-storage.service';
 import type { ProjectAccessService } from './project-access.service';
 import { ProjectMembersService } from './project-members.service';
 import type { ProjectsRepository } from './repositories/projects.repository';
@@ -31,6 +32,7 @@ const normalMember = {
 
 function createService(): {
   access: { requirePermission: ReturnType<typeof vi.fn> };
+  avatarStorage: { toDataUrl: ReturnType<typeof vi.fn> };
   repository: {
     addMember: ReturnType<typeof vi.fn>;
     findMemberByUserId: ReturnType<typeof vi.fn>;
@@ -42,6 +44,9 @@ function createService(): {
   service: ProjectMembersService;
 } {
   const access = { requirePermission: vi.fn() };
+  const avatarStorage = {
+    toDataUrl: vi.fn().mockResolvedValue(null),
+  };
   const repository = {
     addMember: vi.fn(),
     findMemberByUserId: vi.fn(),
@@ -51,11 +56,12 @@ function createService(): {
     transferOwnership: vi.fn(),
   };
   const service = new ProjectMembersService(
+    avatarStorage as unknown as AvatarStorageService,
     access as unknown as ProjectAccessService,
     repository as unknown as ProjectsRepository,
   );
 
-  return { access, repository, service };
+  return { access, avatarStorage, repository, service };
 }
 
 function ownerAccess(): {
@@ -113,6 +119,29 @@ describe('ProjectMembersService', () => {
         username: 'member',
       }),
     ).rejects.toMatchObject({ status: HttpStatus.CONFLICT });
+  });
+
+  it('converts uploaded member avatars to displayable data URLs', async () => {
+    const { access, avatarStorage, repository, service } = createService();
+    const uploadedMember = {
+      ...normalMember,
+      user: {
+        ...normalMember.user,
+        avatarUrl: 'uploaded:avatar.png',
+      },
+    };
+
+    access.requirePermission.mockResolvedValue(ownerAccess());
+    repository.listMembers.mockResolvedValue([uploadedMember]);
+    avatarStorage.toDataUrl.mockResolvedValue('data:image/png;base64,AAAA');
+
+    await expect(service.listMembers('owner-1', 'project-1')).resolves.toMatchObject([
+      {
+        avatarUrl: 'data:image/png;base64,AAAA',
+        userId: 'user-1',
+      },
+    ]);
+    expect(avatarStorage.toDataUrl).toHaveBeenCalledWith('user-1', 'uploaded:avatar.png');
   });
 
   it('transfers ownership through a role update', async () => {

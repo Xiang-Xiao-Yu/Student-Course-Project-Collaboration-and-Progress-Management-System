@@ -380,19 +380,84 @@ export class ProjectsRepository {
     newOwnerId: string,
   ): Promise<ProjectMemberRecord> {
     return this.prisma.$transaction(async (transaction) => {
-      await transaction.project.update({
-        data: { ownerId: newOwnerId },
-        select: { id: true },
+      const project = await transaction.project.findUnique({
+        select: { ownerId: true },
         where: { id: projectId },
       });
-      await transaction.projectMember.update({
-        data: { role: 'MEMBER' },
+
+      if (!project) {
+        throw new AppException(HttpStatus.NOT_FOUND, 'PROJECT_NOT_FOUND', '项目不存在或无权访问');
+      }
+
+      const actor = await transaction.user.findUnique({
+        select: { isPlatformAdmin: true },
+        where: { id: actorId },
+      });
+
+      if (!actor) {
+        throw new AppException(
+          HttpStatus.UNAUTHORIZED,
+          'AUTH_SESSION_EXPIRED',
+          '登录会话已失效，请重新登录',
+        );
+      }
+
+      const actorMembership = actor.isPlatformAdmin
+        ? null
+        : await transaction.projectMember.findUnique({
+            select: { role: true },
+            where: {
+              projectId_userId: {
+                projectId,
+                userId: actorId,
+              },
+            },
+          });
+
+      if (!actor.isPlatformAdmin && actorMembership?.role !== 'OWNER') {
+        throw new AppException(
+          HttpStatus.FORBIDDEN,
+          'PROJECT_PERMISSION_DENIED',
+          '当前项目角色没有执行此操作的权限',
+        );
+      }
+
+      if (project.ownerId !== previousOwnerId) {
+        throw this.ownerTransferConflict();
+      }
+
+      const target = await transaction.projectMember.findUnique({
         select: { id: true },
         where: {
           projectId_userId: {
             projectId,
-            userId: previousOwnerId,
+            userId: newOwnerId,
           },
+        },
+      });
+
+      if (!target) {
+        throw new AppException(HttpStatus.NOT_FOUND, 'PROJECT_MEMBER_NOT_FOUND', '项目成员不存在');
+      }
+
+      const ownerUpdate = await transaction.project.updateMany({
+        data: { ownerId: newOwnerId },
+        where: {
+          id: projectId,
+          ownerId: previousOwnerId,
+        },
+      });
+
+      if (ownerUpdate.count !== 1) {
+        throw this.ownerTransferConflict();
+      }
+
+      await transaction.projectMember.updateMany({
+        data: { role: 'MEMBER' },
+        where: {
+          projectId,
+          role: 'OWNER',
+          userId: { not: newOwnerId },
         },
       });
       const member = await transaction.projectMember.update({
@@ -420,5 +485,13 @@ export class ProjectsRepository {
 
       return member;
     });
+  }
+
+  private ownerTransferConflict(): AppException {
+    return new AppException(
+      HttpStatus.CONFLICT,
+      'PROJECT_OWNER_TRANSFER_CONFLICT',
+      '项目负责人已发生变化，请刷新后重试',
+    );
   }
 }

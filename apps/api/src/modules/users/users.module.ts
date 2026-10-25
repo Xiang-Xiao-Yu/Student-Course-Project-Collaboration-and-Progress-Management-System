@@ -8,6 +8,7 @@ import { UsersService } from './users.service';
 
 @Module({
   controllers: [UsersController],
+  exports: [AvatarStorageService],
   imports: [AuthModule],
   providers: [AvatarStorageService, UsersRepository, UsersService],
 })
