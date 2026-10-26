@@ -1,0 +1,13 @@
+
+ RUN  v5.0.1 C:/Users/Lenovo/.codex/worktrees/p2-pr30-remediation/Student-Course-Project-Collaboration-and-Progress-Management-System/apps/desktop
+
+·····································································
+
+ Test Files  18 passed (18)
+      Tests  69 passed (69)
+   Start at  10:00:03
+   Duration  2.03s (transform 86%, import 10%, worker 3%, tests 1%)
+
+  Transform  transforming modules took 12.98s · 86% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns

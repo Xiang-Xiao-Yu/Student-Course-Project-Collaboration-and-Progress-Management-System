@@ -1,0 +1,8 @@
+Command: node --check apps/desktop/tests/p2-project-ui.mjs
+Exit code: 0
+
+Runtime availability check:
+- apps/desktop/node_modules/electron/dist/electron.exe: absent
+- apps/desktop/node_modules/playwright/package.json or playwright-core/package.json: absent
+
+The Electron UI harness syntax passed, but its real Electron run was unavailable in this worktree.

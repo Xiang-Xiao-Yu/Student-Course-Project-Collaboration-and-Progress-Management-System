@@ -20,9 +20,10 @@ const seedPasswordHash =
 async function main(): Promise<void> {
   await prisma.user.upsert({
     where: { id: ids.admin },
-    update: { nickname: '项目管理员', status: 'ACTIVE' },
+    update: { isPlatformAdmin: true, nickname: '项目管理员', status: 'ACTIVE' },
     create: {
       id: ids.admin,
+      isPlatformAdmin: true,
       nickname: '项目管理员',
       passwordHash: seedPasswordHash,
       username: 'admin',
@@ -31,7 +32,7 @@ async function main(): Promise<void> {
 
   await prisma.user.upsert({
     where: { id: ids.member },
-    update: { nickname: '示例成员', status: 'ACTIVE' },
+    update: { isPlatformAdmin: false, nickname: '示例成员', status: 'ACTIVE' },
     create: {
       id: ids.member,
       nickname: '示例成员',

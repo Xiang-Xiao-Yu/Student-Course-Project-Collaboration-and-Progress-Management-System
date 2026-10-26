@@ -9,6 +9,7 @@ import { UsersService } from './users.service';
 @Module({
   controllers: [UsersController],
   imports: [AuthModule],
+  exports: [AvatarStorageService],
   providers: [AvatarStorageService, UsersRepository, UsersService],
 })
 export class UsersModule {}

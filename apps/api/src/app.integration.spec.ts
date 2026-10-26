@@ -174,6 +174,14 @@ describe('API integration', () => {
     expect(changePasswordBody.error.code).toBe('AUTH_SESSION_EXPIRED');
   });
 
+  it('requires authentication for project APIs', async () => {
+    const response = await fetch(`${baseUrl}/projects`);
+    const body = (await response.json()) as ApiErrorResponse;
+
+    expect(response.status).toBe(401);
+    expect(body.error.code).toBe('AUTH_SESSION_EXPIRED');
+  });
+
   it('does not leak unexpected error details', async () => {
     const response = await fetch(`${baseUrl}/_test-errors/unexpected`);
     const body = (await response.json()) as ApiErrorResponse;
