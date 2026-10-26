@@ -371,16 +371,26 @@ export class ProjectsRepository {
     role: ProjectRole,
     previousRole: ProjectRole,
   ): Promise<ProjectMemberRecord> {
-    return this.prisma.$transaction(async (transaction) => {
-      const member = await transaction.projectMember.update({
+    return this.withMemberMutation(projectId, actorId, async (transaction, ownerId) => {
+      if (role === 'OWNER' || previousRole === 'OWNER' || userId === ownerId) {
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'PROJECT_OWNER_TRANSFER_REQUIRED',
+          '必须先转移项目负责人后才能修改其角色',
+        );
+      }
+      const updated = await transaction.projectMember.updateMany({
         data: { role },
-        select: projectMemberSelect,
         where: {
-          projectId_userId: {
-            projectId,
-            userId,
-          },
+          projectId,
+          userId,
+          role: previousRole,
         },
+      });
+      if (updated.count !== 1) throw this.memberMutationConflict();
+      const member = await transaction.projectMember.findUniqueOrThrow({
+        select: projectMemberSelect,
+        where: { projectId_userId: { projectId, userId } },
       });
 
       await transaction.activityLog.create({
@@ -405,15 +415,22 @@ export class ProjectsRepository {
     userId: string,
     removedRole: ProjectRole,
   ): Promise<void> {
-    await this.prisma.$transaction(async (transaction) => {
-      await transaction.projectMember.delete({
+    await this.withMemberMutation(projectId, actorId, async (transaction, ownerId) => {
+      if (removedRole === 'OWNER' || userId === ownerId) {
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'PROJECT_OWNER_CANNOT_BE_REMOVED',
+          '项目负责人不能被移除，请先转移负责人',
+        );
+      }
+      const removed = await transaction.projectMember.deleteMany({
         where: {
-          projectId_userId: {
-            projectId,
-            userId,
-          },
+          projectId,
+          userId,
+          role: removedRole,
         },
       });
+      if (removed.count !== 1) throw this.memberMutationConflict();
 
       await transaction.activityLog.create({
         data: {
@@ -426,6 +443,76 @@ export class ProjectsRepository {
         },
       });
     });
+  }
+
+  private memberMutationConflict(): AppException {
+    return new AppException(
+      HttpStatus.CONFLICT,
+      'PROJECT_OWNER_TRANSFER_CONFLICT',
+      '项目负责人或成员状态已变化，请刷新后重试',
+    );
+  }
+
+  private async withMemberMutation<T>(
+    projectId: string,
+    actorId: string,
+    mutate: (transaction: Prisma.TransactionClient, ownerId: string) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const actor = await transaction.user.findUnique({
+          where: { id: actorId },
+          select: { status: true, isPlatformAdmin: true },
+        });
+        if (!actor || actor.status !== 'ACTIVE') {
+          throw new AppException(
+            HttpStatus.UNAUTHORIZED,
+            'AUTH_SESSION_EXPIRED',
+            '登录会话已失效，请重新登录',
+          );
+        }
+        const project = await transaction.project.findUnique({
+          where: { id: projectId },
+          select: { ownerId: true, status: true },
+        });
+        if (!project) {
+          throw new AppException(HttpStatus.NOT_FOUND, 'PROJECT_NOT_FOUND', '项目不存在或无权访问');
+        }
+        if (!actor.isPlatformAdmin) {
+          const membership = await transaction.projectMember.findUnique({
+            where: { projectId_userId: { projectId, userId: actorId } },
+            select: { role: true },
+          });
+          if (project.ownerId !== actorId || membership?.role !== 'OWNER') {
+            throw new AppException(
+              HttpStatus.FORBIDDEN,
+              'PROJECT_PERMISSION_DENIED',
+              '当前项目角色没有执行此操作的权限',
+            );
+          }
+        }
+        if (project.status === 'ARCHIVED') {
+          throw new AppException(
+            HttpStatus.CONFLICT,
+            'PROJECT_ARCHIVED',
+            '已归档项目只读，不能修改成员',
+          );
+        }
+        // SQLite serializes writers; a snapshot invalidated before the write
+        // cannot commit and is translated to a stable conflict below.
+        return mutate(transaction, project.ownerId);
+      });
+    } catch (error: unknown) {
+      if (
+        (error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2028' || error.code === 'P2034')) ||
+        (error instanceof Error &&
+          /database is locked|SQLITE_BUSY|write conflict/i.test(error.message))
+      ) {
+        throw this.memberMutationConflict();
+      }
+      throw error;
+    }
   }
 
   async transferOwnership(
