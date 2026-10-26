@@ -66,6 +66,35 @@ export interface ProjectMemberRecord {
   };
 }
 
+export type ProjectOwnerTransferErrorCode =
+  | 'AUTH_SESSION_EXPIRED'
+  | 'PROJECT_ARCHIVED'
+  | 'PROJECT_OWNER_TRANSFER_CONFLICT'
+  | 'PROJECT_PERMISSION_DENIED';
+
+export class ProjectOwnerTransferError extends Error {
+  constructor(readonly code: ProjectOwnerTransferErrorCode) {
+    super(code);
+    this.name = 'ProjectOwnerTransferError';
+  }
+}
+
+const projectOwnerTransferErrorCodes = new Set<ProjectOwnerTransferErrorCode>([
+  'AUTH_SESSION_EXPIRED',
+  'PROJECT_ARCHIVED',
+  'PROJECT_OWNER_TRANSFER_CONFLICT',
+  'PROJECT_PERMISSION_DENIED',
+]);
+
+export function isProjectOwnerTransferError(error: unknown): error is ProjectOwnerTransferError {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof error.code === 'string' &&
+    projectOwnerTransferErrorCodes.has(error.code as ProjectOwnerTransferErrorCode)
+  );
+}
+
 @Injectable()
 export class ProjectsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -223,9 +252,35 @@ export class ProjectsRepository {
     });
   }
 
-  async deleteProject(projectId: string): Promise<void> {
-    await this.prisma.project.delete({
-      where: { id: projectId },
+  async deleteProject(projectId: string, actorId: string): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      const actor = await transaction.user.findUnique({
+        select: { username: true },
+        where: { id: actorId },
+      });
+
+      if (!actor) {
+        throw new AppException(
+          HttpStatus.UNAUTHORIZED,
+          'AUTH_SESSION_EXPIRED',
+          '登录会话已失效，请重新登录',
+        );
+      }
+
+      const project = await transaction.project.delete({
+        select: { id: true, name: true, status: true },
+        where: { id: projectId },
+      });
+
+      await transaction.projectDeletionAudit.create({
+        data: {
+          actorId,
+          actorUsername: actor.username,
+          projectId: project.id,
+          projectName: project.name,
+          projectStatus: project.status,
+        },
+      });
     });
   }
 
@@ -379,119 +434,117 @@ export class ProjectsRepository {
     previousOwnerId: string,
     newOwnerId: string,
   ): Promise<ProjectMemberRecord> {
-    return this.prisma.$transaction(async (transaction) => {
-      const project = await transaction.project.findUnique({
-        select: { ownerId: true },
-        where: { id: projectId },
-      });
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const projectUpdate = await transaction.project.updateMany({
+          data: { ownerId: newOwnerId },
+          where: {
+            id: projectId,
+            ownerId: previousOwnerId,
+            status: { not: 'ARCHIVED' },
+          },
+        });
 
-      if (!project) {
-        throw new AppException(HttpStatus.NOT_FOUND, 'PROJECT_NOT_FOUND', '项目不存在或无权访问');
-      }
-
-      const actor = await transaction.user.findUnique({
-        select: { isPlatformAdmin: true },
-        where: { id: actorId },
-      });
-
-      if (!actor) {
-        throw new AppException(
-          HttpStatus.UNAUTHORIZED,
-          'AUTH_SESSION_EXPIRED',
-          '登录会话已失效，请重新登录',
-        );
-      }
-
-      const actorMembership = actor.isPlatformAdmin
-        ? null
-        : await transaction.projectMember.findUnique({
-            select: { role: true },
-            where: {
-              projectId_userId: {
-                projectId,
-                userId: actorId,
-              },
-            },
+        if (projectUpdate.count !== 1) {
+          const project = await transaction.project.findUnique({
+            select: { status: true },
+            where: { id: projectId },
           });
 
-      if (!actor.isPlatformAdmin && actorMembership?.role !== 'OWNER') {
-        throw new AppException(
-          HttpStatus.FORBIDDEN,
-          'PROJECT_PERMISSION_DENIED',
-          '当前项目角色没有执行此操作的权限',
-        );
-      }
+          if (project?.status === 'ARCHIVED') {
+            throw new ProjectOwnerTransferError('PROJECT_ARCHIVED');
+          }
 
-      if (project.ownerId !== previousOwnerId) {
-        throw this.ownerTransferConflict();
-      }
+          throw new ProjectOwnerTransferError('PROJECT_OWNER_TRANSFER_CONFLICT');
+        }
 
-      const target = await transaction.projectMember.findUnique({
-        select: { id: true },
-        where: {
-          projectId_userId: {
+        const actor = await transaction.user.findUnique({
+          select: { isPlatformAdmin: true, status: true },
+          where: { id: actorId },
+        });
+
+        if (!actor || actor.status !== 'ACTIVE') {
+          throw new ProjectOwnerTransferError('AUTH_SESSION_EXPIRED');
+        }
+
+        if (actorId !== previousOwnerId && !actor.isPlatformAdmin) {
+          throw new ProjectOwnerTransferError('PROJECT_PERMISSION_DENIED');
+        }
+
+        const demotedOwner = await transaction.projectMember.updateMany({
+          data: { role: 'MEMBER' },
+          where: {
+            projectId,
+            userId: previousOwnerId,
+            role: 'OWNER',
+          },
+        });
+
+        if (demotedOwner.count !== 1) {
+          throw new ProjectOwnerTransferError('PROJECT_OWNER_TRANSFER_CONFLICT');
+        }
+
+        const promotedMember = await transaction.projectMember.updateMany({
+          data: { role: 'OWNER' },
+          where: {
             projectId,
             userId: newOwnerId,
+            role: { in: ['MEMBER', 'OBSERVER'] },
           },
-        },
-      });
+        });
 
-      if (!target) {
-        throw new AppException(HttpStatus.NOT_FOUND, 'PROJECT_MEMBER_NOT_FOUND', '项目成员不存在');
-      }
+        if (promotedMember.count !== 1) {
+          throw new ProjectOwnerTransferError('PROJECT_OWNER_TRANSFER_CONFLICT');
+        }
 
-      const ownerUpdate = await transaction.project.updateMany({
-        data: { ownerId: newOwnerId },
-        where: {
-          id: projectId,
-          ownerId: previousOwnerId,
-        },
-      });
+        const member = await transaction.projectMember.findUnique({
+          select: projectMemberSelect,
+          where: {
+            projectId_userId: {
+              projectId,
+              userId: newOwnerId,
+            },
+          },
+        });
 
-      if (ownerUpdate.count !== 1) {
-        throw this.ownerTransferConflict();
-      }
+        if (!member) {
+          throw new ProjectOwnerTransferError('PROJECT_OWNER_TRANSFER_CONFLICT');
+        }
 
-      await transaction.projectMember.updateMany({
-        data: { role: 'MEMBER' },
-        where: {
-          projectId,
-          role: 'OWNER',
-          userId: { not: newOwnerId },
-        },
-      });
-      const member = await transaction.projectMember.update({
-        data: { role: 'OWNER' },
-        select: projectMemberSelect,
-        where: {
-          projectId_userId: {
+        await transaction.activityLog.create({
+          data: {
+            action: 'PROJECT_OWNER_TRANSFERRED',
+            actorId,
+            afterValue: JSON.stringify({ ownerId: newOwnerId }),
+            beforeValue: JSON.stringify({ ownerId: previousOwnerId }),
             projectId,
-            userId: newOwnerId,
+            targetId: projectId,
+            targetType: 'PROJECT',
           },
-        },
+        });
+
+        return member;
       });
+    } catch (error) {
+      if (isProjectOwnerTransferError(error)) {
+        throw error;
+      }
 
-      await transaction.activityLog.create({
-        data: {
-          action: 'PROJECT_OWNER_TRANSFERRED',
-          actorId,
-          afterValue: JSON.stringify({ ownerId: newOwnerId }),
-          beforeValue: JSON.stringify({ ownerId: previousOwnerId }),
-          projectId,
-          targetId: projectId,
-          targetType: 'PROJECT',
-        },
-      });
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === 'P2028' || error.code === 'P2034')
+      ) {
+        throw new ProjectOwnerTransferError('PROJECT_OWNER_TRANSFER_CONFLICT');
+      }
 
-      return member;
-    });
-  }
+      if (
+        error instanceof Error &&
+        /database is locked|SQLITE_BUSY|write conflict/i.test(error.message)
+      ) {
+        throw new ProjectOwnerTransferError('PROJECT_OWNER_TRANSFER_CONFLICT');
+      }
 
-  private ownerTransferConflict(): AppException {
-    return new AppException(
-      HttpStatus.CONFLICT,
-      'PROJECT_OWNER_TRANSFER_CONFLICT',
-      '项目负责人已发生变化，请刷新后重试',
-    );
+      throw error;
+    }
   }
 }

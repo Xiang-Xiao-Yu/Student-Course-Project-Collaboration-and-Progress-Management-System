@@ -13,7 +13,7 @@ vi.hoisted(() => {
   process.env['LOG_LEVEL'] = 'error';
 });
 
-import { HttpStatus, INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
@@ -192,7 +192,7 @@ describe('P2 project regressions with SQLite', () => {
         accounts.memberC.id,
       ),
     ).rejects.toMatchObject({
-      status: HttpStatus.CONFLICT,
+      code: 'PROJECT_OWNER_TRANSFER_CONFLICT',
     });
 
     await expect(
@@ -203,7 +203,7 @@ describe('P2 project regressions with SQLite', () => {
         accounts.memberC.id,
       ),
     ).rejects.toMatchObject({
-      status: HttpStatus.FORBIDDEN,
+      code: 'PROJECT_OWNER_TRANSFER_CONFLICT',
     });
 
     const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });

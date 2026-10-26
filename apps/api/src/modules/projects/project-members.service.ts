@@ -7,14 +7,18 @@ import { UpdateProjectMemberRoleDto } from './dto/update-project-member-role.dto
 import type { ProjectMemberResponse } from './interfaces/project-member-response';
 import { ProjectAccessService } from './project-access.service';
 import type { ProjectRole } from './project.constants';
-import { ProjectsRepository, ProjectMemberRecord } from './repositories/projects.repository';
+import {
+  isProjectOwnerTransferError,
+  ProjectsRepository,
+  ProjectMemberRecord,
+} from './repositories/projects.repository';
 
 @Injectable()
 export class ProjectMembersService {
   constructor(
-    private readonly avatarStorage: AvatarStorageService,
     private readonly projectAccessService: ProjectAccessService,
     private readonly projectsRepository: ProjectsRepository,
+    private readonly avatarStorage: AvatarStorageService,
   ) {}
 
   async listMembers(userId: string, projectId: string): Promise<ProjectMemberResponse[]> {
@@ -89,14 +93,43 @@ export class ProjectMembersService {
         return this.toResponse(target);
       }
 
-      const member = await this.projectsRepository.transferOwnership(
-        projectId,
-        userId,
-        access.project.ownerId,
-        targetUserId,
-      );
+      try {
+        const member = await this.projectsRepository.transferOwnership(
+          projectId,
+          userId,
+          access.project.ownerId,
+          targetUserId,
+        );
 
-      return this.toResponse(member);
+        return this.toResponse(member);
+      } catch (error) {
+        if (!isProjectOwnerTransferError(error)) {
+          throw error;
+        }
+
+        switch (error.code) {
+          case 'AUTH_SESSION_EXPIRED':
+            throw new AppException(
+              HttpStatus.UNAUTHORIZED,
+              error.code,
+              '登录会话已失效，请重新登录',
+            );
+          case 'PROJECT_ARCHIVED':
+            throw new AppException(HttpStatus.CONFLICT, error.code, '已归档项目只读，不能修改成员');
+          case 'PROJECT_PERMISSION_DENIED':
+            throw new AppException(
+              HttpStatus.FORBIDDEN,
+              error.code,
+              '当前项目角色没有执行此操作的权限',
+            );
+          case 'PROJECT_OWNER_TRANSFER_CONFLICT':
+            throw new AppException(
+              HttpStatus.CONFLICT,
+              error.code,
+              '项目负责人或成员状态已变化，请刷新后重试',
+            );
+        }
+      }
     }
 
     if (targetRole === 'OWNER') {

@@ -149,4 +149,21 @@ describe('ProjectsService', () => {
       }),
     ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
   });
+
+  it('passes the acting user to the durable deletion audit transaction', async () => {
+    const { access, repository, service } = createService();
+
+    access.requirePermission.mockResolvedValue({
+      isPlatformAdmin: false,
+      project,
+      role: 'OWNER',
+    });
+    repository.deleteProject.mockResolvedValue(undefined);
+
+    await expect(
+      service.deleteProject('owner-1', 'project-1', { confirmName: project.name }),
+    ).resolves.toEqual({ deleted: true });
+
+    expect(repository.deleteProject).toHaveBeenCalledWith('project-1', 'owner-1');
+  });
 });

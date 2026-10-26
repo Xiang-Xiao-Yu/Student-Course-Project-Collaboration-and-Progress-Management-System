@@ -30,6 +30,16 @@ const normalMember = {
   },
 };
 
+const uploadedMember = {
+  ...normalMember,
+  user: {
+    ...normalMember.user,
+    avatarUrl: 'uploaded:00000000-0000-4000-8000-000000000000.png',
+  },
+};
+
+const memberAvatarDataUrl = 'data:image/png;base64,AA==';
+
 function createService(): {
   access: { requirePermission: ReturnType<typeof vi.fn> };
   avatarStorage: { toDataUrl: ReturnType<typeof vi.fn> };
@@ -40,12 +50,13 @@ function createService(): {
     listMembers: ReturnType<typeof vi.fn>;
     removeMember: ReturnType<typeof vi.fn>;
     transferOwnership: ReturnType<typeof vi.fn>;
+    updateMemberRole: ReturnType<typeof vi.fn>;
   };
   service: ProjectMembersService;
 } {
   const access = { requirePermission: vi.fn() };
   const avatarStorage = {
-    toDataUrl: vi.fn().mockResolvedValue(null),
+    toDataUrl: vi.fn(async (_userId: string, avatarUrl: string | null) => avatarUrl),
   };
   const repository = {
     addMember: vi.fn(),
@@ -54,11 +65,12 @@ function createService(): {
     listMembers: vi.fn(),
     removeMember: vi.fn(),
     transferOwnership: vi.fn(),
+    updateMemberRole: vi.fn(),
   };
   const service = new ProjectMembersService(
-    avatarStorage as unknown as AvatarStorageService,
     access as unknown as ProjectAccessService,
     repository as unknown as ProjectsRepository,
+    avatarStorage as unknown as AvatarStorageService,
   );
 
   return { access, avatarStorage, repository, service };
@@ -87,6 +99,36 @@ function ownerAccess(): {
 }
 
 describe('ProjectMembersService', () => {
+  it('resolves uploaded avatars for list, invite, and role-update responses', async () => {
+    const { access, avatarStorage, repository, service } = createService();
+    const updatedMember = { ...uploadedMember, role: 'OBSERVER' };
+
+    access.requirePermission.mockResolvedValue(ownerAccess());
+    repository.listMembers.mockResolvedValue([uploadedMember]);
+    repository.findUserByUsername.mockResolvedValue(uploadedMember.user);
+    repository.findMemberByUserId.mockResolvedValueOnce(null).mockResolvedValueOnce(normalMember);
+    repository.addMember.mockResolvedValue(uploadedMember);
+    repository.updateMemberRole.mockResolvedValue(updatedMember);
+    avatarStorage.toDataUrl.mockResolvedValue(memberAvatarDataUrl);
+
+    await expect(service.listMembers('owner-1', 'project-1')).resolves.toMatchObject([
+      { avatarUrl: memberAvatarDataUrl, userId: 'user-1' },
+    ]);
+    await expect(
+      service.inviteMember('owner-1', 'project-1', { role: 'MEMBER', username: 'member' }),
+    ).resolves.toMatchObject({ avatarUrl: memberAvatarDataUrl, userId: 'user-1' });
+    await expect(
+      service.updateMemberRole('owner-1', 'project-1', 'user-1', { role: 'OBSERVER' }),
+    ).resolves.toMatchObject({ avatarUrl: memberAvatarDataUrl, userId: 'user-1' });
+
+    expect(avatarStorage.toDataUrl).toHaveBeenNthCalledWith(
+      1,
+      'user-1',
+      uploadedMember.user.avatarUrl,
+    );
+    expect(avatarStorage.toDataUrl).toHaveBeenCalledTimes(3);
+  });
+
   it('invites an existing user as a member', async () => {
     const { access, repository, service } = createService();
 
@@ -165,6 +207,24 @@ describe('ProjectMembersService', () => {
       'owner-1',
       'user-1',
     );
+  });
+
+  it('maps a stale ownership transfer to a stable 409 business error', async () => {
+    const { access, repository, service } = createService();
+    const conflict = Object.assign(new Error('stale owner snapshot'), {
+      code: 'PROJECT_OWNER_TRANSFER_CONFLICT',
+    });
+
+    access.requirePermission.mockResolvedValue(ownerAccess());
+    repository.findMemberByUserId.mockResolvedValue(normalMember);
+    repository.transferOwnership.mockRejectedValue(conflict);
+
+    await expect(
+      service.updateMemberRole('owner-1', 'project-1', 'user-1', { role: 'OWNER' }),
+    ).rejects.toMatchObject({
+      response: { code: 'PROJECT_OWNER_TRANSFER_CONFLICT' },
+      status: HttpStatus.CONFLICT,
+    });
   });
 
   it('rejects removing the project owner', async () => {

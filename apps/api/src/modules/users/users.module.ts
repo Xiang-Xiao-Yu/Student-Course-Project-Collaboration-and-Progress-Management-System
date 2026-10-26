@@ -8,8 +8,8 @@ import { UsersService } from './users.service';
 
 @Module({
   controllers: [UsersController],
-  exports: [AvatarStorageService],
   imports: [AuthModule],
+  exports: [AvatarStorageService],
   providers: [AvatarStorageService, UsersRepository, UsersService],
 })
 export class UsersModule {}

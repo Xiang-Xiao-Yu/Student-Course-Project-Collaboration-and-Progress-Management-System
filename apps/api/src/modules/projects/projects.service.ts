@@ -192,7 +192,7 @@ export class ProjectsService {
       );
     }
 
-    await this.projectsRepository.deleteProject(projectId);
+    await this.projectsRepository.deleteProject(projectId, userId);
 
     return { deleted: true };
   }

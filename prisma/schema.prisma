@@ -224,6 +224,19 @@ model ActivityLog {
   @@index([actorId])
 }
 
+model ProjectDeletionAudit {
+  id            String   @id @default(cuid())
+  projectId     String
+  projectName   String
+  projectStatus String
+  actorId       String
+  actorUsername String
+  deletedAt     DateTime @default(now())
+
+  @@index([projectId, deletedAt])
+  @@index([actorId, deletedAt])
+}
+
 model Meeting {
   id          String   @id @default(cuid())
   projectId   String
