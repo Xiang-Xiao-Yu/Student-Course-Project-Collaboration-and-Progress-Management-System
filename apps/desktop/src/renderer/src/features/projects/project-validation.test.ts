@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  canArchiveProject,
   hasMemberInviteFormErrors,
   hasProjectFormErrors,
   hasUnsavedProjectChanges,
@@ -10,6 +11,11 @@ import {
 } from './project-validation';
 
 describe('P2 project validation', () => {
+  it('blocks archive until the project form is clean', () => {
+    expect(canArchiveProject(true)).toBe(false);
+    expect(canArchiveProject(false)).toBe(true);
+  });
+
   it('正常场景接受有效项目和成员邀请信息', () => {
     expect(
       validateProjectForm({

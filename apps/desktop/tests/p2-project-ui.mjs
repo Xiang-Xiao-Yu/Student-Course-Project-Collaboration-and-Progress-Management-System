@@ -14,6 +14,8 @@ mkdirSync(runDirectory, { recursive: true });
 const { _electron } = createRequire(playwrightPackage)('playwright');
 const results = [];
 const network = [];
+let archiveRequests = 0;
+let outsiderMemberListRequests = 0;
 
 const users = {
   owner: { id: 'u-owner', nickname: '项目负责人', username: 'owner' },
@@ -360,6 +362,7 @@ const server = createServer(async (request, response) => {
         return;
       }
 
+      archiveRequests++;
       entry.project.status = 'ARCHIVED';
       send(
         response,
@@ -373,6 +376,7 @@ const server = createServer(async (request, response) => {
 
     if (membersMatch && method === 'GET') {
       if (!accessFor(membersMatch[1], user)) {
+        if (user.username === 'outsider') outsiderMemberListRequests++;
         send(response, 404, errorEnvelope('PROJECT_NOT_FOUND', '项目不存在或你无权访问该项目。'));
         return;
       }
@@ -497,6 +501,20 @@ try {
   await page.getByRole('button', { name: '开始项目', exact: true }).click();
   await page.getByRole('button', { name: '标记为已完成', exact: true }).waitFor();
   await page.getByRole('button', { name: '标记为已完成', exact: true }).click();
+  const projectNameField = page.getByLabel('项目名称', { exact: true });
+  await projectNameField.fill('未保存的课程项目名称');
+  const archiveRequestsBeforeDraft = archiveRequests;
+  await page.getByRole('button', { name: '归档项目', exact: true }).click();
+  await page.getByRole('button', { name: '确认归档', exact: true }).click();
+  await page.getByText('请先保存或撤销未保存的项目资料，再归档。', { exact: true }).waitFor();
+  check(archiveRequests === archiveRequestsBeforeDraft, 'Dirty project form was archived');
+  check(
+    (await projectNameField.inputValue()) === '未保存的课程项目名称',
+    'Dirty project name was lost',
+  );
+  await projectNameField.fill('P2 新建课程项目');
+  await page.getByRole('button', { name: '保存基本信息', exact: true }).click();
+  await page.getByText('项目基本信息已保存。', { exact: true }).waitFor();
   await page.getByRole('button', { name: '归档项目', exact: true }).click();
   await page.getByRole('button', { name: '确认归档', exact: true }).click();
   await page.getByText('项目已归档，仅可查看信息或删除项目。', { exact: true }).waitFor();
@@ -558,10 +576,14 @@ try {
   await login('outsider');
   await page.getByText('暂无项目', { exact: true }).waitFor();
   await page.evaluate(() => {
-    globalThis.location.hash = '#/projects/p-shared/overview';
+    globalThis.location.hash = '#/projects/p-shared/members';
   });
   await page.locator('.error-state').getByText('无法访问项目', { exact: true }).waitFor();
   await page.getByText('项目不存在或你无权访问该项目。', { exact: true }).waitFor();
+  check(
+    outsiderMemberListRequests === 0,
+    'Non-member member page mounted before project access check',
+  );
   await capture('outsider-denied.png');
 
   results.push({ name: 'owner P2 project lifecycle and member UI', status: 'PASS' });

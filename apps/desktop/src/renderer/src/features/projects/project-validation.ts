@@ -128,3 +128,7 @@ export function hasUnsavedProjectChanges(
     original.endDate !== current.endDate
   );
 }
+
+export function canArchiveProject(hasUnsavedChanges: boolean): boolean {
+  return !hasUnsavedChanges;
+}

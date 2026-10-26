@@ -58,4 +58,16 @@ describe('getUserFacingError', () => {
       ),
     ).toBe('项目不存在或你无权访问该项目。');
   });
+
+  it('负责人并发移交冲突提示用户刷新后重试', () => {
+    expect(
+      getUserFacingError(
+        new ApiError({
+          code: 'PROJECT_OWNER_TRANSFER_CONFLICT',
+          message: '',
+          status: 409,
+        }),
+      ),
+    ).toBe('项目负责人或成员状态已变化，请刷新后重试。');
+  });
 });

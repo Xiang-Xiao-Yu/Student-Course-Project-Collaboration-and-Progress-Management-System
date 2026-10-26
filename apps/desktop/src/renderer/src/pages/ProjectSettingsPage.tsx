@@ -29,6 +29,7 @@ import {
 } from '../features/projects/project-presentation';
 import type { ProjectFormErrors, ProjectFormValues } from '../features/projects/project-validation';
 import {
+  canArchiveProject,
   hasProjectFormErrors,
   hasUnsavedProjectChanges,
   validateDeleteConfirmation,
@@ -162,6 +163,16 @@ export function ProjectSettingsPage() {
 
   async function applyStatus(targetStatus: ProjectStatus): Promise<void> {
     if (projectState.status !== 'ready' || isUpdatingStatus) {
+      return;
+    }
+
+    if (
+      targetStatus === 'ARCHIVED' &&
+      !canArchiveProject(hasUnsavedProjectChanges(initialForm, form))
+    ) {
+      setArchiveConfirmationOpen(false);
+      setActionMessage(null);
+      setActionError('请先保存或撤销未保存的项目资料，再归档。');
       return;
     }
 

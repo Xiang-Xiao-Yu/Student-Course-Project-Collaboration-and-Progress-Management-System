@@ -35,6 +35,7 @@ const messageByCode: Record<string, string> = {
   PROJECT_MEMBER_NOT_FOUND: '项目成员不存在。',
   PROJECT_NOT_FOUND: '项目不存在或你无权访问该项目。',
   PROJECT_OWNER_CANNOT_BE_REMOVED: '项目负责人不能被移除，请先转移负责人。',
+  PROJECT_OWNER_TRANSFER_CONFLICT: '项目负责人或成员状态已变化，请刷新后重试。',
   PROJECT_OWNER_TRANSFER_REQUIRED: '必须先转移项目负责人后才能修改其角色。',
   PROJECT_PERMISSION_DENIED: '当前账号没有执行此项目操作的权限。',
   PROJECT_STATUS_TRANSITION_INVALID: '当前项目状态不能转换为目标状态。',

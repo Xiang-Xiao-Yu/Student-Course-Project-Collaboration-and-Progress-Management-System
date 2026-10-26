@@ -6,15 +6,11 @@ import { ErrorNotice } from '../components/ErrorNotice';
 import { ErrorState } from '../components/feedback/ErrorState';
 import { LoadingState } from '../components/feedback/LoadingState';
 import { useSession } from '../features/auth/session';
-import type { ProjectDto } from '../features/projects/project-api';
 import { getProject } from '../features/projects/project-api';
+import { getProjectRouteAccessState } from '../features/projects/project-route-access';
+import type { ProjectLoadState } from '../features/projects/project-route-access';
 import { canManageProject, getProjectRoleLabel } from '../features/projects/project-presentation';
 import { getUserFacingError } from '../lib/api/errors';
-
-type ProjectLoadState =
-  | { readonly status: 'idle' | 'loading' }
-  | { readonly project: ProjectDto; readonly status: 'ready' }
-  | { readonly message: string; readonly status: 'error' };
 
 export function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,7 +28,7 @@ export function AppLayout() {
 
     let isCancelled = false;
 
-    setProjectLoadState({ status: 'loading' });
+    setProjectLoadState({ projectId, status: 'loading' });
     void getProject(api, projectId)
       .then((nextProject) => {
         if (!isCancelled) {
@@ -43,6 +39,7 @@ export function AppLayout() {
         if (!isCancelled) {
           setProjectLoadState({
             message: getUserFacingError(error),
+            projectId,
             status: 'error',
           });
         }
@@ -53,14 +50,14 @@ export function AppLayout() {
     };
   }, [api, projectId, projectRetryVersion]);
 
-  const project = projectLoadState.status === 'ready' ? projectLoadState.project : null;
+  const routeAccess = getProjectRouteAccessState(projectId, projectLoadState);
+  const project =
+    routeAccess === 'ready' && projectLoadState.status === 'ready'
+      ? projectLoadState.project
+      : null;
   const projectLabel =
     project?.name ??
-    (projectId
-      ? projectLoadState.status === 'error'
-        ? '项目不可访问'
-        : '项目工作区'
-      : '全部项目');
+    (projectId ? (routeAccess === 'error' ? '项目不可访问' : '项目工作区') : '全部项目');
   const visibleNavigationGroups = navigationGroups
     .map((group) => ({
       ...group,
@@ -90,7 +87,7 @@ export function AppLayout() {
             <small>
               {project
                 ? getProjectRoleLabel(project.accessRole)
-                : projectLoadState.status === 'error'
+                : routeAccess === 'error'
                   ? '无法访问项目'
                   : '正在读取项目权限'}
             </small>
@@ -100,7 +97,7 @@ export function AppLayout() {
           </Link>
         </div>
 
-        {projectId && projectLoadState.status === 'ready' ? (
+        {projectId && routeAccess === 'ready' ? (
           <nav className="sidebar-nav" aria-label="项目导航">
             {visibleNavigationGroups.map((group) => (
               <div className="nav-group" key={group.label}>
@@ -196,9 +193,9 @@ export function AppLayout() {
 
         <main className="content">
           {signOutError ? <ErrorNotice message={signOutError} /> : null}
-          {projectId && projectLoadState.status === 'loading' ? (
+          {routeAccess === 'loading' ? (
             <LoadingState label="正在确认项目访问权限" />
-          ) : projectId && projectLoadState.status === 'error' ? (
+          ) : routeAccess === 'error' && projectLoadState.status === 'error' ? (
             <ErrorState
               actionLabel="重试"
               message={projectLoadState.message}
