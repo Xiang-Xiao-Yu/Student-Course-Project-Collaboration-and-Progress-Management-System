@@ -25,8 +25,22 @@ const messageByCode: Record<string, string> = {
   AUTH_USERNAME_TAKEN: '用户名已存在。',
   AVATAR_FILE_TOO_LARGE: '头像图片不能超过 10 MiB。',
   AUTH_FORBIDDEN: '当前账号没有执行此操作的权限。',
+  FORBIDDEN: '当前账号没有执行此操作的权限。',
   NETWORK_ERROR: '无法连接到服务，请检查网络后重试。',
   API_INVALID_RESPONSE: '服务响应异常，请稍后重试。',
+  PROJECT_ARCHIVED: '已归档项目只读，不能继续修改。',
+  PROJECT_DATE_RANGE_INVALID: '项目结束日期不能早于开始日期。',
+  PROJECT_DELETE_CONFIRMATION_MISMATCH: '输入的项目名称不匹配，未删除项目。',
+  PROJECT_MEMBER_EXISTS: '该用户已经是项目成员。',
+  PROJECT_MEMBER_NOT_FOUND: '项目成员不存在。',
+  PROJECT_NOT_FOUND: '项目不存在或你无权访问该项目。',
+  PROJECT_OWNER_CANNOT_BE_REMOVED: '项目负责人不能被移除，请先转移负责人。',
+  PROJECT_OWNER_TRANSFER_CONFLICT: '项目负责人或成员状态已变化，请刷新后重试。',
+  PROJECT_OWNER_TRANSFER_REQUIRED: '必须先转移项目负责人后才能修改其角色。',
+  PROJECT_PERMISSION_DENIED: '当前账号没有执行此项目操作的权限。',
+  PROJECT_STATUS_TRANSITION_INVALID: '当前项目状态不能转换为目标状态。',
+  USER_NOT_FOUND: '用户名对应的用户不存在。',
+  VALIDATION_FAILED: '提交的数据未通过校验，请检查后重试。',
 };
 
 function getMessageByStatus(status: number | null): string {
