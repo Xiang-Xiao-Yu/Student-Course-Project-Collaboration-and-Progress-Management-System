@@ -6,7 +6,7 @@
 - 任务名称：React + TypeScript + Electron 客户端
 - 负责人标签：`Deepseek@frontend`
 - 负责人：`Deepseek@frontend`
-- 状态：`已完成（当前 P2 阶段）`
+- 状态：`进行中`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -92,7 +92,7 @@
 
 ## 进度记录（仅 T-02 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P2 项目、成员与权限界面（T-03 复测通过并冻结；P3 及以后仍锁定，等待项目组长授权解锁）
+- 当前阶段：P3 需求、任务与看板（已解锁；范围限 P3.1～P3.4，FR-04/FR-05/FR-07、AC-03/AC-04）
 - 已完成：任务拆分、阶段门禁定义；`Deepseek@frontend` 于 Issue #9 提交认领申请；`ChatGPT@root` 批准认领并确认从 P0 开始；P0.1～P0.3 已完成。
 - root 指定验证范围（P0-R1，2026-09-29）：当前没有确认的前端代码缺陷，不新增功能、不改依赖或契约。仅补充桌面运行时验证：启动 Electron；验证未登录访问受保护项目路由会回到登录页；在 API 不可用时触发一次受保护页面请求，确认界面显示可理解的错误提示且应用不崩溃、不显示堆栈或敏感值。提供可复核的命令/步骤和截图或等价原始证据。若该流程实际失败，停止修改并将复现与证据交 root 再指定代码修复范围。保持 P0 冻结，不进入 P1。
 - P0 验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过；修复后桌面端 21 个测试通过，API 8 项、shared 6 项通过。
@@ -130,7 +130,8 @@
 - P2 Electron 验证（2026-10-22）：隔离契约服务下真实 Electron 4/4 运行组通过，覆盖项目创建、无效日期、成员邀请界面、合法状态转换、归档、删除确认、成员/观察者只读和非成员 404。脚本为 `apps/desktop/tests/p2-project-ui.mjs`，截图与结果位于 `apps/desktop/tests/evidence/p2/`。
 - P2 当前结论（2026-10-22）：T-02 前端停止开发并标记 `待测试`；等待 T-01 P2 结束及 T-03 使用真实 API 执行阶段门禁，不进入 P3。
 - Root 指定 P2.3 修复范围（2026-10-25）：复审 PR #30 head `a84c501` 发现项目访问门禁在 `idle`/projectId 切换时仍可能挂载子页面；未保存基本信息时归档会锁住未保存草稿。修复只限 `AppLayout.tsx`、`ProjectSettingsPage.tsx`、项目访问状态单测、`project-validation` 单测和 `p2-project-ui.mjs` 回归；补充 `PROJECT_OWNER_TRANSFER_CONFLICT` 前端文案。修复后 T-02 再冻结交 T-03 复测，不进入 P3。
-- P2.3 复测通过（2026-10-26）：访问状态按当前 projectId 绑定，当前项目校验通过前不挂载 `<Outlet />`；脏表单归档被阻止并保留草稿，先保存后可归档；新增负责人转移冲突文案。desktop 全量 69/69、typecheck/build、改动 ESLint/Prettier和脚本语法检查通过；真实 renderer + 临时 API 浏览器复测访问拒绝及归档流程。当前分支更新仍保持 Draft，P3 锁定。
+- P2.3 复测通过（2026-10-26）：访问状态按当前 projectId 绑定，当前项目校验通过前不挂载 `<Outlet />`；脏表单归档被阻止并保留草稿，先保存后可归档；新增负责人转移冲突文案。desktop 全量 69/69、typecheck/build、改动 ESLint/Prettier和脚本语法检查通过；真实 renderer + 临时 API 浏览器复测访问拒绝及归档流程。当前分支更新仍保持 Draft，等待常规评审。
+- P3 解锁（2026-10-26）：T-03 P2-R1 门禁通过后，项目组长在本轮明确确认，root 已解锁 T-02 P3。实施范围依现有任务清单，限 P3.1～P3.4（FR-04、FR-05、FR-07；AC-03、AC-04），不扩大到 P4 或需求文档未授权范围。
 
 ## GitHub Issue（由负责人提交给 `root`）
 
