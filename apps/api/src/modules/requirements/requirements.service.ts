@@ -176,6 +176,7 @@ export class RequirementsService {
       priority: requirement.priority as RequirementResponse['priority'],
       projectId: requirement.projectId,
       status: requirement.status as RequirementStatus,
+      tasks: requirement.tasks,
       title: requirement.title,
       updatedAt: requirement.updatedAt.toISOString(),
     };

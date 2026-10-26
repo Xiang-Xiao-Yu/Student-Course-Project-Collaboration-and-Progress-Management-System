@@ -15,6 +15,7 @@ const requirement = {
   priority: 'MEDIUM',
   projectId: 'project-1',
   status: 'DRAFT',
+  tasks: [],
   title: '示例需求',
   updatedAt: new Date('2026-10-26T10:00:00.000Z'),
 };

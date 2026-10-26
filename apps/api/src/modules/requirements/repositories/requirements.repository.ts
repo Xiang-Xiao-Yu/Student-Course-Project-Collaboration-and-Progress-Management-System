@@ -14,6 +14,14 @@ const requirementSelect = {
   priority: true,
   projectId: true,
   status: true,
+  tasks: {
+    select: {
+      assigneeId: true,
+      id: true,
+      status: true,
+      title: true,
+    },
+  },
   title: true,
   updatedAt: true,
 } satisfies Prisma.RequirementSelect;
@@ -28,6 +36,12 @@ export interface RequirementRecord {
   priority: string;
   projectId: string;
   status: string;
+  tasks: Array<{
+    assigneeId: string | null;
+    id: string;
+    status: string;
+    title: string;
+  }>;
   title: string;
   updatedAt: Date;
 }
