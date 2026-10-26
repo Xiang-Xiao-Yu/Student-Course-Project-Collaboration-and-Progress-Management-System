@@ -1,0 +1,13 @@
+(node:27484) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("file%3A///C%3A/Users/Lenovo/.codex/worktrees/p2-pr28-remediation/Student-Course-Project-Collaboration-and-Progress-Management-System/.superpowers/sdd/2026-10-25-p2-remediation/resolve-sibling-dependencies.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ RUN  v5.0.1 C:/Users/Lenovo/.codex/worktrees/p2-pr28-remediation/Student-Course-Project-Collaboration-and-Progress-Management-System/apps/api
+
+[Nest] 41648  - 2026/10/26 09:59:22   ERROR [AllExceptionsFilter] Unhandled API exception
+·················································································································
+
+ Test Files  23 passed (23)
+      Tests  113 passed (113)
+   Start at  09:59:20
+   Duration  9.77s (import 47%, tests 45%, transform 8%)

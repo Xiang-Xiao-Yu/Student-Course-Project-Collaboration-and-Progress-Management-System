@@ -6,7 +6,7 @@
 - 任务名称：测试计划、自动化测试、权限验证和阶段验收
 - 负责人标签：`ChatGPT@root`
 - 负责人：`root`
-- 状态：`已认领`
+- 状态：`进行中`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 AC-01～AC-11；覆盖 FR-01～FR-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段测试范围。若项目组长要求提前验证，必须先创建 GitHub Issue 并经 `root` 批准。
@@ -102,7 +102,7 @@
 
 ## 进度记录（仅 `ChatGPT@root` 可修改）
 
-- 当前阶段：P2 项目、成员与权限（已解锁；等待 T-01/T-02 完成当前阶段后冻结测试）
+- 当前阶段：P2 项目、成员与权限（T-03 复测通过；T-01/T-02 冻结；P3 保持锁定，等待项目组长授权解锁）
 - 已完成：测试阶段、小功能和阶段门禁定义；建立 `docs/test/test-plan.md`、P0 证据模板、环境采集和 API 契约冒烟检查；增加 `pnpm test:p0-env` 与 `pnpm test:p0-smoke` 独立命令；T-01、T-02 均已提交 P0 冻结候选。
 - 当前检查：2026-10-11 在 PR #15 合并后的最新 main 提交 `28d9e077b3875452e1ed477a4ad49260580b550c` 全新隔离工作区重新执行完整自动门禁：冻结安装、Prisma generate/Migration/Seed 两次、lint、typecheck、36 项测试、build、API health/error smoke、缺少 JWT_SECRET 启动回归和无效数据库配置检查全部通过。项目组长完成人工桌面检查并确认通过；root 已记录 P0 门禁通过，P1 已解锁。详细证据见 `docs/test/p0-r1-retest-2026-10-11.md`。
 - 待完成：P2 的 AC-02/AC-08 测试，须等待 T-01/T-02 的 P2 实现冻结。P1 已通过最终审查与复测，依据项目组长本轮条件授权由 root 解锁 P2；P3 及后续阶段继续锁定。详见 [P1 最终门禁与 P2 解锁](../test/p1-final-gate-2026-10-21.md)。
@@ -115,6 +115,10 @@
 - D06 自动上传复测（2026-10-21）：需求 0.1.4，有效选择自动上传、手动上传按钮移除；全仓 123/123、真实 Electron 8/8、lint、桌面 typecheck/build 通过，确认单次请求、保留未保存昵称、资料保存不重复上传及失败回退。首轮脚本路由等待问题已修正并保留原始输出。详情见 [自动上传复测](../test/p1-avatar-auto-upload-2026-10-21.md)，等待项目组长人工确认；P2 未解锁。
 
 - P1 最终门禁（2026-10-21）：业务提交 `1e414253a17c443dcebb25c79bb31f3be375f22c`、取证脚本提交 `7e9d429e012151910aca2d24b68c0957c880243b`；126/126 测试、真实 Electron 9/9、lint/typecheck/build 通过，审查发现的边界已修复并回归。项目组长明确授权通过后解锁 P2，root 已开放 P2，范围为 AC-02/AC-08；报告、原始证据与遗留发布边界见最终门禁报告。
+- P2 初审失败（2026-10-25）：T-01 后端单测 77/77、隔离 Repository/SQLite 5/5、真实 HTTP 4/4 与 API 全量 105/105 通过；PR #30 静态复审发现访问检查未匹配当前 projectId 时仍渲染 `<Outlet />`，及脏表单状态下可归档并使草稿不可保存。root 已指定 T-02 当前阶段修复范围，未通过门禁，不解锁 P3；待修复冻结后复测。
+- P2 门禁开始（2026-10-25）：T-01 已标记 `待测试`，T-02 PR #30 保持 `待测试`；P2 API 单元 77/77、Repository/隔离 SQLite 5/5、真实 HTTP 4/4、Prisma validate/generate、API typecheck/build 已执行。PR #30 静态复审仍需检查访问门禁与未保存归档交互；门禁结论待完成跨分支 UI 复测后记录，不解锁 P3。
+- P2-R1 复测通过（2026-10-26）：API 全量 113/113，P2 定向 API 回归 37/37（含 HTTP 4 项、SQLite Repository/Service 5 项）；desktop 18 个测试文件、69/69；API/desktop typecheck 与 build、Prisma format/validate/generate、全仓 ESLint/Prettier、桌面改动 ESLint/Prettier及 UI 脚本语法均通过。临时 SQLite 上通过真实 renderer/API 浏览器检查：脏表单归档显示提示且保留草稿，保存后归档成功；非成员直达成员路由显示 404 访问拒绝状态。报告与原始日志见 `docs/test/p2-r1-2026-10-25.md` 和同名目录。
+- 环境限制：`prisma migrate deploy`/`db push` 在当前本机返回空的 `Schema engine error`，完整 Electron + Playwright 运行组也因缺少 Electron 二进制和 Playwright 包未运行；测试仍通过 Prisma validate/generate、临时 SQLite 对全部四份 migration SQL 的应用、真实 Nest HTTP 与真实 renderer 浏览器检查。P2 门禁由 root 判定通过，P3 不自动解锁。
 
 ## GitHub Issue（由提出人提交给 `root`）
 

@@ -6,7 +6,7 @@
 - 任务名称：后端核心、数据模型、权限和 API 契约
 - 负责人标签：`Codex@backend`
 - 负责人：`Codex@backend`
-- 状态：`进行中`
+- 状态：`已完成（当前 P2 阶段）`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -99,7 +99,7 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P2 项目、成员与权限（已解锁，限 P2.1～P2.3；P3 及以后锁定）
+- 当前阶段：P2 项目、成员与权限（P2.1～P2.3 已通过 T-03 门禁；P3 及以后仍锁定）
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
 - P0-R1 修复结果（2026-10-11，ChatGPT@root）：main.ts 缓冲 Nest 启动日志并在成功监听后刷新；环境校验错误只输出安全白名单消息，其他启动异常显示通用提示。新增进程级 startup-error.spec.ts。API 9 项测试、全仓 lint/typecheck/test/build 和正向 API 冒烟检查均通过；缺少 JWT_SECRET 的构建后进程检查确认非零退出、错误清楚且无绝对路径、堆栈或占位密钥。等待 T-03 在与 PR #15 组合的候选版本上执行最终 P0 复测。
@@ -118,7 +118,7 @@
 - P2.2 完成（2026-10-21）：成员列表、邀请、角色修改/负责人转移和移除 API 已实现；仅 OWNER/平台管理员可管理成员，负责人不能被直接移除，负责人变更通过 OWNER 角色转移完成；成员变更写入 ActivityLog，业务历史保留。种子包含 OWNER 与 MEMBER 项目成员夹具。
 - P2.3 完成（2026-10-21）：项目级访问隔离、角色权限和观察者只读已接入项目/成员接口；非成员访问项目返回不泄露存在性的 404，MEMBER/OBSERVER 不能执行管理写操作；个人任务查询额外校验当前项目成员关系，成员被移除后不再通过个人任务接口看到该项目任务。
 - P2 待测试（2026-10-21）：P2.1～P2.3 已完成；全仓 lint/typecheck/test/build 通过，真实 API 冒烟验证跨项目 404、观察者读取 200/写入 403、负责人自移除 409、错误删除确认 422 和正确删除 200。当前停止开发，等待 T-03 P2 门禁；P3 保持锁定。
-- Issue #29 修复进度（2026-10-25）：负责人并发转移、可选字段 null 校验/审计一致性、成员头像安全转换已修复并通过 150 项测试及隔离 SQLite 集成验证；删除项目持久审计需要新增 AuditEvent Schema/Migration，已按 root 要求提交最小设计等待批准，未进入 P3。
+- P2 Issue #29 修复与复测通过（2026-10-26）：沿用 PR #28 最新 head `fbf669c` 的负责人并发保护，并验证事务内 actor/目标成员状态；删除操作与独立 `ProjectDeletionAudit` 快照写入同一事务；Create/Update 拒绝可选字段 `null`；成员头像响应统一解析。API 全量 113/113、P2 定向回归 37/37、Prisma 格式/校验/生成、API typecheck/build、全仓 ESLint/Prettier 通过。P2 门禁报告见 `docs/test/p2-r1-2026-10-25.md`；P3 仍锁定。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 

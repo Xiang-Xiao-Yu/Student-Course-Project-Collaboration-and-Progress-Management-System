@@ -1,0 +1,7 @@
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": SQLite database "p2-migrate-deploy.db" at "file:C:/Users/Lenovo/.codex/worktrees/p2-pr28-remediation/Student-Course-Project-Collaboration-and-Progress-Management-System/.superpowers/sdd/2026-10-25-p2-remediation/tmp/p2-migrate-deploy.db"
+
+Error: Schema engine error:
