@@ -164,4 +164,11 @@ export class ApiClient {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   }
+
+  delete<TResponse, TBody = never>(path: string, body?: TBody): Promise<TResponse> {
+    return this.request<TResponse>(path, {
+      method: 'DELETE',
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
 }

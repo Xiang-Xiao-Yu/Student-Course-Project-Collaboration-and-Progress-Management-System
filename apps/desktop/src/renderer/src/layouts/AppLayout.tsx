@@ -1,20 +1,71 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 
 import { buildProjectPath, navigationGroups } from '../app/navigation';
 import { ErrorNotice } from '../components/ErrorNotice';
+import { ErrorState } from '../components/feedback/ErrorState';
+import { LoadingState } from '../components/feedback/LoadingState';
 import { useSession } from '../features/auth/session';
-
-function getProjectLabel(projectId: string): string {
-  return projectId === 'demo-project' ? '示例项目' : projectId;
-}
+import { getProject } from '../features/projects/project-api';
+import { getProjectRouteAccessState } from '../features/projects/project-route-access';
+import type { ProjectLoadState } from '../features/projects/project-route-access';
+import { canManageProject, getProjectRoleLabel } from '../features/projects/project-presentation';
+import { getUserFacingError } from '../lib/api/errors';
 
 export function AppLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
-  const { projectId = 'demo-project' } = useParams<{ projectId: string }>();
-  const projectLabel = getProjectLabel(projectId);
-  const { avatarUrl, session, signOut, signOutError } = useSession();
+  const [projectLoadState, setProjectLoadState] = useState<ProjectLoadState>({ status: 'idle' });
+  const [projectRetryVersion, setProjectRetryVersion] = useState(0);
+  const { projectId } = useParams<{ projectId: string }>();
+  const { api, avatarUrl, session, signOut, signOutError } = useSession();
+
+  useEffect(() => {
+    if (!projectId) {
+      setProjectLoadState({ status: 'idle' });
+      return;
+    }
+
+    let isCancelled = false;
+
+    setProjectLoadState({ projectId, status: 'loading' });
+    void getProject(api, projectId)
+      .then((nextProject) => {
+        if (!isCancelled) {
+          setProjectLoadState({ project: nextProject, status: 'ready' });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!isCancelled) {
+          setProjectLoadState({
+            message: getUserFacingError(error),
+            projectId,
+            status: 'error',
+          });
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [api, projectId, projectRetryVersion]);
+
+  const routeAccess = getProjectRouteAccessState(projectId, projectLoadState);
+  const project =
+    routeAccess === 'ready' && projectLoadState.status === 'ready'
+      ? projectLoadState.project
+      : null;
+  const projectLabel =
+    project?.name ??
+    (projectId ? (routeAccess === 'error' ? '项目不可访问' : '项目工作区') : '全部项目');
+  const visibleNavigationGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.managerOnly || canManageProject(project?.accessRole),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <div className={`app-shell${isMenuOpen ? ' sidebar-open' : ''}`}>
@@ -30,28 +81,57 @@ export function AppLayout() {
         </div>
 
         <div className="workspace-card">
-          <span>当前项目</span>
+          <span>{projectId ? '当前项目' : '项目范围'}</span>
           <strong>{projectLabel}</strong>
+          {projectId ? (
+            <small>
+              {project
+                ? getProjectRoleLabel(project.accessRole)
+                : routeAccess === 'error'
+                  ? '无法访问项目'
+                  : '正在读取项目权限'}
+            </small>
+          ) : null}
+          <Link className="workspace-card__link" to="/projects">
+            {projectId ? '切换项目' : '项目列表'}
+          </Link>
         </div>
 
-        <nav className="sidebar-nav" aria-label="项目导航">
-          {navigationGroups.map((group) => (
-            <div className="nav-group" key={group.label}>
-              <span className="nav-group__label">{group.label}</span>
-              {group.items.map((item) => (
-                <NavLink
-                  className={({ isActive }) => `nav-link${isActive ? ' is-active' : ''}`}
-                  key={item.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  to={buildProjectPath(projectId, item.path)}
-                >
-                  <span className="nav-link__marker" aria-hidden="true" />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
+        {projectId && routeAccess === 'ready' ? (
+          <nav className="sidebar-nav" aria-label="项目导航">
+            {visibleNavigationGroups.map((group) => (
+              <div className="nav-group" key={group.label}>
+                <span className="nav-group__label">{group.label}</span>
+                {group.items.map((item) => (
+                  <NavLink
+                    className={({ isActive }) => `nav-link${isActive ? ' is-active' : ''}`}
+                    key={item.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    to={buildProjectPath(projectId, item.path)}
+                  >
+                    <span className="nav-link__marker" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </nav>
+        ) : (
+          <nav className="sidebar-nav" aria-label="项目导航">
+            <div className="nav-group">
+              <span className="nav-group__label">工作区</span>
+              <NavLink
+                className={({ isActive }) => `nav-link${isActive ? ' is-active' : ''}`}
+                end
+                onClick={() => setIsMenuOpen(false)}
+                to="/projects"
+              >
+                <span className="nav-link__marker" aria-hidden="true" />
+                <span>项目中心</span>
+              </NavLink>
             </div>
-          ))}
-        </nav>
+          </nav>
+        )}
 
         <div className="sidebar-note">
           <span>工作模式</span>
@@ -76,7 +156,7 @@ export function AppLayout() {
             </button>
 
             <div className="breadcrumb">
-              <span>项目工作区</span>
+              <span>{projectId ? '项目工作区' : '工作区'}</span>
               <strong>{projectLabel}</strong>
             </div>
           </div>
@@ -113,7 +193,18 @@ export function AppLayout() {
 
         <main className="content">
           {signOutError ? <ErrorNotice message={signOutError} /> : null}
-          <Outlet />
+          {routeAccess === 'loading' ? (
+            <LoadingState label="正在确认项目访问权限" />
+          ) : routeAccess === 'error' && projectLoadState.status === 'error' ? (
+            <ErrorState
+              actionLabel="重试"
+              message={projectLoadState.message}
+              onAction={() => setProjectRetryVersion((version) => version + 1)}
+              title="无法访问项目"
+            />
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
 

@@ -1,0 +1,232 @@
+{
+  "cases": [
+    {
+      "name": "owner P2 project lifecycle and member UI",
+      "status": "PASS"
+    },
+    {
+      "name": "member read-only role visibility",
+      "status": "PASS"
+    },
+    {
+      "name": "observer read-only member visibility",
+      "status": "PASS"
+    },
+    {
+      "name": "non-member project access denied",
+      "status": "PASS"
+    }
+  ],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-created",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-created/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-created",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-created",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/p-created/status",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/p-created/status",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/p-created/archive",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/projects/p-created",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/p-shared",
+      "status": 404
+    }
+  ]
+}
