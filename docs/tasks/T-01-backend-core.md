@@ -6,7 +6,7 @@
 - 任务名称：后端核心、数据模型、权限和 API 契约
 - 负责人标签：`Codex@backend`
 - 负责人：`Codex@backend`
-- 状态：`已完成（当前 P2 阶段）`
+- 状态：`进行中`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -99,7 +99,8 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P2 项目、成员与权限（P2.1～P2.3 已通过 T-03 门禁；P3 及以后仍锁定）
+- 当前阶段：P3 需求、任务与状态记录（已解锁；范围限 P3.1～P3.4，FR-04/FR-05/FR-07、AC-03/AC-04）
+- P3 解锁（2026-10-26）：T-03 P2-R1 门禁通过后，项目组长在本轮明确确认，root 已解锁 T-01 P3。范围依现有任务清单，限 P3.1～P3.4（FR-04、FR-05、FR-07；AC-03、AC-04）；PR #28 仍待常规评审与合并。
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
 - P0-R1 修复结果（2026-10-11，ChatGPT@root）：main.ts 缓冲 Nest 启动日志并在成功监听后刷新；环境校验错误只输出安全白名单消息，其他启动异常显示通用提示。新增进程级 startup-error.spec.ts。API 9 项测试、全仓 lint/typecheck/test/build 和正向 API 冒烟检查均通过；缺少 JWT_SECRET 的构建后进程检查确认非零退出、错误清楚且无绝对路径、堆栈或占位密钥。等待 T-03 在与 PR #15 组合的候选版本上执行最终 P0 复测。
