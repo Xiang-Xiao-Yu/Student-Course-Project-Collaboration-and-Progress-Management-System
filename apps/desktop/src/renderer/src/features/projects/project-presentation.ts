@@ -89,6 +89,10 @@ export function canDeleteProjectContent(
   return canManageProject(accessRole) && projectStatus !== 'ARCHIVED';
 }
 
+export function canReviewProjectTasks(accessRole: ProjectAccessRole | null | undefined): boolean {
+  return canManageProject(accessRole);
+}
+
 export function isProjectArchived(status: ProjectStatus | null | undefined): boolean {
   return status === 'ARCHIVED';
 }

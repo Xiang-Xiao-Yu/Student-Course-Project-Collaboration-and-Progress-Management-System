@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { RequireSession } from '../features/auth/RequireSession';
 import { AccountLayout } from '../layouts/AccountLayout';
 import { AppLayout } from '../layouts/AppLayout';
+import { BoardPage } from '../pages/BoardPage';
 import { LoginPage } from '../pages/LoginPage';
 import { MembersPage } from '../pages/MembersPage';
 import { MyTasksPage } from '../pages/MyTasksPage';
@@ -85,7 +86,7 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: 'board',
-            element: <SectionPage section="board" />,
+            element: <BoardPage />,
           },
           {
             path: 'iterations',

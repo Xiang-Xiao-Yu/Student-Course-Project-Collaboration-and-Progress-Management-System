@@ -135,6 +135,8 @@
 - P3 启动（2026-10-27）：从 `origin/main` `8698fdb` 创建 `feat/frontend-p3` 独立 worktree。接口依据 T-01 `origin/feat/backend-p3` `c47d822`；环境使用 Node 24.19.0、pnpm 11.21.0，基线 lint/typecheck/test/build 通过。
 - P3.1 完成（2026-10-27）：需求列表、创建、详情、编辑、删除、验收标准、优先级、合法状态和关联任务摘要已接入；空字段、无效枚举、角色/项目状态限制与未保存离开均有处理。
 - P3.1 验证：desktop 21 个测试文件、80 项通过；lint、全仓 typecheck、desktop build 通过。
+- P3.2 完成（2026-10-27）：任务六列看板、创建/编辑弹窗、负责人、需求关联、优先级、截止日期、预估工时、标签和删除确认已接入。
+- P3.2 验证：任务 API、表单边界和状态规则已覆盖；desktop 23 个测试文件、87 项通过，typecheck 通过。
 
 ## GitHub Issue（由负责人提交给 `root`）
 

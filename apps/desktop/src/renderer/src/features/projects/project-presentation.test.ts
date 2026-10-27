@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canManageMembers,
   canManageProject,
+  canReviewProjectTasks,
   canCreateProjectContent,
   canDeleteProjectContent,
   canEditProjectContent,
@@ -42,6 +43,8 @@ describe('P2 project presentation', () => {
     expect(canEditProjectContent('MEMBER', 'ARCHIVED')).toBe(false);
     expect(canDeleteProjectContent('OWNER', 'ACTIVE')).toBe(true);
     expect(canDeleteProjectContent('MEMBER', 'ACTIVE')).toBe(false);
+    expect(canReviewProjectTasks('OWNER')).toBe(true);
+    expect(canReviewProjectTasks('MEMBER')).toBe(false);
   });
 
   it('失败场景对缺失或非法日期返回可理解的占位值', () => {

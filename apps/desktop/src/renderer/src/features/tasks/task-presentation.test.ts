@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { getTaskPriorityLabel, getTaskStatusLabel } from './task-presentation';
+import {
+  canTransitionTaskStatus,
+  getTaskPriorityLabel,
+  getTaskStatusActionLabel,
+  getTaskStatusLabel,
+  getTaskStatusTransitions,
+} from './task-presentation';
 
 describe('task presentation', () => {
   it('maps BACKLOG to Chinese', () => {
@@ -18,5 +24,12 @@ describe('task presentation', () => {
   it('falls back safely for unknown status and priority values', () => {
     expect(getTaskStatusLabel('UNKNOWN')).toBe('UNKNOWN');
     expect(getTaskPriorityLabel('UNKNOWN')).toBe('UNKNOWN');
+  });
+
+  it('exposes legal P3 task transitions and action labels', () => {
+    expect(getTaskStatusTransitions('TODO')).toEqual(['IN_PROGRESS', 'BLOCKED']);
+    expect(canTransitionTaskStatus('PENDING_REVIEW', 'COMPLETED')).toBe(true);
+    expect(canTransitionTaskStatus('PENDING_REVIEW', 'IN_PROGRESS')).toBe(false);
+    expect(getTaskStatusActionLabel('COMPLETED', 'IN_PROGRESS')).toBe('重新打开任务');
   });
 });
