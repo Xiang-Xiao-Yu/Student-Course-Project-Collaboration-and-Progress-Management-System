@@ -132,6 +132,9 @@
 - Root 指定 P2.3 修复范围（2026-10-25）：复审 PR #30 head `a84c501` 发现项目访问门禁在 `idle`/projectId 切换时仍可能挂载子页面；未保存基本信息时归档会锁住未保存草稿。修复只限 `AppLayout.tsx`、`ProjectSettingsPage.tsx`、项目访问状态单测、`project-validation` 单测和 `p2-project-ui.mjs` 回归；补充 `PROJECT_OWNER_TRANSFER_CONFLICT` 前端文案。修复后 T-02 再冻结交 T-03 复测，不进入 P3。
 - P2.3 复测通过（2026-10-26）：访问状态按当前 projectId 绑定，当前项目校验通过前不挂载 `<Outlet />`；脏表单归档被阻止并保留草稿，先保存后可归档；新增负责人转移冲突文案。desktop 全量 69/69、typecheck/build、改动 ESLint/Prettier和脚本语法检查通过；真实 renderer + 临时 API 浏览器复测访问拒绝及归档流程。当前分支更新仍保持 Draft，等待常规评审。
 - P3 解锁（2026-10-26）：T-03 P2-R1 门禁通过后，项目组长在本轮明确确认，root 已解锁 T-02 P3。实施范围依现有任务清单，限 P3.1～P3.4（FR-04、FR-05、FR-07；AC-03、AC-04），不扩大到 P4 或需求文档未授权范围。
+- P3 启动（2026-10-27）：从 `origin/main` `8698fdb` 创建 `feat/frontend-p3` 独立 worktree。接口依据 T-01 `origin/feat/backend-p3` `c47d822`；环境使用 Node 24.19.0、pnpm 11.21.0，基线 lint/typecheck/test/build 通过。
+- P3.1 完成（2026-10-27）：需求列表、创建、详情、编辑、删除、验收标准、优先级、合法状态和关联任务摘要已接入；空字段、无效枚举、角色/项目状态限制与未保存离开均有处理。
+- P3.1 验证：desktop 21 个测试文件、80 项通过；lint、全仓 typecheck、desktop build 通过。
 
 ## GitHub Issue（由负责人提交给 `root`）
 

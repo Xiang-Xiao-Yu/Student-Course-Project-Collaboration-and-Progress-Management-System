@@ -13,6 +13,8 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { ProjectsPage } from '../pages/ProjectsPage';
 import { ProjectSettingsPage } from '../pages/ProjectSettingsPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { RequirementDetailPage } from '../pages/RequirementDetailPage';
+import { RequirementsPage } from '../pages/RequirementsPage';
 import { SectionPage } from '../pages/SectionPage';
 
 export const appRoutes: RouteObject[] = [
@@ -75,7 +77,11 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: 'requirements',
-            element: <SectionPage section="requirements" />,
+            element: <RequirementsPage />,
+          },
+          {
+            path: 'requirements/:requirementId',
+            element: <RequirementDetailPage />,
           },
           {
             path: 'board',

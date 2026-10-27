@@ -116,3 +116,16 @@ export function buildProjectPath(projectId: string, sectionPath: ProjectSectionP
 
   return `/projects/${encodeURIComponent(normalizedProjectId)}/${sectionPath}`;
 }
+
+export function buildRequirementPath(projectId: string, requirementId: string): string {
+  const normalizedProjectId = projectId.trim();
+  const normalizedRequirementId = requirementId.trim();
+
+  if (!normalizedProjectId || !normalizedRequirementId) {
+    throw new Error('projectId and requirementId are required');
+  }
+
+  return `${buildProjectPath(normalizedProjectId, 'requirements')}/${encodeURIComponent(
+    normalizedRequirementId,
+  )}`;
+}

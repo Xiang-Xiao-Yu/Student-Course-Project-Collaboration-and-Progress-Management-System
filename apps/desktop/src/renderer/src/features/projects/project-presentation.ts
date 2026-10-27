@@ -61,6 +61,34 @@ export function canManageMembers(accessRole: ProjectAccessRole | null | undefine
   return canManageProject(accessRole);
 }
 
+export function canCreateProjectContent(
+  accessRole: ProjectAccessRole | null | undefined,
+  projectStatus: ProjectStatus | null | undefined,
+): boolean {
+  return (
+    (accessRole === 'OWNER' || accessRole === 'MEMBER' || accessRole === 'ADMIN') &&
+    projectStatus !== 'ARCHIVED' &&
+    projectStatus !== 'PAUSED'
+  );
+}
+
+export function canEditProjectContent(
+  accessRole: ProjectAccessRole | null | undefined,
+  projectStatus: ProjectStatus | null | undefined,
+): boolean {
+  return (
+    (accessRole === 'OWNER' || accessRole === 'MEMBER' || accessRole === 'ADMIN') &&
+    projectStatus !== 'ARCHIVED'
+  );
+}
+
+export function canDeleteProjectContent(
+  accessRole: ProjectAccessRole | null | undefined,
+  projectStatus: ProjectStatus | null | undefined,
+): boolean {
+  return canManageProject(accessRole) && projectStatus !== 'ARCHIVED';
+}
+
 export function isProjectArchived(status: ProjectStatus | null | undefined): boolean {
   return status === 'ARCHIVED';
 }

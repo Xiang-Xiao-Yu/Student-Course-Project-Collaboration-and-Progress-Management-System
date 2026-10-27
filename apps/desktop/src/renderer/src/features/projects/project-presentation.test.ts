@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   canManageMembers,
   canManageProject,
+  canCreateProjectContent,
+  canDeleteProjectContent,
+  canEditProjectContent,
   formatProjectDate,
   getProjectRoleLabel,
   getProjectStatusActionLabel,
@@ -29,6 +32,16 @@ describe('P2 project presentation', () => {
     expect(canManageProject('OBSERVER')).toBe(false);
     expect(canManageMembers(null)).toBe(false);
     expect(isProjectArchived('ARCHIVED')).toBe(true);
+  });
+
+  it('P3 内容权限区分创建、编辑、删除与项目状态', () => {
+    expect(canCreateProjectContent('MEMBER', 'ACTIVE')).toBe(true);
+    expect(canCreateProjectContent('OBSERVER', 'ACTIVE')).toBe(false);
+    expect(canCreateProjectContent('MEMBER', 'PAUSED')).toBe(false);
+    expect(canEditProjectContent('MEMBER', 'PAUSED')).toBe(true);
+    expect(canEditProjectContent('MEMBER', 'ARCHIVED')).toBe(false);
+    expect(canDeleteProjectContent('OWNER', 'ACTIVE')).toBe(true);
+    expect(canDeleteProjectContent('MEMBER', 'ACTIVE')).toBe(false);
   });
 
   it('失败场景对缺失或非法日期返回可理解的占位值', () => {
