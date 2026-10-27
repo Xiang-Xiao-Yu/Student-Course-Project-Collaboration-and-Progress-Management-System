@@ -59,6 +59,27 @@ interface TaskEnvelope {
   };
 }
 
+interface CommentEnvelope {
+  data: Array<{
+    author: { id: string; nickname: string; username: string };
+    content: string;
+    id: string;
+    targetType: string;
+  }>;
+}
+
+interface ActivityEnvelope {
+  data: Array<{
+    action: string;
+    actor: { id: string; nickname: string; username: string } | null;
+    afterValue: unknown;
+    beforeValue: unknown;
+    id: string;
+    targetId: string;
+    targetType: string;
+  }>;
+}
+
 describe('P3 requirements and tasks with SQLite', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -973,4 +994,114 @@ describe('P3 requirements and tasks with SQLite', () => {
       }
     });
   }
+  it('returns task comments and activity records to project members only', async () => {
+    const projectId = await createProjectWithMember();
+    const taskResponse = await request(
+      `/projects/${projectId}/tasks`,
+      'POST',
+      accounts.member.token,
+      {
+        assigneeId: accounts.member.id,
+        priority: 'HIGH',
+        title: '展示评论和操作记录',
+      },
+    );
+    expect(taskResponse.status).toBe(201);
+    const task = (await taskResponse.json()) as TaskEnvelope;
+    const otherTaskResponse = await request(
+      `/projects/${projectId}/tasks`,
+      'POST',
+      accounts.member.token,
+      {
+        priority: 'LOW',
+        title: '不应出现在当前任务详情',
+      },
+    );
+    const otherTask = (await otherTaskResponse.json()) as TaskEnvelope;
+
+    await prisma.comment.createMany({
+      data: [
+        {
+          authorId: accounts.member.id,
+          content: '第一条任务评论',
+          projectId,
+          taskId: task.data.id,
+          targetType: 'TASK',
+        },
+        {
+          authorId: accounts.owner.id,
+          content: '第二条任务评论',
+          projectId,
+          taskId: task.data.id,
+          targetType: 'TASK',
+        },
+        {
+          authorId: accounts.member.id,
+          content: '其他任务评论',
+          projectId,
+          taskId: otherTask.data.id,
+          targetType: 'TASK',
+        },
+      ],
+    });
+
+    const transition = await request(
+      `/projects/${projectId}/tasks/${task.data.id}/status`,
+      'PATCH',
+      accounts.member.token,
+      { status: 'TODO' },
+    );
+    expect(transition.status).toBe(200);
+
+    const comments = await request(
+      `/projects/${projectId}/comments?targetType=TASK&targetId=${task.data.id}`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(comments.status).toBe(200);
+    const commentBody = (await comments.json()) as CommentEnvelope;
+    expect(commentBody.data.map((comment) => comment.content)).toEqual([
+      '第一条任务评论',
+      '第二条任务评论',
+    ]);
+    expect(commentBody.data[0]?.author.id).toBe(accounts.member.id);
+    expect(commentBody.data[0]?.targetType).toBe('TASK');
+
+    const activity = await request(
+      `/projects/${projectId}/activity?targetType=TASK&targetId=${task.data.id}&limit=10`,
+      'GET',
+      accounts.member.token,
+    );
+    expect(activity.status).toBe(200);
+    const activityBody = (await activity.json()) as ActivityEnvelope;
+    expect(activityBody.data.length).toBeGreaterThanOrEqual(2);
+    expect(activityBody.data.every((item) => item.targetId === task.data.id)).toBe(true);
+    expect(activityBody.data.every((item) => item.targetType === 'TASK')).toBe(true);
+    expect(activityBody.data[0]).toMatchObject({
+      action: 'TASK_STATUS_CHANGED',
+      actor: { id: accounts.member.id },
+      afterValue: { status: 'TODO' },
+      beforeValue: { status: 'BACKLOG' },
+    });
+
+    const missingTarget = await request(
+      `/projects/${projectId}/comments?targetType=TASK&targetId=missing-task`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(missingTarget.status).toBe(404);
+
+    const outsiderComments = await request(
+      `/projects/${projectId}/comments?targetType=TASK&targetId=${task.data.id}`,
+      'GET',
+      accounts.outsider.token,
+    );
+    const outsiderActivity = await request(
+      `/projects/${projectId}/activity?targetType=TASK&targetId=${task.data.id}`,
+      'GET',
+      accounts.outsider.token,
+    );
+    expect(outsiderComments.status).toBe(404);
+    expect(outsiderActivity.status).toBe(404);
+  });
 });
