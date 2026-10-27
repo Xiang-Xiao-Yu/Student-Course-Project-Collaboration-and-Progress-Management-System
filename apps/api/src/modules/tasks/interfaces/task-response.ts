@@ -13,6 +13,7 @@ export interface TaskResponse {
   priority: TaskPriority;
   projectId: string;
   requirementId: string | null;
+  rejectionReason: string | null;
   status: TaskStatus;
   tagNames: string[];
   title: string;

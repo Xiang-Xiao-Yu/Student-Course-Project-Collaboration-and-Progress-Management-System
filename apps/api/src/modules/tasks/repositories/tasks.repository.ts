@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { AppException } from '../../../common/errors/app.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { withProjectWrite } from '../../projects/project-write-access';
 import type { TaskPriority, TaskStatus } from '../task.constants';
 
 const taskSelect = {
@@ -43,6 +44,7 @@ export interface TaskRecord {
   priority: string;
   projectId: string;
   requirementId: string | null;
+  rejectionReason?: string | null;
   status: string;
   tags: Array<{ tag: { name: string } }>;
   title: string;
@@ -64,18 +66,21 @@ export class TasksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async listByProject(projectId: string): Promise<TaskRecord[]> {
-    return this.prisma.task.findMany({
+    const tasks = await this.prisma.task.findMany({
       orderBy: [{ createdAt: 'desc' }],
       select: taskSelect,
       where: { projectId },
     });
+    return this.withRejectionReasons(this.prisma, projectId, tasks);
   }
 
   async findById(projectId: string, taskId: string): Promise<TaskRecord | null> {
-    return this.prisma.task.findFirst({
+    const task = await this.prisma.task.findFirst({
       select: taskSelect,
       where: { id: taskId, projectId },
     });
+    if (!task) return null;
+    return (await this.withRejectionReasons(this.prisma, projectId, [task]))[0] ?? null;
   }
 
   async createTask(
@@ -84,43 +89,49 @@ export class TasksRepository {
     input: Required<Pick<TaskWriteInput, 'priority' | 'title'>> & TaskWriteInput,
     tagNames?: string[],
   ): Promise<TaskRecord> {
-    return this.prisma.$transaction(async (transaction) => {
-      await this.validateRelations(transaction, projectId, input.assigneeId, input.requirementId);
-      const created = await transaction.task.create({
-        data: {
-          assigneeId: input.assigneeId,
-          createdById: creatorId,
-          description: input.description,
-          dueDate: input.dueDate,
-          estimatedHours: input.estimatedHours,
-          priority: input.priority,
-          projectId,
-          requirementId: input.requirementId,
-          title: input.title,
-        },
-        select: { id: true },
-      });
-
-      await this.syncTags(transaction, projectId, created.id, tagNames);
-      await transaction.activityLog.create({
-        data: {
-          action: 'TASK_CREATED',
-          actorId: creatorId,
-          afterValue: JSON.stringify({
-            status: 'BACKLOG',
+    return withProjectWrite(
+      this.prisma,
+      projectId,
+      creatorId,
+      'TASK_CREATE',
+      async (transaction, project) => {
+        this.assertDueDateValid(input.dueDate, project.startDate);
+        await this.validateRelations(transaction, projectId, input.assigneeId, input.requirementId);
+        const created = await transaction.task.create({
+          data: {
+            assigneeId: input.assigneeId,
+            createdById: creatorId,
+            description: input.description,
+            dueDate: input.dueDate,
+            estimatedHours: input.estimatedHours,
+            priority: input.priority,
+            projectId,
+            requirementId: input.requirementId,
             title: input.title,
-          }),
-          projectId,
-          targetId: created.id,
-          targetType: 'TASK',
-        },
-      });
+          },
+          select: { id: true },
+        });
 
-      return transaction.task.findUniqueOrThrow({
-        select: taskSelect,
-        where: { id: created.id },
-      });
-    });
+        await this.syncTags(transaction, projectId, created.id, tagNames);
+        const result = await transaction.task.findUniqueOrThrow({
+          select: taskSelect,
+          where: { id: created.id },
+        });
+        await transaction.activityLog.create({
+          data: {
+            action: 'TASK_CREATED',
+            actorId: creatorId,
+            afterValue: JSON.stringify(this.snapshot(result)),
+            projectId,
+            targetId: created.id,
+            targetType: 'TASK',
+          },
+        });
+
+        return result;
+      },
+      { creating: true },
+    );
   }
 
   async updateTask(
@@ -130,47 +141,45 @@ export class TasksRepository {
     input: TaskWriteInput,
     tagNames?: string[],
   ): Promise<TaskRecord> {
-    return this.prisma.$transaction(async (transaction) => {
-      await this.validateRelations(transaction, projectId, input.assigneeId, input.requirementId);
-      await transaction.task.update({
-        data: {
-          assigneeId: input.assigneeId,
-          description: input.description,
-          dueDate: input.dueDate,
-          estimatedHours: input.estimatedHours,
-          priority: input.priority,
-          requirementId: input.requirementId,
-          title: input.title,
-        },
-        select: { id: true },
-        where: { id: task.id },
-      });
-      await this.syncTags(transaction, projectId, task.id, tagNames);
-      await transaction.activityLog.create({
-        data: {
-          action: 'TASK_UPDATED',
-          actorId,
-          afterValue: JSON.stringify(input),
-          beforeValue: JSON.stringify({
-            assigneeId: task.assigneeId,
-            description: task.description,
-            dueDate: task.dueDate?.toISOString() ?? null,
-            estimatedHours: task.estimatedHours,
-            priority: task.priority,
-            requirementId: task.requirementId,
-            title: task.title,
-          }),
-          projectId,
-          targetId: task.id,
-          targetType: 'TASK',
-        },
-      });
+    return withProjectWrite(
+      this.prisma,
+      projectId,
+      actorId,
+      'TASK_UPDATE',
+      async (transaction, project) => {
+        const current = await this.requireCurrent(transaction, projectId, task.id);
+        this.assertDueDateValid(input.dueDate ?? current.dueDate ?? undefined, project.startDate);
+        await this.validateRelations(transaction, projectId, input.assigneeId, input.requirementId);
+        await transaction.task.update({
+          data: {
+            assigneeId: input.assigneeId,
+            description: input.description,
+            dueDate: input.dueDate,
+            estimatedHours: input.estimatedHours,
+            priority: input.priority,
+            requirementId: input.requirementId,
+            title: input.title,
+          },
+          select: { id: true },
+          where: { id: task.id },
+        });
+        await this.syncTags(transaction, projectId, task.id, tagNames);
+        const updated = await this.requireCurrent(transaction, projectId, task.id);
+        await transaction.activityLog.create({
+          data: {
+            action: 'TASK_UPDATED',
+            actorId,
+            afterValue: JSON.stringify(this.snapshot(updated)),
+            beforeValue: JSON.stringify(this.snapshot(current)),
+            projectId,
+            targetId: task.id,
+            targetType: 'TASK',
+          },
+        });
 
-      return transaction.task.findUniqueOrThrow({
-        select: taskSelect,
-        where: { id: task.id },
-      });
-    });
+        return (await this.withRejectionReasons(transaction, projectId, [updated]))[0]!;
+      },
+    );
   }
 
   async updateTaskStatus(
@@ -180,63 +189,106 @@ export class TasksRepository {
     status: TaskStatus,
     completionNote: string | undefined,
     reopenReason: string | undefined,
+    rejectionReason?: string,
   ): Promise<TaskRecord> {
-    return this.prisma.$transaction(async (transaction) => {
-      const completedAt =
-        status === 'COMPLETED'
-          ? new Date()
-          : status === 'IN_PROGRESS' && task.status === 'COMPLETED'
-            ? null
-            : undefined;
-      const update = await transaction.task.updateMany({
-        data: {
-          completedAt,
-          completionNote,
-          status,
-        },
-        where: {
-          id: task.id,
-          status: task.status,
-        },
-      });
-
-      if (update.count !== 1) {
-        throw this.statusTransitionInvalid();
-      }
-
-      await transaction.activityLog.create({
-        data: {
-          action: 'TASK_STATUS_CHANGED',
-          actorId,
-          afterValue: JSON.stringify({
-            completionNote: completionNote ?? task.completionNote,
-            reopenReason: reopenReason ?? null,
+    return withProjectWrite(
+      this.prisma,
+      projectId,
+      actorId,
+      'TASK_STATUS_UPDATE',
+      async (transaction) => {
+        const current = await this.requireCurrent(transaction, projectId, task.id);
+        if (current.status !== task.status) throw this.statusTransitionInvalid();
+        if (rejectionReason !== undefined) {
+          if (
+            current.status !== 'PENDING_REVIEW' ||
+            status !== 'PENDING_REVIEW' ||
+            !rejectionReason.trim()
+          ) {
+            throw this.statusTransitionInvalid();
+          }
+          await transaction.activityLog.create({
+            data: {
+              action: 'TASK_REVIEW_REJECTED',
+              actorId,
+              projectId,
+              targetId: task.id,
+              targetType: 'TASK',
+              beforeValue: JSON.stringify(this.snapshot(current)),
+              afterValue: JSON.stringify({ ...this.snapshot(current), rejectionReason }),
+            },
+          });
+          return { ...current, rejectionReason };
+        }
+        // A retry does not change business data or invent a status transition.
+        if (status === current.status) {
+          return (await this.withRejectionReasons(transaction, projectId, [current]))[0]!;
+        }
+        if (
+          (status === 'PENDING_REVIEW' || status === 'COMPLETED') &&
+          !(completionNote ?? current.completionNote)?.trim()
+        ) {
+          throw new AppException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            'TASK_COMPLETION_NOTE_REQUIRED',
+            '提交审核前必须填写完成说明',
+          );
+        }
+        const completedAt =
+          status === 'COMPLETED'
+            ? new Date()
+            : status === 'IN_PROGRESS' && task.status === 'COMPLETED'
+              ? null
+              : undefined;
+        const update = await transaction.task.updateMany({
+          data: {
+            completedAt,
+            completionNote,
             status,
-          }),
-          beforeValue: JSON.stringify({ status: task.status }),
-          projectId,
-          targetId: task.id,
-          targetType: 'TASK',
-        },
-      });
+          },
+          where: {
+            id: task.id,
+            status: task.status,
+          },
+        });
 
-      return transaction.task.findUniqueOrThrow({
-        select: taskSelect,
-        where: { id: task.id },
-      });
-    });
+        if (update.count !== 1) {
+          throw this.statusTransitionInvalid();
+        }
+
+        await transaction.activityLog.create({
+          data: {
+            action: 'TASK_STATUS_CHANGED',
+            actorId,
+            afterValue: JSON.stringify({
+              completionNote: completionNote ?? task.completionNote,
+              reopenReason: reopenReason ?? null,
+              status,
+            }),
+            beforeValue: JSON.stringify(this.snapshot(current)),
+            projectId,
+            targetId: task.id,
+            targetType: 'TASK',
+          },
+        });
+
+        return transaction.task.findUniqueOrThrow({
+          select: taskSelect,
+          where: { id: task.id },
+        });
+      },
+      { ownerOnly: status === 'COMPLETED' || rejectionReason !== undefined },
+    );
   }
 
   async deleteTask(projectId: string, actorId: string, task: TaskRecord): Promise<void> {
-    await this.prisma.$transaction(async (transaction) => {
+    await withProjectWrite(this.prisma, projectId, actorId, 'TASK_DELETE', async (transaction) => {
+      const current = await this.requireCurrent(transaction, projectId, task.id);
       await transaction.activityLog.create({
         data: {
           action: 'TASK_DELETED',
           actorId,
-          beforeValue: JSON.stringify({
-            status: task.status,
-            title: task.title,
-          }),
+          beforeValue: JSON.stringify(this.snapshot(current)),
           projectId,
           targetId: task.id,
           targetType: 'TASK',
@@ -256,13 +308,80 @@ export class TasksRepository {
     );
   }
 
+  private snapshot(task: TaskRecord): Record<string, unknown> {
+    const { tags, ...fields } = task;
+    return { ...fields, tagNames: tags.map((item) => item.tag.name).sort() };
+  }
+
+  private async requireCurrent(
+    transaction: Prisma.TransactionClient,
+    projectId: string,
+    taskId: string,
+  ): Promise<TaskRecord> {
+    const current = await transaction.task.findFirst({
+      select: taskSelect,
+      where: { id: taskId, projectId },
+    });
+    if (!current) throw new AppException(HttpStatus.NOT_FOUND, 'TASK_NOT_FOUND', '任务不存在');
+    return current;
+  }
+
+  private assertDueDateValid(dueDate: Date | undefined, startDate: Date | null): void {
+    if (dueDate && startDate && dueDate.getTime() < startDate.getTime()) {
+      throw new AppException(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'TASK_DUE_DATE_INVALID',
+        '任务截止日期不能早于项目开始日期',
+      );
+    }
+  }
+
+  private async withRejectionReasons(
+    transaction: Prisma.TransactionClient,
+    projectId: string,
+    tasks: TaskRecord[],
+  ): Promise<TaskRecord[]> {
+    const pendingIds = tasks
+      .filter((task) => task.status === 'PENDING_REVIEW')
+      .map((task) => task.id);
+    if (pendingIds.length === 0) return tasks.map((task) => ({ ...task, rejectionReason: null }));
+    const logs = await transaction.activityLog.findMany({
+      where: {
+        projectId,
+        targetType: 'TASK',
+        targetId: { in: pendingIds },
+        action: { in: ['TASK_REVIEW_REJECTED', 'TASK_STATUS_CHANGED'] },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: { targetId: true, action: true, afterValue: true },
+    });
+    const reasons = new Map<string, string | null>();
+    for (const log of logs) {
+      if (reasons.has(log.targetId)) continue;
+      let reason: string | null = null;
+      if (log.action === 'TASK_REVIEW_REJECTED' && log.afterValue) {
+        const value: unknown = JSON.parse(log.afterValue);
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          'rejectionReason' in value &&
+          typeof value.rejectionReason === 'string'
+        ) {
+          reason = value.rejectionReason;
+        }
+      }
+      reasons.set(log.targetId, reason);
+    }
+    return tasks.map((task) => ({ ...task, rejectionReason: reasons.get(task.id) ?? null }));
+  }
+
   private async validateRelations(
     transaction: Prisma.TransactionClient,
     projectId: string,
     assigneeId: string | undefined,
     requirementId: string | undefined,
   ): Promise<void> {
-    if (assigneeId) {
+    if (assigneeId !== undefined) {
       const membership = await transaction.projectMember.findUnique({
         select: { id: true },
         where: {
@@ -282,7 +401,7 @@ export class TasksRepository {
       }
     }
 
-    if (requirementId) {
+    if (requirementId !== undefined) {
       const requirement = await transaction.requirement.findFirst({
         select: { id: true },
         where: {

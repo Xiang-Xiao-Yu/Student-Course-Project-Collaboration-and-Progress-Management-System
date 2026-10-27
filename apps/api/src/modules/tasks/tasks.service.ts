@@ -128,6 +128,29 @@ export class TasksService {
     const task = await this.requireTask(projectId, taskId);
     const currentStatus = task.status as TaskStatus;
 
+    if (dto.rejectionReason !== undefined) {
+      if (!access.isPlatformAdmin && access.role !== 'OWNER') {
+        throw new AppException(
+          HttpStatus.FORBIDDEN,
+          'PROJECT_PERMISSION_DENIED',
+          '只有项目负责人可以审核任务',
+        );
+      }
+      if (
+        currentStatus !== 'PENDING_REVIEW' ||
+        dto.status !== 'PENDING_REVIEW' ||
+        !dto.rejectionReason.trim() ||
+        dto.completionNote !== undefined ||
+        dto.reopenReason !== undefined
+      ) {
+        throw new AppException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'VALIDATION_FAILED',
+          '审核不通过时须保持待审核并填写原因，不能修改完成说明',
+        );
+      }
+    }
+
     if (
       dto.status !== currentStatus &&
       !TASK_STATUS_TRANSITIONS[currentStatus].includes(dto.status)
@@ -182,6 +205,7 @@ export class TasksService {
       dto.status,
       dto.completionNote === undefined ? undefined : dto.completionNote.trim(),
       dto.reopenReason?.trim(),
+      dto.rejectionReason?.trim(),
     );
 
     return this.toResponse(updated);
@@ -256,6 +280,7 @@ export class TasksService {
       priority: task.priority as TaskPriority,
       projectId: task.projectId,
       requirementId: task.requirementId,
+      rejectionReason: task.rejectionReason ?? null,
       status: task.status as TaskStatus,
       tagNames: task.tags.map((item) => item.tag.name).sort(),
       title: task.title,

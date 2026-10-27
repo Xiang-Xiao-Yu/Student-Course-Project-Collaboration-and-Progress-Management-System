@@ -16,4 +16,9 @@ export class UpdateTaskStatusDto {
   @IsString()
   @MaxLength(2000)
   reopenReason?: string;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MaxLength(2000)
+  rejectionReason?: string;
 }
