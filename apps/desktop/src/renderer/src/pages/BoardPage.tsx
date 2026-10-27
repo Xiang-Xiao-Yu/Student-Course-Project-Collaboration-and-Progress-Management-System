@@ -16,17 +16,35 @@ import {
   canCreateProjectContent,
   canDeleteProjectContent,
   canEditProjectContent,
+  canReviewProjectTasks,
   formatProjectDate,
   getProjectRoleLabel,
 } from '../features/projects/project-presentation';
 import type { RequirementDto } from '../features/requirements/requirement-api';
 import { listRequirements } from '../features/requirements/requirement-api';
 import type { TaskDto } from '../features/tasks/task-api';
-import { createTask, deleteTask, listTasks, updateTask } from '../features/tasks/task-api';
+import {
+  createTask,
+  deleteTask,
+  listTasks,
+  updateTask,
+  updateTaskStatus,
+} from '../features/tasks/task-api';
 import { TaskFormFields } from '../features/tasks/TaskFormFields';
+import type {
+  TaskTransitionDialogMode,
+  TaskTransitionValues,
+} from '../features/tasks/task-status-flow';
+import {
+  decideTaskStatusTransition,
+  validateTaskTransitionValues,
+} from '../features/tasks/task-status-flow';
+import { TaskStatusTransitionDialog } from '../features/tasks/TaskStatusTransitionDialog';
 import {
   getTaskPriorityLabel,
+  getTaskStatusActionLabel,
   getTaskStatusLabel,
+  getTaskStatusTransitions,
   taskStatusColumns,
 } from '../features/tasks/task-presentation';
 import type { TaskFormErrors, TaskFormValues } from '../features/tasks/task-validation';
@@ -58,6 +76,12 @@ interface BoardData {
   readonly tasks: TaskDto[];
 }
 
+interface StatusTransitionRequest {
+  readonly mode: TaskTransitionDialogMode;
+  readonly targetStatus: TaskDto['status'];
+  readonly task: TaskDto;
+}
+
 type BoardState =
   | { readonly status: 'loading' }
   | { readonly data: BoardData; readonly status: 'ready' }
@@ -77,12 +101,21 @@ export function BoardPage() {
   const [editInitialForm, setEditInitialForm] = useState<TaskFormValues>(EMPTY_TASK_FORM);
   const [editMessage, setEditMessage] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<TaskDto | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<TaskDto['status'] | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<BoardState>({ status: 'loading' });
   const [taskToDelete, setTaskToDelete] = useState<TaskDto | null>(null);
+  const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [transitionRequest, setTransitionRequest] = useState<StatusTransitionRequest | null>(null);
+  const [transitionValues, setTransitionValues] = useState<TaskTransitionValues>({
+    completionNote: '',
+    reopenReason: '',
+  });
 
   useEffect(() => {
     if (!projectId) {
@@ -248,6 +281,111 @@ export function BoardPage() {
     }
   }
 
+  async function applyStatusTransition(
+    task: TaskDto,
+    targetStatus: TaskDto['status'],
+    values: TaskTransitionValues,
+  ): Promise<void> {
+    if (state.status !== 'ready' || isTransitioning) {
+      return;
+    }
+
+    setIsTransitioning(true);
+    setTransitionError(null);
+    setEditMessage(null);
+    setCreateMessage(null);
+
+    try {
+      const updatedTask = await updateTaskStatus(api, state.data.project.id, task.id, {
+        status: targetStatus,
+        ...(values.completionNote.trim() ? { completionNote: values.completionNote.trim() } : {}),
+        ...(values.reopenReason.trim() ? { reopenReason: values.reopenReason.trim() } : {}),
+      });
+
+      setState({
+        data: {
+          ...state.data,
+          tasks: state.data.tasks.map((item) => (item.id === updatedTask.id ? updatedTask : item)),
+        },
+        status: 'ready',
+      });
+      setTransitionRequest(null);
+      setEditingTask(null);
+      setTransitionValues({ completionNote: '', reopenReason: '' });
+      setCreateMessage({
+        text: `任务已更新为“${getTaskStatusLabel(updatedTask.status)}”。`,
+        type: 'success',
+      });
+    } catch (error) {
+      const message = getUserFacingError(error);
+
+      if (transitionRequest) {
+        setTransitionError(message);
+      } else {
+        setCreateMessage({ text: message, type: 'error' });
+      }
+    } finally {
+      setIsTransitioning(false);
+    }
+  }
+
+  function attemptStatusTransition(task: TaskDto, targetStatus: TaskDto['status']): void {
+    if (state.status !== 'ready') {
+      return;
+    }
+
+    const decision = decideTaskStatusTransition(
+      task.status,
+      targetStatus,
+      task.completionNote,
+      canReviewProjectTasks(state.data.project.accessRole),
+    );
+
+    if (decision.type === 'error') {
+      setCreateMessage({ text: decision.message, type: 'error' });
+      return;
+    }
+
+    if (decision.type === 'direct') {
+      void applyStatusTransition(task, targetStatus, {
+        completionNote: '',
+        reopenReason: '',
+      });
+      return;
+    }
+
+    setEditingTask(null);
+    setTransitionError(null);
+    setTransitionValues(
+      decision.mode === 'completion'
+        ? { completionNote: decision.initialValue, reopenReason: '' }
+        : { completionNote: '', reopenReason: decision.initialValue },
+    );
+    setTransitionRequest({
+      mode: decision.mode,
+      targetStatus,
+      task,
+    });
+  }
+
+  function confirmStatusTransition(): void {
+    if (!transitionRequest) {
+      return;
+    }
+
+    const error = validateTaskTransitionValues(transitionRequest.mode, transitionValues);
+
+    setTransitionError(error);
+
+    if (!error) {
+      void applyStatusTransition(
+        transitionRequest.task,
+        transitionRequest.targetStatus,
+        transitionValues,
+      );
+    }
+  }
+
   if (state.status === 'loading') {
     return (
       <div className="page-stack">
@@ -275,6 +413,7 @@ export function BoardPage() {
   const canCreate = canCreateProjectContent(project.accessRole, project.status);
   const canEdit = canEditProjectContent(project.accessRole, project.status);
   const canDelete = canDeleteProjectContent(project.accessRole, project.status);
+  const canReview = canReviewProjectTasks(project.accessRole);
   const hasCreateDraft = hasUnsavedTaskChanges(EMPTY_TASK_FORM, createForm);
   const hasEditDraft = editingTask !== null && hasUnsavedTaskChanges(editInitialForm, editForm);
   const memberNames = new Map(members.map((member) => [member.userId, member.nickname]));
@@ -335,7 +474,37 @@ export function BoardPage() {
           const columnTasks = tasks.filter((task) => task.status === status);
 
           return (
-            <section className={`board-column board-column--${status.toLowerCase()}`} key={status}>
+            <section
+              className={`board-column board-column--${status.toLowerCase()}${
+                dragOverStatus === status ? ' is-drag-over' : ''
+              }`}
+              key={status}
+              onDragEnter={() => setDragOverStatus(status)}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setDragOverStatus(null);
+                }
+              }}
+              onDragOver={(event) => {
+                if (canEdit && draggedTaskId) {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = 'move';
+                }
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragOverStatus(null);
+
+                const taskId = event.dataTransfer.getData('text/task-id') || draggedTaskId;
+                const task = tasks.find((item) => item.id === taskId);
+
+                if (task && canEdit) {
+                  attemptStatusTransition(task, status);
+                }
+
+                setDraggedTaskId(null);
+              }}
+            >
               <header className="board-column__header">
                 <h2>{getTaskStatusLabel(status)}</h2>
                 <span>{columnTasks.length}</span>
@@ -345,7 +514,25 @@ export function BoardPage() {
                   <div className="board-column__empty">暂无任务</div>
                 ) : (
                   columnTasks.map((task) => (
-                    <article className="task-card" key={task.id}>
+                    <article
+                      className={`task-card${draggedTaskId === task.id ? ' is-dragging' : ''}`}
+                      draggable={canEdit}
+                      key={task.id}
+                      onDragEnd={() => {
+                        setDraggedTaskId(null);
+                        setDragOverStatus(null);
+                      }}
+                      onDragStart={(event) => {
+                        if (!canEdit) {
+                          event.preventDefault();
+                          return;
+                        }
+
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('text/task-id', task.id);
+                        setDraggedTaskId(task.id);
+                      }}
+                    >
                       <div className="task-card__topline">
                         <span
                           className={`priority-badge priority-badge--${task.priority.toLowerCase()}`}
@@ -431,6 +618,33 @@ export function BoardPage() {
                 requirements={requirements}
                 values={editForm}
               />
+              {canEdit ? (
+                <div className="task-status-actions">
+                  <span>推进状态</span>
+                  <div>
+                    {getTaskStatusTransitions(editingTask.status)
+                      .filter((status) => status !== 'COMPLETED' || canReview)
+                      .map((status) => (
+                        <button
+                          className="secondary-button"
+                          disabled={isSavingEdit || isTransitioning}
+                          key={status}
+                          onClick={() => {
+                            if (hasUnsavedTaskChanges(editInitialForm, editForm)) {
+                              setEditMessage('请先保存任务信息，或关闭后放弃修改。');
+                              return;
+                            }
+
+                            attemptStatusTransition(editingTask, status as TaskDto['status']);
+                          }}
+                          type="button"
+                        >
+                          {getTaskStatusActionLabel(editingTask.status, status)}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="task-edit-actions">
                 {canDelete ? (
                   <button
@@ -464,6 +678,23 @@ export function BoardPage() {
           onConfirm={() => void handleDeleteTask()}
           title="删除任务"
           tone="danger"
+        />
+      ) : null}
+
+      {transitionRequest ? (
+        <TaskStatusTransitionDialog
+          error={transitionError}
+          isPending={isTransitioning}
+          mode={transitionRequest.mode}
+          onCancel={() => {
+            setTransitionRequest(null);
+            setTransitionError(null);
+          }}
+          onChange={setTransitionValues}
+          onConfirm={confirmStatusTransition}
+          targetStatusLabel={getTaskStatusLabel(transitionRequest.targetStatus)}
+          taskTitle={transitionRequest.task.title}
+          values={transitionValues}
         />
       ) : null}
     </div>
