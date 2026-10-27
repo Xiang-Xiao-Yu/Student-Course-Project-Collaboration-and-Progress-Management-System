@@ -38,4 +38,34 @@ describe('task DTO validation', () => {
 
     await expect(validate(dto)).resolves.toHaveProperty('length', 1);
   });
+
+  it.each([
+    ['create', CreateTaskDto],
+    ['update', UpdateTaskDto],
+  ] as const)('rejects null tags and empty relation IDs (%s)', async (_name, Dto) => {
+    for (const field of ['tagNames', 'assigneeId', 'requirementId']) {
+      const dto = plainToInstance(Dto, {
+        title: '任务',
+        priority: 'MEDIUM',
+        [field]: field === 'tagNames' ? null : '   ',
+      });
+      expect((await validate(dto)).map((error) => error.property)).toContain(field);
+    }
+  });
+
+  it.each([
+    ['create', CreateTaskDto],
+    ['update', UpdateTaskDto],
+  ] as const)('rejects impossible calendar dates (%s)', async (_name, Dto) => {
+    for (const dueDate of ['2026-02-31', '2026-04-31', '2025-02-29']) {
+      const dto = plainToInstance(Dto, { title: '任务', priority: 'MEDIUM', dueDate });
+      expect((await validate(dto)).map((error) => error.property)).toContain('dueDate');
+    }
+    const leapDay = plainToInstance(Dto, {
+      title: '任务',
+      priority: 'MEDIUM',
+      dueDate: '2028-02-29',
+    });
+    expect(await validate(leapDay)).toHaveLength(0);
+  });
 });

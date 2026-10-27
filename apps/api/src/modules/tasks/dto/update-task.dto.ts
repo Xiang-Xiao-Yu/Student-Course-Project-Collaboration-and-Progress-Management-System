@@ -5,7 +5,6 @@ import {
   IsDateString,
   IsIn,
   IsNumber,
-  IsOptional,
   IsString,
   Length,
   Max,
@@ -38,11 +37,15 @@ export class UpdateTaskDto {
   description?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @Length(1, 100)
   assigneeId?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @Length(1, 100)
   requirementId?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
@@ -50,7 +53,7 @@ export class UpdateTaskDto {
   priority?: TaskPriority;
 
   @ValidateIf((_object, value) => value !== undefined)
-  @IsDateString()
+  @IsDateString({ strict: true })
   dueDate?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
@@ -59,7 +62,7 @@ export class UpdateTaskDto {
   @Max(10000)
   estimatedHours?: number;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @Transform(({ value }) => trimStringArray(value))
   @IsArray()
   @ArrayMaxSize(20)
