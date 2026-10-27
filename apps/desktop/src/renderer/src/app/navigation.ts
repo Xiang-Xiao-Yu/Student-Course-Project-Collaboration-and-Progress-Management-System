@@ -129,3 +129,16 @@ export function buildRequirementPath(projectId: string, requirementId: string): 
     normalizedRequirementId,
   )}`;
 }
+
+export function buildTaskPath(projectId: string, taskId: string): string {
+  const normalizedProjectId = projectId.trim();
+  const normalizedTaskId = taskId.trim();
+
+  if (!normalizedProjectId || !normalizedTaskId) {
+    throw new Error('projectId and taskId are required');
+  }
+
+  return `${buildProjectPath(normalizedProjectId, 'board')}/${encodeURIComponent(
+    normalizedTaskId,
+  )}`;
+}

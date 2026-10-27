@@ -17,6 +17,7 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { RequirementDetailPage } from '../pages/RequirementDetailPage';
 import { RequirementsPage } from '../pages/RequirementsPage';
 import { SectionPage } from '../pages/SectionPage';
+import { TaskDetailPage } from '../pages/TaskDetailPage';
 
 export const appRoutes: RouteObject[] = [
   {
@@ -87,6 +88,10 @@ export const appRoutes: RouteObject[] = [
           {
             path: 'board',
             element: <BoardPage />,
+          },
+          {
+            path: 'board/:taskId',
+            element: <TaskDetailPage />,
           },
           {
             path: 'iterations',

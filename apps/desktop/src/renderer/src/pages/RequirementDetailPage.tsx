@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { buildProjectPath } from '../app/navigation';
+import { buildProjectPath, buildTaskPath } from '../app/navigation';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { ErrorState } from '../components/feedback/ErrorState';
@@ -364,7 +364,9 @@ export function RequirementDetailPage() {
             <div className="linked-task-list">
               {state.requirement.tasks.map((task) => (
                 <article className="linked-task-row" key={task.id}>
-                  <strong>{task.title}</strong>
+                  <strong>
+                    <Link to={buildTaskPath(state.project.id, task.id)}>{task.title}</Link>
+                  </strong>
                   <span>{getTaskStatusLabel(task.status)}</span>
                 </article>
               ))}

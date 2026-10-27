@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { buildProjectPath } from '../app/navigation';
+import { buildProjectPath, buildTaskPath } from '../app/navigation';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { ErrorState } from '../components/feedback/ErrorState';
@@ -545,7 +545,9 @@ export function BoardPage() {
                           </span>
                         ) : null}
                       </div>
-                      <h3>{task.title}</h3>
+                      <h3>
+                        <Link to={buildTaskPath(project.id, task.id)}>{task.title}</Link>
+                      </h3>
                       <p>{task.description || '暂未填写任务描述。'}</p>
                       <dl className="task-card__meta">
                         <div>

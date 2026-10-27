@@ -1,0 +1,291 @@
+{
+  "cases": [
+    {
+      "name": "requirement creation and status flow",
+      "status": "PASS"
+    },
+    {
+      "name": "task creation and invalid due date",
+      "status": "PASS"
+    },
+    {
+      "name": "drag rejection and legal board transition",
+      "status": "PASS"
+    },
+    {
+      "name": "completion, approval, detail and reopen flow",
+      "status": "PASS"
+    },
+    {
+      "name": "member and observer role visibility",
+      "status": "PASS"
+    }
+  ],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements/cmvqjsujp005w4hesxnf2j01a",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements/cmvqjsujp005w4hesxnf2j01a",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks",
+      "status": 422
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks",
+      "status": 201
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks/cmvqjsuwn00624hesdsr65v4b/status",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks/cmvqjsuwn00624hesdsr65v4b/status",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks/cmvqjsuwn00624hesdsr65v4b/status",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks/cmvqjsuwn00624hesdsr65v4b/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks/cmvqjsuwn00624hesdsr65v4b",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks/cmvqjsuwn00624hesdsr65v4b/status",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks/cmvqjsuwn00624hesdsr65v4b/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements/cmvqjsujp005w4hesxnf2j01a",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmvqjstjp005i4heso5cc7ta4/tasks",
+      "status": 200
+    }
+  ]
+}
