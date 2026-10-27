@@ -148,6 +148,18 @@ export class TasksRepository {
       'TASK_UPDATE',
       async (transaction, project) => {
         const current = await this.requireCurrent(transaction, projectId, task.id);
+        const onlyReassignment =
+          tagNames === undefined &&
+          Object.entries(input).every(
+            ([field, value]) => value === undefined || field === 'assigneeId',
+          );
+        if (!project.canManageTasks && current.assigneeId !== actorId && !onlyReassignment) {
+          throw new AppException(
+            HttpStatus.FORBIDDEN,
+            'PROJECT_PERMISSION_DENIED',
+            '只能编辑自己负责的任务，或单独调整任务负责人',
+          );
+        }
         this.assertDueDateValid(input.dueDate ?? current.dueDate ?? undefined, project.startDate);
         await this.validateRelations(transaction, projectId, input.assigneeId, input.requirementId);
         await transaction.task.update({
@@ -196,9 +208,21 @@ export class TasksRepository {
       projectId,
       actorId,
       'TASK_STATUS_UPDATE',
-      async (transaction) => {
+      async (transaction, project) => {
         const current = await this.requireCurrent(transaction, projectId, task.id);
         if (current.status !== task.status) throw this.statusTransitionInvalid();
+        if (
+          completionNote !== undefined &&
+          completionNote !== current.completionNote &&
+          !project.canManageTasks &&
+          current.assigneeId !== actorId
+        ) {
+          throw new AppException(
+            HttpStatus.FORBIDDEN,
+            'PROJECT_PERMISSION_DENIED',
+            '只能修改自己负责任务的完成说明',
+          );
+        }
         if (rejectionReason !== undefined) {
           if (
             current.status !== 'PENDING_REVIEW' ||
@@ -222,6 +246,25 @@ export class TasksRepository {
         }
         // A retry does not change business data or invent a status transition.
         if (status === current.status) {
+          if (completionNote !== undefined && completionNote !== current.completionNote) {
+            const updated = await transaction.task.update({
+              where: { id: current.id },
+              data: { completionNote },
+              select: taskSelect,
+            });
+            await transaction.activityLog.create({
+              data: {
+                action: status === 'PENDING_REVIEW' ? 'TASK_REVIEW_RESUBMITTED' : 'TASK_UPDATED',
+                actorId,
+                projectId,
+                targetId: current.id,
+                targetType: 'TASK',
+                beforeValue: JSON.stringify(this.snapshot(current)),
+                afterValue: JSON.stringify(this.snapshot(updated)),
+              },
+            });
+            return { ...updated, rejectionReason: null };
+          }
           return (await this.withRejectionReasons(transaction, projectId, [current]))[0]!;
         }
         if (
@@ -255,15 +298,14 @@ export class TasksRepository {
         if (update.count !== 1) {
           throw this.statusTransitionInvalid();
         }
-
+        const updated = await this.requireCurrent(transaction, projectId, task.id);
         await transaction.activityLog.create({
           data: {
             action: 'TASK_STATUS_CHANGED',
             actorId,
             afterValue: JSON.stringify({
-              completionNote: completionNote ?? task.completionNote,
+              ...this.snapshot(updated),
               reopenReason: reopenReason ?? null,
-              status,
             }),
             beforeValue: JSON.stringify(this.snapshot(current)),
             projectId,
@@ -272,10 +314,7 @@ export class TasksRepository {
           },
         });
 
-        return transaction.task.findUniqueOrThrow({
-          select: taskSelect,
-          where: { id: task.id },
-        });
+        return updated;
       },
       { ownerOnly: status === 'COMPLETED' || rejectionReason !== undefined },
     );
@@ -327,7 +366,11 @@ export class TasksRepository {
   }
 
   private assertDueDateValid(dueDate: Date | undefined, startDate: Date | null): void {
-    if (dueDate && startDate && dueDate.getTime() < startDate.getTime()) {
+    if (
+      dueDate &&
+      (!Number.isFinite(dueDate.getTime()) ||
+        (startDate && dueDate.getTime() < startDate.getTime()))
+    ) {
       throw new AppException(
         HttpStatus.UNPROCESSABLE_ENTITY,
         'TASK_DUE_DATE_INVALID',
@@ -350,7 +393,7 @@ export class TasksRepository {
         projectId,
         targetType: 'TASK',
         targetId: { in: pendingIds },
-        action: { in: ['TASK_REVIEW_REJECTED', 'TASK_STATUS_CHANGED'] },
+        action: { in: ['TASK_REVIEW_REJECTED', 'TASK_REVIEW_RESUBMITTED', 'TASK_STATUS_CHANGED'] },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: { targetId: true, action: true, afterValue: true },

@@ -25,6 +25,7 @@ import { AppModule } from '../../app.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { RequirementsRepository } from '../requirements/repositories/requirements.repository';
+import { TasksRepository } from './repositories/tasks.repository';
 
 interface RegisterEnvelope {
   data: { id: string };
@@ -452,6 +453,48 @@ describe('P3 requirements and tasks with SQLite', () => {
     ).toBe(0);
   });
 
+  it('audits the current completion note when a resubmission precedes approval', async () => {
+    const projectId = await createProjectWithMember();
+    const task = await prisma.task.create({
+      data: {
+        projectId,
+        createdById: accounts.member.id,
+        title: '并发提交说明',
+        status: 'PENDING_REVIEW',
+        completionNote: '旧完成说明',
+      },
+    });
+    const repository = app.get(TasksRepository);
+    const original = repository.updateTaskStatus.bind(repository);
+    const spy = vi.spyOn(repository, 'updateTaskStatus').mockImplementationOnce(async (...args) => {
+      await prisma.task.update({ where: { id: task.id }, data: { completionNote: '新完成说明' } });
+      return original(...args);
+    });
+    try {
+      const response = await request(
+        `/projects/${projectId}/tasks/${task.id}/status`,
+        'PATCH',
+        accounts.owner.token,
+        { status: 'COMPLETED' },
+      );
+      expect(response.status).toBe(200);
+      expect(((await response.json()) as TaskEnvelope).data.completionNote).toBe('新完成说明');
+      const log = await prisma.activityLog.findFirstOrThrow({
+        where: { targetId: task.id, action: 'TASK_STATUS_CHANGED' },
+      });
+      expect(JSON.parse(log.beforeValue ?? '{}')).toMatchObject({
+        status: 'PENDING_REVIEW',
+        completionNote: '新完成说明',
+      });
+      expect(JSON.parse(log.afterValue ?? '{}')).toMatchObject({
+        status: 'COMPLETED',
+        completionNote: '新完成说明',
+      });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('lets only the owner reject review, preserves the submission and returns the rejection reason', async () => {
     const projectId = await createProjectWithMember();
     const task = await prisma.task.create({
@@ -533,6 +576,57 @@ describe('P3 requirements and tasks with SQLite', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it('allows a member to revise a rejected submission without changing status or losing its history', async () => {
+    const projectId = await createProjectWithMember();
+    const task = await prisma.task.create({
+      data: {
+        projectId,
+        createdById: accounts.member.id,
+        title: '重新提交',
+        assigneeId: accounts.member.id,
+        status: 'PENDING_REVIEW',
+        completionNote: '旧说明',
+      },
+    });
+    const endpoint = `/projects/${projectId}/tasks/${task.id}/status`;
+    expect(
+      (
+        await request(endpoint, 'PATCH', accounts.owner.token, {
+          status: 'PENDING_REVIEW',
+          rejectionReason: '补充说明',
+        })
+      ).status,
+    ).toBe(200);
+    const response = await request(endpoint, 'PATCH', accounts.member.token, {
+      status: 'PENDING_REVIEW',
+      completionNote: '已补充说明',
+    });
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { data: Record<string, unknown> }).data).toMatchObject({
+      status: 'PENDING_REVIEW',
+      completionNote: '已补充说明',
+      rejectionReason: null,
+    });
+    const detail = await request(
+      `/projects/${projectId}/tasks/${task.id}`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(
+      ((await detail.json()) as { data: Record<string, unknown> }).data.rejectionReason,
+    ).toBeNull();
+    expect(
+      await prisma.activityLog.count({
+        where: { targetId: task.id, action: 'TASK_REVIEW_REJECTED' },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.activityLog.count({
+        where: { targetId: task.id, action: 'TASK_STATUS_CHANGED' },
+      }),
+    ).toBe(0);
   });
 
   it.each(['COMPLETED', 'PENDING_REVIEW'])(
@@ -634,6 +728,142 @@ describe('P3 requirements and tasks with SQLite', () => {
     }
     expect(await prisma.task.count({ where: { projectId } })).toBe(0);
   });
+
+  it('rejects ISO date variants that cannot be converted to a JavaScript date', async () => {
+    const projectId = await createProjectWithMember();
+    const task = await prisma.task.create({
+      data: { projectId, createdById: accounts.owner.id, title: '原任务' },
+    });
+    for (const dueDate of ['2026-W44', '2026-300', '20261027']) {
+      const created = await request(`/projects/${projectId}/tasks`, 'POST', accounts.owner.token, {
+        title: '无效日期',
+        priority: 'MEDIUM',
+        dueDate,
+      });
+      expect(created.status).toBe(422);
+      const updated = await request(
+        `/projects/${projectId}/tasks/${task.id}`,
+        'PATCH',
+        accounts.owner.token,
+        { dueDate },
+      );
+      expect(updated.status).toBe(422);
+    }
+    expect(await prisma.task.count({ where: { projectId } })).toBe(1);
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).dueDate).toBeNull();
+  });
+
+  it('limits members to editing their assigned tasks while allowing standalone reassignment and status updates', async () => {
+    const projectId = await createProjectWithMember();
+    const task = await prisma.task.create({
+      data: {
+        projectId,
+        createdById: accounts.owner.id,
+        assigneeId: accounts.owner.id,
+        title: '其他人的任务',
+        status: 'TODO',
+      },
+    });
+    const endpoint = `/projects/${projectId}/tasks/${task.id}`;
+    expect(
+      (await request(endpoint, 'PATCH', accounts.member.token, { title: '越权修改' })).status,
+    ).toBe(403);
+    expect(
+      (
+        await request(endpoint, 'PATCH', accounts.member.token, {
+          assigneeId: accounts.member.id,
+          title: '混合越权',
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request(`${endpoint}/status`, 'PATCH', accounts.member.token, {
+          status: 'IN_PROGRESS',
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (await request(endpoint, 'PATCH', accounts.owner.token, { title: '负责人修改' })).status,
+    ).toBe(200);
+    expect(
+      (await request(endpoint, 'PATCH', accounts.member.token, { assigneeId: accounts.member.id }))
+        .status,
+    ).toBe(200);
+    expect(
+      (await request(endpoint, 'PATCH', accounts.member.token, { title: '本人修改' })).status,
+    ).toBe(200);
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).title).toBe(
+      '本人修改',
+    );
+  });
+
+  it('rechecks the task assignee in the write transaction', async () => {
+    const projectId = await createProjectWithMember();
+    const task = await prisma.task.create({
+      data: {
+        projectId,
+        createdById: accounts.member.id,
+        assigneeId: accounts.member.id,
+        title: '原任务',
+      },
+    });
+    const access = app.get(ProjectAccessService);
+    const original = access.requirePermission.bind(access);
+    const spy = vi.spyOn(access, 'requirePermission').mockImplementationOnce(async (...args) => {
+      const snapshot = await original(...args);
+      await prisma.task.update({ where: { id: task.id }, data: { assigneeId: accounts.owner.id } });
+      return snapshot;
+    });
+    try {
+      const response = await request(
+        `/projects/${projectId}/tasks/${task.id}`,
+        'PATCH',
+        accounts.member.token,
+        { title: '不应写入' },
+      );
+      expect(response.status).toBe(403);
+      expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).title).toBe(
+        '原任务',
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it.each([
+    ['TODO', 'TODO'],
+    ['TODO', 'IN_PROGRESS'],
+    ['PENDING_REVIEW', 'PENDING_REVIEW'],
+  ])(
+    'does not allow status requests to edit another assignee completion note (%s -> %s)',
+    async (initialStatus, status) => {
+      const projectId = await createProjectWithMember();
+      const task = await prisma.task.create({
+        data: {
+          projectId,
+          createdById: accounts.owner.id,
+          assigneeId: accounts.owner.id,
+          title: '他人说明',
+          status: initialStatus,
+          completionNote: '原说明',
+        },
+      });
+      const response = await request(
+        `/projects/${projectId}/tasks/${task.id}/status`,
+        'PATCH',
+        accounts.member.token,
+        { status, completionNote: '不应保存的说明' },
+      );
+      expect(response.status).toBe(403);
+      expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).completionNote).toBe(
+        '原说明',
+      );
+      expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).status).toBe(
+        initialStatus,
+      );
+    },
+  );
 
   const writes = [
     'requirement-create',

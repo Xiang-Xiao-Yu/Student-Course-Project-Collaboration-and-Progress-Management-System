@@ -257,6 +257,13 @@ export class TasksService {
   }
 
   private assertDueDateValid(dueDate: Date | undefined, projectStartDate: Date | null): void {
+    if (dueDate && !Number.isFinite(dueDate.getTime())) {
+      throw new AppException(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'TASK_DUE_DATE_INVALID',
+        '任务截止日期无效',
+      );
+    }
     if (dueDate && projectStartDate && dueDate.getTime() < projectStartDate.getTime()) {
       throw new AppException(
         HttpStatus.UNPROCESSABLE_ENTITY,

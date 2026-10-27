@@ -11,6 +11,7 @@ import {
 
 interface WritableProject {
   startDate: Date | null;
+  canManageTasks: boolean;
 }
 
 /** Recheck mutable authorization and project state in the same snapshot as the write. */
@@ -42,6 +43,7 @@ export async function withProjectWrite<T>(
       if (!project) {
         throw new AppException(HttpStatus.NOT_FOUND, 'PROJECT_NOT_FOUND', '项目不存在或无权访问');
       }
+      let canManageTasks = actor.isPlatformAdmin;
       if (!actor.isPlatformAdmin) {
         const member = await transaction.projectMember.findUnique({
           where: { projectId_userId: { projectId, userId: actorId } },
@@ -62,6 +64,7 @@ export async function withProjectWrite<T>(
             '当前项目角色没有执行此操作的权限',
           );
         }
+        canManageTasks = member.role === 'OWNER' && project.ownerId === actorId;
       }
       if (project.status === 'ARCHIVED' || (options.creating && project.status === 'PAUSED')) {
         throw new AppException(
@@ -70,7 +73,7 @@ export async function withProjectWrite<T>(
           '当前项目状态不允许此写入操作',
         );
       }
-      return mutate(transaction, project);
+      return mutate(transaction, { startDate: project.startDate, canManageTasks });
     });
   } catch (error: unknown) {
     if (
