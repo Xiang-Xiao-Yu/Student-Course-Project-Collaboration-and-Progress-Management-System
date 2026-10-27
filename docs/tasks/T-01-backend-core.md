@@ -122,7 +122,7 @@
 - P2 Issue #29 修复与复测通过（2026-10-26）：沿用 PR #28 最新 head `fbf669c` 的负责人并发保护，并验证事务内 actor/目标成员状态；删除操作与独立 `ProjectDeletionAudit` 快照写入同一事务；Create/Update 拒绝可选字段 `null`；成员头像响应统一解析。API 全量 113/113、P2 定向回归 37/37、Prisma 格式/校验/生成、API typecheck/build、全仓 ESLint/Prettier 通过。P2 门禁报告见 `docs/test/p2-r1-2026-10-25.md`；P3 仍锁定。
 - P3.1 完成（2026-10-26）：需求列表、创建、详情、编辑和删除 API 已实现；项目内自动生成 `REQ-xxx` 编号，支持优先级、验收标准和需求状态转换；创建/更新/删除写入 ActivityLog；暂停项目禁止新增、归档项目只读。需求 SERVICE 与 DTO 定向测试 6 项通过，类型检查通过。
 - P3.2～P3.4 完成（2026-10-26）：任务列表、创建、详情、编辑和删除 API 已实现；支持负责人、优先级、截止日期、预估工时、需求和标签关联；任务状态按看板规则流转，提交审核要求完成说明，只有 OWNER/管理员可审核完成，重新打开必须填写原因并清空完成时间；需求与任务状态变化均写 ActivityLog。需求详情返回关联任务摘要。真实 SQLite/HTTP 回归及 API 143、Desktop 69、Shared 6 共 218 项测试通过。
-- P3 待测试（2026-10-26）：P3.1～P3.4 后端已完成并通过 lint、typecheck、test、build 及真实 SQLite/HTTP 回归；当前停止 P3 开发，等待 T-03 检查和 root 解锁 P4。
+- P3 前端联调补充（2026-10-27）：针对 T-02 P3.4 无法展示评论和操作记录的问题，新增任务/需求/会议评论只读查询 `GET /api/v1/projects/:projectId/comments?targetType=TASK&targetId=:taskId`，以及项目/目标级操作记录查询 `GET /api/v1/projects/:projectId/activity?targetType=TASK&targetId=:taskId&limit=50`；评论作者上传头像转换为可展示 data URL，活动前后值安全解析，两个接口均执行项目访问隔离。任务完成时间继续使用任务详情已有 `completedAt`。补充真实 SQLite/HTTP 回归后，P3 重新进入待测试；等待 T-03 检查和 root 解锁 P4。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
