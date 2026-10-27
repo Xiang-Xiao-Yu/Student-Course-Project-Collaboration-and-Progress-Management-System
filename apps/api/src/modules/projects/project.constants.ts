@@ -13,7 +13,17 @@ export type ProjectPermission =
   | 'PROJECT_DELETE'
   | 'PROJECT_STATUS_UPDATE'
   | 'PROJECT_UPDATE'
-  | 'PROJECT_VIEW';
+  | 'PROJECT_VIEW'
+  | 'REQUIREMENT_CREATE'
+  | 'REQUIREMENT_DELETE'
+  | 'REQUIREMENT_UPDATE'
+  | 'REQUIREMENT_VIEW'
+  | 'TASK_ASSIGN'
+  | 'TASK_CREATE'
+  | 'TASK_DELETE'
+  | 'TASK_STATUS_UPDATE'
+  | 'TASK_UPDATE'
+  | 'TASK_VIEW';
 
 export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly ProjectPermission[]>> =
   {
@@ -27,9 +37,30 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'MEMBER_INVITE',
       'MEMBER_UPDATE_ROLE',
       'MEMBER_REMOVE',
+      'REQUIREMENT_VIEW',
+      'REQUIREMENT_CREATE',
+      'REQUIREMENT_UPDATE',
+      'REQUIREMENT_DELETE',
+      'TASK_VIEW',
+      'TASK_CREATE',
+      'TASK_UPDATE',
+      'TASK_DELETE',
+      'TASK_ASSIGN',
+      'TASK_STATUS_UPDATE',
     ],
-    MEMBER: ['PROJECT_VIEW', 'MEMBER_VIEW'],
-    OBSERVER: ['PROJECT_VIEW', 'MEMBER_VIEW'],
+    MEMBER: [
+      'PROJECT_VIEW',
+      'MEMBER_VIEW',
+      'REQUIREMENT_VIEW',
+      'REQUIREMENT_CREATE',
+      'REQUIREMENT_UPDATE',
+      'TASK_VIEW',
+      'TASK_CREATE',
+      'TASK_UPDATE',
+      'TASK_ASSIGN',
+      'TASK_STATUS_UPDATE',
+    ],
+    OBSERVER: ['PROJECT_VIEW', 'MEMBER_VIEW', 'REQUIREMENT_VIEW', 'TASK_VIEW'],
   };
 
 export const PROJECT_STATUS_TRANSITIONS: Readonly<Record<ProjectStatus, readonly ProjectStatus[]>> =
