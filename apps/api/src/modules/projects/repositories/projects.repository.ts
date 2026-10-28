@@ -338,8 +338,28 @@ export class ProjectsRepository {
   }
 
   async listActivity(projectId: string, query: ListActivityQueryDto): Promise<ActivityRecord[]> {
+    const where: Prisma.ActivityLogWhereInput = {
+      projectId,
+      ...(query.targetType ? { targetType: query.targetType } : {}),
+      ...(query.targetId ? { targetId: query.targetId } : {}),
+    };
+
+    if (query.cursor) {
+      const cursor = await this.prisma.activityLog.findFirst({
+        select: { createdAt: true, id: true },
+        where: { ...where, id: query.cursor },
+      });
+      // Missing or out-of-scope cursors cannot expose another project's history.
+      if (!cursor) return [];
+
+      where.OR = [
+        { createdAt: { lt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+      ];
+    }
+
     return this.prisma.activityLog.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: {
         action: true,
         actor: {
@@ -357,11 +377,7 @@ export class ProjectsRepository {
         targetType: true,
       },
       take: query.limit,
-      where: {
-        projectId,
-        ...(query.targetType ? { targetType: query.targetType } : {}),
-        ...(query.targetId ? { targetId: query.targetId } : {}),
-      },
+      where,
     });
   }
 
