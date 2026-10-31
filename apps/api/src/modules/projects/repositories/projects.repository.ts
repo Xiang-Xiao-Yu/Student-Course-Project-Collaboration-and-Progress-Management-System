@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { AppException } from '../../../common/errors/app.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
+import type { ListActivityQueryDto } from '../dto/list-activity-query.dto';
 import type { ProjectRole, ProjectStatus } from '../project.constants';
 
 const projectSelect = {
@@ -64,6 +65,21 @@ export interface ProjectMemberRecord {
     nickname: string;
     username: string;
   };
+}
+
+export interface ActivityRecord {
+  action: string;
+  actor: {
+    id: string;
+    nickname: string;
+    username: string;
+  } | null;
+  afterValue: string | null;
+  beforeValue: string | null;
+  createdAt: Date;
+  id: string;
+  targetId: string;
+  targetType: string;
 }
 
 export type ProjectOwnerTransferErrorCode =
@@ -318,6 +334,50 @@ export class ProjectsRepository {
       orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
       select: projectMemberSelect,
       where: { projectId },
+    });
+  }
+
+  async listActivity(projectId: string, query: ListActivityQueryDto): Promise<ActivityRecord[]> {
+    const where: Prisma.ActivityLogWhereInput = {
+      projectId,
+      ...(query.targetType ? { targetType: query.targetType } : {}),
+      ...(query.targetId ? { targetId: query.targetId } : {}),
+    };
+
+    if (query.cursor) {
+      const cursor = await this.prisma.activityLog.findFirst({
+        select: { createdAt: true, id: true },
+        where: { ...where, id: query.cursor },
+      });
+      // Missing or out-of-scope cursors cannot expose another project's history.
+      if (!cursor) return [];
+
+      where.OR = [
+        { createdAt: { lt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+      ];
+    }
+
+    return this.prisma.activityLog.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: {
+        action: true,
+        actor: {
+          select: {
+            id: true,
+            nickname: true,
+            username: true,
+          },
+        },
+        afterValue: true,
+        beforeValue: true,
+        createdAt: true,
+        id: true,
+        targetId: true,
+        targetType: true,
+      },
+      take: query.limit,
+      where,
     });
   }
 

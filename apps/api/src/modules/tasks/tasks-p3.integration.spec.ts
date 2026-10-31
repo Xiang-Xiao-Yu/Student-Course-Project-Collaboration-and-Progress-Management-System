@@ -59,6 +59,27 @@ interface TaskEnvelope {
   };
 }
 
+interface CommentEnvelope {
+  data: Array<{
+    author: { id: string; nickname: string; username: string };
+    content: string;
+    id: string;
+    targetType: string;
+  }>;
+}
+
+interface ActivityEnvelope {
+  data: Array<{
+    action: string;
+    actor: { id: string; nickname: string; username: string } | null;
+    afterValue: unknown;
+    beforeValue: unknown;
+    id: string;
+    targetId: string;
+    targetType: string;
+  }>;
+}
+
 describe('P3 requirements and tasks with SQLite', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -973,4 +994,199 @@ describe('P3 requirements and tasks with SQLite', () => {
       }
     });
   }
+  it('paginates complete activity history with ties, filters and project permissions', async () => {
+    const projectId = await createProjectWithMember();
+    const otherProjectId = await createProjectWithMember();
+    const ids = Array.from({ length: 205 }, (_, index) => `page-${String(index).padStart(3, '0')}`);
+    const fixture = {
+      action: 'TASK_STATUS_CHANGED',
+      actorId: accounts.member.id,
+      createdAt: new Date('2026-10-27T10:00:00.000Z'),
+      projectId,
+      targetId: 'pagination-task',
+      targetType: 'TASK',
+    };
+    await prisma.activityLog.createMany({
+      data: [
+        ...ids.map((id, index) => ({
+          ...fixture,
+          id,
+          createdAt: new Date(index < 5 ? '2026-10-26T10:00:00.000Z' : '2026-10-27T10:00:00.000Z'),
+        })),
+        { ...fixture, id: 'other-project-cursor', projectId: otherProjectId },
+        { ...fixture, id: 'other-type-cursor', targetType: 'REQUIREMENT' },
+        { ...fixture, id: 'other-task-cursor', targetId: 'another-task' },
+      ],
+    });
+    const path = `/projects/${projectId}/activity?targetType=TASK&targetId=pagination-task`;
+    const first = await request(path, 'GET', accounts.member.token);
+    expect(first.status).toBe(200);
+    const firstPage = ((await first.json()) as ActivityEnvelope).data;
+    expect(firstPage).toHaveLength(50);
+    expect(firstPage[0]?.id).toBe('page-204');
+    expect(firstPage[49]?.id).toBe('page-155');
+
+    // New entries arriving between pages must not shift the continuation boundary.
+    await prisma.activityLog.create({
+      data: { ...fixture, id: 'newer-activity', createdAt: new Date('2026-10-28T10:00:00.000Z') },
+    });
+    const seen = firstPage.map((item) => item.id);
+    let cursor = seen.at(-1)!;
+    for (const expectedSize of [100, 55, 0]) {
+      const response = await request(
+        `${path}&limit=100&cursor=${cursor}`,
+        'GET',
+        accounts.member.token,
+      );
+      expect(response.status).toBe(200);
+      const page = ((await response.json()) as ActivityEnvelope).data;
+      expect(page).toHaveLength(expectedSize);
+      expect(
+        page.every((item) => item.targetId === 'pagination-task' && item.targetType === 'TASK'),
+      ).toBe(true);
+      seen.push(...page.map((item) => item.id));
+      cursor = page.at(-1)?.id ?? cursor;
+    }
+    expect(seen).toEqual([...ids].reverse());
+    expect(new Set(seen).size).toBe(205);
+
+    for (const invalidCursor of [
+      'missing',
+      'other-project-cursor',
+      'other-type-cursor',
+      'other-task-cursor',
+    ]) {
+      const response = await request(
+        `${path}&cursor=${invalidCursor}`,
+        'GET',
+        accounts.member.token,
+      );
+      expect(response.status).toBe(200);
+      expect(((await response.json()) as ActivityEnvelope).data).toEqual([]);
+    }
+    for (const query of [
+      'cursor=',
+      `cursor=${'x'.repeat(65)}`,
+      'cursor=a&cursor=b',
+      'limit=0',
+      'limit=101',
+    ]) {
+      expect((await request(`${path}&${query}`, 'GET', accounts.member.token)).status).toBe(400);
+    }
+    expect((await request(`${path}&cursor=page-155`, 'GET', accounts.outsider.token)).status).toBe(
+      404,
+    );
+    expect((await request(`${path}&cursor=page-155`, 'GET')).status).toBe(401);
+  });
+
+  it('returns task comments and activity records to project members only', async () => {
+    const projectId = await createProjectWithMember();
+    const taskResponse = await request(
+      `/projects/${projectId}/tasks`,
+      'POST',
+      accounts.member.token,
+      {
+        assigneeId: accounts.member.id,
+        priority: 'HIGH',
+        title: '展示评论和操作记录',
+      },
+    );
+    expect(taskResponse.status).toBe(201);
+    const task = (await taskResponse.json()) as TaskEnvelope;
+    const otherTaskResponse = await request(
+      `/projects/${projectId}/tasks`,
+      'POST',
+      accounts.member.token,
+      {
+        priority: 'LOW',
+        title: '不应出现在当前任务详情',
+      },
+    );
+    const otherTask = (await otherTaskResponse.json()) as TaskEnvelope;
+
+    await prisma.comment.createMany({
+      data: [
+        {
+          authorId: accounts.member.id,
+          content: '第一条任务评论',
+          projectId,
+          taskId: task.data.id,
+          targetType: 'TASK',
+        },
+        {
+          authorId: accounts.owner.id,
+          content: '第二条任务评论',
+          projectId,
+          taskId: task.data.id,
+          targetType: 'TASK',
+        },
+        {
+          authorId: accounts.member.id,
+          content: '其他任务评论',
+          projectId,
+          taskId: otherTask.data.id,
+          targetType: 'TASK',
+        },
+      ],
+    });
+
+    const transition = await request(
+      `/projects/${projectId}/tasks/${task.data.id}/status`,
+      'PATCH',
+      accounts.member.token,
+      { status: 'TODO' },
+    );
+    expect(transition.status).toBe(200);
+
+    const comments = await request(
+      `/projects/${projectId}/comments?targetType=TASK&targetId=${task.data.id}`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(comments.status).toBe(200);
+    const commentBody = (await comments.json()) as CommentEnvelope;
+    expect(commentBody.data.map((comment) => comment.content)).toEqual([
+      '第一条任务评论',
+      '第二条任务评论',
+    ]);
+    expect(commentBody.data[0]?.author.id).toBe(accounts.member.id);
+    expect(commentBody.data[0]?.targetType).toBe('TASK');
+
+    const activity = await request(
+      `/projects/${projectId}/activity?targetType=TASK&targetId=${task.data.id}&limit=10`,
+      'GET',
+      accounts.member.token,
+    );
+    expect(activity.status).toBe(200);
+    const activityBody = (await activity.json()) as ActivityEnvelope;
+    expect(activityBody.data.length).toBeGreaterThanOrEqual(2);
+    expect(activityBody.data.every((item) => item.targetId === task.data.id)).toBe(true);
+    expect(activityBody.data.every((item) => item.targetType === 'TASK')).toBe(true);
+    expect(activityBody.data[0]).toMatchObject({
+      action: 'TASK_STATUS_CHANGED',
+      actor: { id: accounts.member.id },
+      afterValue: { status: 'TODO' },
+      beforeValue: { status: 'BACKLOG' },
+    });
+
+    const missingTarget = await request(
+      `/projects/${projectId}/comments?targetType=TASK&targetId=missing-task`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(missingTarget.status).toBe(404);
+
+    const outsiderComments = await request(
+      `/projects/${projectId}/comments?targetType=TASK&targetId=${task.data.id}`,
+      'GET',
+      accounts.outsider.token,
+    );
+    const outsiderActivity = await request(
+      `/projects/${projectId}/activity?targetType=TASK&targetId=${task.data.id}`,
+      'GET',
+      accounts.outsider.token,
+    );
+    expect(outsiderComments.status).toBe(404);
+    expect(outsiderActivity.status).toBe(404);
+  });
 });
