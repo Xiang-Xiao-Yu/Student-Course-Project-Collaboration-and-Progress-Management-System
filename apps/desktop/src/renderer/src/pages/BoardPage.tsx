@@ -31,14 +31,17 @@ import {
   updateTaskStatus,
 } from '../features/tasks/task-api';
 import { TaskFormFields } from '../features/tasks/TaskFormFields';
+import { canEditTaskDetails, canReassignTask } from '../features/tasks/task-permissions';
 import type {
   TaskTransitionDialogMode,
   TaskTransitionValues,
 } from '../features/tasks/task-status-flow';
 import {
+  canRejectPendingTask,
   decideTaskStatusTransition,
   validateTaskTransitionValues,
 } from '../features/tasks/task-status-flow';
+import { TaskReassignDialog } from '../features/tasks/TaskReassignDialog';
 import { TaskStatusTransitionDialog } from '../features/tasks/TaskStatusTransitionDialog';
 import {
   getTaskPriorityLabel,
@@ -88,7 +91,7 @@ type BoardState =
   | { readonly message: string; readonly status: 'error' };
 
 export function BoardPage() {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const { projectId = '' } = useParams<{ projectId: string }>();
   const [createErrors, setCreateErrors] = useState<TaskFormErrors>({});
   const [createForm, setCreateForm] = useState<TaskFormValues>(EMPTY_TASK_FORM);
@@ -105,15 +108,20 @@ export function BoardPage() {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReassigning, setIsReassigning] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<BoardState>({ status: 'loading' });
+  const [reassignAssigneeId, setReassignAssigneeId] = useState('');
+  const [reassignError, setReassignError] = useState<string | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<TaskDto | null>(null);
+  const [taskToReassign, setTaskToReassign] = useState<TaskDto | null>(null);
   const [transitionError, setTransitionError] = useState<string | null>(null);
   const [transitionRequest, setTransitionRequest] = useState<StatusTransitionRequest | null>(null);
   const [transitionValues, setTransitionValues] = useState<TaskTransitionValues>({
     completionNote: '',
+    rejectionReason: '',
     reopenReason: '',
   });
 
@@ -281,6 +289,47 @@ export function BoardPage() {
     }
   }
 
+  async function handleReassignTask(): Promise<void> {
+    if (state.status !== 'ready' || !taskToReassign || isReassigning) {
+      return;
+    }
+
+    if (!reassignAssigneeId) {
+      setReassignError('请选择新的项目成员。');
+      return;
+    }
+
+    if (reassignAssigneeId === taskToReassign.assigneeId) {
+      setReassignError('请选择与当前负责人不同的成员。');
+      return;
+    }
+
+    setIsReassigning(true);
+    setReassignError(null);
+    setCreateMessage(null);
+
+    try {
+      const task = await updateTask(api, state.data.project.id, taskToReassign.id, {
+        assigneeId: reassignAssigneeId,
+      });
+
+      setState({
+        data: {
+          ...state.data,
+          tasks: state.data.tasks.map((item) => (item.id === task.id ? task : item)),
+        },
+        status: 'ready',
+      });
+      setTaskToReassign(null);
+      setReassignAssigneeId('');
+      setCreateMessage({ text: '任务负责人已调整。', type: 'success' });
+    } catch (error) {
+      setReassignError(getUserFacingError(error));
+    } finally {
+      setIsReassigning(false);
+    }
+  }
+
   async function applyStatusTransition(
     task: TaskDto,
     targetStatus: TaskDto['status'],
@@ -299,6 +348,9 @@ export function BoardPage() {
       const updatedTask = await updateTaskStatus(api, state.data.project.id, task.id, {
         status: targetStatus,
         ...(values.completionNote.trim() ? { completionNote: values.completionNote.trim() } : {}),
+        ...(values.rejectionReason.trim()
+          ? { rejectionReason: values.rejectionReason.trim() }
+          : {}),
         ...(values.reopenReason.trim() ? { reopenReason: values.reopenReason.trim() } : {}),
       });
 
@@ -311,9 +363,11 @@ export function BoardPage() {
       });
       setTransitionRequest(null);
       setEditingTask(null);
-      setTransitionValues({ completionNote: '', reopenReason: '' });
+      setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
       setCreateMessage({
-        text: `任务已更新为“${getTaskStatusLabel(updatedTask.status)}”。`,
+        text: values.rejectionReason.trim()
+          ? '审核不通过原因已记录。'
+          : `任务已更新为“${getTaskStatusLabel(updatedTask.status)}”。`,
         type: 'success',
       });
     } catch (error) {
@@ -339,6 +393,7 @@ export function BoardPage() {
       targetStatus,
       task.completionNote,
       canReviewProjectTasks(state.data.project.accessRole),
+      task.rejectionReason,
     );
 
     if (decision.type === 'error') {
@@ -349,6 +404,7 @@ export function BoardPage() {
     if (decision.type === 'direct') {
       void applyStatusTransition(task, targetStatus, {
         completionNote: '',
+        rejectionReason: '',
         reopenReason: '',
       });
       return;
@@ -358,12 +414,23 @@ export function BoardPage() {
     setTransitionError(null);
     setTransitionValues(
       decision.mode === 'completion'
-        ? { completionNote: decision.initialValue, reopenReason: '' }
-        : { completionNote: '', reopenReason: decision.initialValue },
+        ? { completionNote: decision.initialValue, rejectionReason: '', reopenReason: '' }
+        : { completionNote: '', rejectionReason: '', reopenReason: decision.initialValue },
     );
     setTransitionRequest({
       mode: decision.mode,
       targetStatus,
+      task,
+    });
+  }
+
+  function attemptRejectTask(task: TaskDto): void {
+    setEditingTask(null);
+    setTransitionError(null);
+    setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
+    setTransitionRequest({
+      mode: 'rejection',
+      targetStatus: 'PENDING_REVIEW',
       task,
     });
   }
@@ -414,6 +481,8 @@ export function BoardPage() {
   const canEdit = canEditProjectContent(project.accessRole, project.status);
   const canDelete = canDeleteProjectContent(project.accessRole, project.status);
   const canReview = canReviewProjectTasks(project.accessRole);
+  const canReassign = canReassignTask(project.accessRole);
+  const currentUserId = session?.user.id;
   const hasCreateDraft = hasUnsavedTaskChanges(EMPTY_TASK_FORM, createForm);
   const hasEditDraft = editingTask !== null && hasUnsavedTaskChanges(editInitialForm, editForm);
   const memberNames = new Map(members.map((member) => [member.userId, member.nickname]));
@@ -549,6 +618,11 @@ export function BoardPage() {
                         <Link to={buildTaskPath(project.id, task.id)}>{task.title}</Link>
                       </h3>
                       <p>{task.description || '暂未填写任务描述。'}</p>
+                      {task.rejectionReason ? (
+                        <div className="task-rejection-note">
+                          审核不通过：{task.rejectionReason}
+                        </div>
+                      ) : null}
                       <dl className="task-card__meta">
                         <div>
                           <dt>负责人</dt>
@@ -570,13 +644,28 @@ export function BoardPage() {
                           ))}
                         </div>
                       ) : null}
-                      {canEdit ? (
+                      {canEdit &&
+                      (canEditTaskDetails(project.accessRole, task.assigneeId, currentUserId) ||
+                        canReassign) ? (
                         <button
                           className="secondary-button task-card__edit"
-                          onClick={() => openTaskEditor(task)}
+                          onClick={() => {
+                            if (
+                              canEditTaskDetails(project.accessRole, task.assigneeId, currentUserId)
+                            ) {
+                              openTaskEditor(task);
+                              return;
+                            }
+
+                            setTaskToReassign(task);
+                            setReassignAssigneeId('');
+                            setReassignError(null);
+                          }}
                           type="button"
                         >
-                          编辑任务
+                          {canEditTaskDetails(project.accessRole, task.assigneeId, currentUserId)
+                            ? '编辑任务'
+                            : '调整负责人'}
                         </button>
                       ) : null}
                     </article>
@@ -644,6 +733,40 @@ export function BoardPage() {
                           {getTaskStatusActionLabel(editingTask.status, status)}
                         </button>
                       ))}
+                    {canRejectPendingTask(editingTask.status, canReview) ? (
+                      <button
+                        className="danger-text-button"
+                        disabled={isSavingEdit || isTransitioning}
+                        onClick={() => {
+                          if (hasUnsavedTaskChanges(editInitialForm, editForm)) {
+                            setEditMessage('请先保存任务信息，或关闭后放弃修改。');
+                            return;
+                          }
+
+                          attemptRejectTask(editingTask);
+                        }}
+                        type="button"
+                      >
+                        审核不通过
+                      </button>
+                    ) : null}
+                    {editingTask.status === 'PENDING_REVIEW' && editingTask.rejectionReason ? (
+                      <button
+                        className="secondary-button"
+                        disabled={isSavingEdit || isTransitioning}
+                        onClick={() => {
+                          if (hasUnsavedTaskChanges(editInitialForm, editForm)) {
+                            setEditMessage('请先保存任务信息，或关闭后放弃修改。');
+                            return;
+                          }
+
+                          attemptStatusTransition(editingTask, 'PENDING_REVIEW');
+                        }}
+                        type="button"
+                      >
+                        重新提交审核
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
@@ -680,6 +803,26 @@ export function BoardPage() {
           onConfirm={() => void handleDeleteTask()}
           title="删除任务"
           tone="danger"
+        />
+      ) : null}
+
+      {taskToReassign ? (
+        <TaskReassignDialog
+          assigneeId={reassignAssigneeId}
+          error={reassignError}
+          isPending={isReassigning}
+          members={members}
+          onCancel={() => {
+            setTaskToReassign(null);
+            setReassignAssigneeId('');
+            setReassignError(null);
+          }}
+          onChange={(assigneeId) => {
+            setReassignAssigneeId(assigneeId);
+            setReassignError(null);
+          }}
+          onConfirm={() => void handleReassignTask()}
+          taskTitle={taskToReassign.title}
         />
       ) : null}
 

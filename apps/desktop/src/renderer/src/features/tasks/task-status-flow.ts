@@ -1,6 +1,6 @@
 import { canTransitionTaskStatus, getTaskStatusLabel } from './task-presentation';
 
-export type TaskTransitionDialogMode = 'completion' | 'reopen';
+export type TaskTransitionDialogMode = 'completion' | 'rejection' | 'reopen';
 
 export type TaskTransitionDecision =
   | {
@@ -13,6 +13,7 @@ export type TaskTransitionDecision =
 
 export interface TaskTransitionValues {
   readonly completionNote: string;
+  readonly rejectionReason: string;
   readonly reopenReason: string;
 }
 
@@ -21,8 +22,17 @@ export function decideTaskStatusTransition(
   targetStatus: string,
   existingCompletionNote: string | null,
   canReview: boolean,
+  existingRejectionReason: string | null = null,
 ): TaskTransitionDecision {
   if (currentStatus === targetStatus) {
+    if (currentStatus === 'PENDING_REVIEW' && existingRejectionReason) {
+      return {
+        initialValue: existingCompletionNote ?? '',
+        mode: 'completion',
+        type: 'dialog',
+      };
+    }
+
     return { message: '任务已处于目标状态。', type: 'error' };
   }
 
@@ -90,5 +100,21 @@ export function validateTaskTransitionValues(
     }
   }
 
+  if (mode === 'rejection') {
+    const reason = values.rejectionReason.trim();
+
+    if (!reason) {
+      return '请填写审核不通过原因。';
+    }
+
+    if (reason.length > 2000) {
+      return '审核不通过原因不能超过 2000 个字符。';
+    }
+  }
+
   return null;
+}
+
+export function canRejectPendingTask(status: string, canReview: boolean): boolean {
+  return status === 'PENDING_REVIEW' && canReview;
 }

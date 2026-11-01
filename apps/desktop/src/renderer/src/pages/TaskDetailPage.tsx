@@ -19,11 +19,19 @@ import type { RequirementDto } from '../features/requirements/requirement-api';
 import { listRequirements } from '../features/requirements/requirement-api';
 import type { TaskDto } from '../features/tasks/task-api';
 import { getTask, updateTaskStatus } from '../features/tasks/task-api';
+import type { TaskActivityDto, TaskCommentDto } from '../features/tasks/task-history-api';
+import { listTaskActivity, listTaskComments } from '../features/tasks/task-history-api';
+import {
+  getTaskActivityDetail,
+  getTaskActivityLabel,
+} from '../features/tasks/task-history-presentation';
+import { canEditTaskDetails } from '../features/tasks/task-permissions';
 import type {
   TaskTransitionDialogMode,
   TaskTransitionValues,
 } from '../features/tasks/task-status-flow';
 import {
+  canRejectPendingTask,
   decideTaskStatusTransition,
   validateTaskTransitionValues,
 } from '../features/tasks/task-status-flow';
@@ -37,6 +45,8 @@ import {
 import { getUserFacingError } from '../lib/api/errors';
 
 interface TaskDetailData {
+  readonly activities: TaskActivityDto[];
+  readonly comments: TaskCommentDto[];
   readonly members: ProjectMemberDto[];
   readonly project: ProjectDto;
   readonly requirements: RequirementDto[];
@@ -71,7 +81,7 @@ function formatDateTime(value: string | null): string {
 }
 
 export function TaskDetailPage() {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const { projectId = '', taskId = '' } = useParams<{
     projectId: string;
     taskId: string;
@@ -85,6 +95,7 @@ export function TaskDetailPage() {
   const [transitionRequest, setTransitionRequest] = useState<TransitionRequest | null>(null);
   const [transitionValues, setTransitionValues] = useState<TaskTransitionValues>({
     completionNote: '',
+    rejectionReason: '',
     reopenReason: '',
   });
 
@@ -102,11 +113,13 @@ export function TaskDetailPage() {
       listProjectMembers(api, projectId),
       listRequirements(api, projectId),
       getTask(api, projectId, taskId),
+      listTaskComments(api, projectId, taskId),
+      listTaskActivity(api, projectId, taskId),
     ])
-      .then(([project, members, requirements, task]) => {
+      .then(([project, members, requirements, task, comments, activities]) => {
         if (!isCancelled) {
           setState({
-            data: { members, project, requirements, task },
+            data: { activities, comments, members, project, requirements, task },
             status: 'ready',
           });
         }
@@ -139,13 +152,25 @@ export function TaskDetailPage() {
       const task = await updateTaskStatus(api, state.data.project.id, state.data.task.id, {
         status: targetStatus,
         ...(values.completionNote.trim() ? { completionNote: values.completionNote.trim() } : {}),
+        ...(values.rejectionReason.trim()
+          ? { rejectionReason: values.rejectionReason.trim() }
+          : {}),
         ...(values.reopenReason.trim() ? { reopenReason: values.reopenReason.trim() } : {}),
       });
+      const activities = await listTaskActivity(
+        api,
+        state.data.project.id,
+        state.data.task.id,
+      ).catch(() => state.data.activities);
 
-      setState({ data: { ...state.data, task }, status: 'ready' });
+      setState({ data: { ...state.data, activities, task }, status: 'ready' });
       setTransitionRequest(null);
-      setTransitionValues({ completionNote: '', reopenReason: '' });
-      setActionMessage(`任务已更新为“${getTaskStatusLabel(task.status)}”。`);
+      setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
+      setActionMessage(
+        values.rejectionReason.trim()
+          ? '审核不通过原因已记录。'
+          : `任务已更新为“${getTaskStatusLabel(task.status)}”。`,
+      );
     } catch (error) {
       const message = getUserFacingError(error);
 
@@ -169,6 +194,7 @@ export function TaskDetailPage() {
       targetStatus,
       state.data.task.completionNote,
       canReviewProjectTasks(state.data.project.accessRole),
+      state.data.task.rejectionReason,
     );
 
     if (decision.type === 'error') {
@@ -177,17 +203,31 @@ export function TaskDetailPage() {
     }
 
     if (decision.type === 'direct') {
-      void applyTransition(targetStatus, { completionNote: '', reopenReason: '' });
+      void applyTransition(targetStatus, {
+        completionNote: '',
+        rejectionReason: '',
+        reopenReason: '',
+      });
       return;
     }
 
     setTransitionError(null);
     setTransitionValues(
       decision.mode === 'completion'
-        ? { completionNote: decision.initialValue, reopenReason: '' }
-        : { completionNote: '', reopenReason: decision.initialValue },
+        ? { completionNote: decision.initialValue, rejectionReason: '', reopenReason: '' }
+        : { completionNote: '', rejectionReason: '', reopenReason: decision.initialValue },
     );
     setTransitionRequest({ mode: decision.mode, targetStatus });
+  }
+
+  function attemptRejectTask(): void {
+    if (state.status !== 'ready') {
+      return;
+    }
+
+    setTransitionError(null);
+    setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
+    setTransitionRequest({ mode: 'rejection', targetStatus: 'PENDING_REVIEW' });
   }
 
   function confirmTransition(): void {
@@ -227,9 +267,11 @@ export function TaskDetailPage() {
     );
   }
 
-  const { members, project, requirements, task } = state.data;
+  const { activities, comments, members, project, requirements, task } = state.data;
   const canEdit = canEditProjectContent(project.accessRole, project.status);
   const canReview = canReviewProjectTasks(project.accessRole);
+  const canEditThisTask =
+    canEdit && canEditTaskDetails(project.accessRole, task.assigneeId, session?.user.id);
   const assignee = task.assigneeId
     ? members.find((member) => member.userId === task.assigneeId)
     : null;
@@ -239,6 +281,9 @@ export function TaskDetailPage() {
   const transitions = getTaskStatusTransitions(task.status).filter(
     (status) => status !== 'COMPLETED' || canReview,
   );
+  const canReject = canRejectPendingTask(task.status, canReview);
+  const canResubmit =
+    task.status === 'PENDING_REVIEW' && Boolean(task.rejectionReason) && canEditThisTask;
 
   return (
     <div className="page-stack p3-page">
@@ -321,6 +366,11 @@ export function TaskDetailPage() {
               </div>
             </div>
             <div className="completion-note">{task.completionNote || '暂未填写完成说明。'}</div>
+            {task.rejectionReason ? (
+              <div className="task-rejection-note task-detail-rejection">
+                审核不通过：{task.rejectionReason}
+              </div>
+            ) : null}
             <dl className="task-detail-list task-detail-list--compact">
               <div>
                 <dt>完成时间</dt>
@@ -338,7 +388,7 @@ export function TaskDetailPage() {
             </div>
             {!canEdit ? (
               <div className="read-only-inline">当前角色或项目状态只能查看任务。</div>
-            ) : transitions.length === 0 ? (
+            ) : transitions.length === 0 && !canReject && !canResubmit ? (
               <div className="linked-task-empty">当前状态没有后续操作。</div>
             ) : (
               <div className="button-row">
@@ -353,10 +403,88 @@ export function TaskDetailPage() {
                     {getTaskStatusActionLabel(task.status, status)}
                   </button>
                 ))}
+                {canReject ? (
+                  <button
+                    className="danger-text-button"
+                    disabled={isTransitioning}
+                    onClick={attemptRejectTask}
+                    type="button"
+                  >
+                    审核不通过
+                  </button>
+                ) : null}
+                {canResubmit ? (
+                  <button
+                    className="secondary-button"
+                    disabled={isTransitioning}
+                    onClick={() => attemptTransition('PENDING_REVIEW')}
+                    type="button"
+                  >
+                    重新提交审核
+                  </button>
+                ) : null}
               </div>
             )}
           </section>
         </div>
+      </div>
+
+      <div className="task-history-grid">
+        <section className="panel">
+          <div className="panel__header">
+            <div>
+              <h2>任务评论</h2>
+              <p>共 {comments.length} 条评论</p>
+            </div>
+          </div>
+          {comments.length === 0 ? (
+            <div className="linked-task-empty">暂无评论</div>
+          ) : (
+            <div className="comment-list">
+              {comments.map((comment) => (
+                <article className="comment-row" key={comment.id}>
+                  <div className="comment-row__header">
+                    <strong>{comment.author.nickname}</strong>
+                    <span>@{comment.author.username}</span>
+                    <time dateTime={comment.createdAt}>{formatDateTime(comment.createdAt)}</time>
+                  </div>
+                  <p>{comment.content}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panel__header">
+            <div>
+              <h2>操作记录</h2>
+              <p>共 {activities.length} 条记录</p>
+            </div>
+          </div>
+          {activities.length === 0 ? (
+            <div className="linked-task-empty">暂无操作记录</div>
+          ) : (
+            <div className="activity-timeline">
+              {activities.map((activity) => {
+                const detail = getTaskActivityDetail(activity);
+
+                return (
+                  <article className="activity-row" key={activity.id}>
+                    <span className="activity-row__marker" aria-hidden="true" />
+                    <div>
+                      <strong>{getTaskActivityLabel(activity.action)}</strong>
+                      {detail ? <p>{detail}</p> : null}
+                      <span>
+                        {activity.actor?.nickname ?? '系统'} · {formatDateTime(activity.createdAt)}
+                      </span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
 
       {transitionRequest ? (

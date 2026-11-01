@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { decideTaskStatusTransition, validateTaskTransitionValues } from './task-status-flow';
+import {
+  canRejectPendingTask,
+  decideTaskStatusTransition,
+  validateTaskTransitionValues,
+} from './task-status-flow';
 
 describe('P3 task status flow', () => {
   it('正常场景直接推进或要求完成说明和重新打开原因', () => {
@@ -15,6 +19,19 @@ describe('P3 task status flow', () => {
     expect(decideTaskStatusTransition('COMPLETED', 'IN_PROGRESS', '完成说明', true)).toEqual({
       initialValue: '',
       mode: 'reopen',
+      type: 'dialog',
+    });
+    expect(
+      decideTaskStatusTransition(
+        'PENDING_REVIEW',
+        'PENDING_REVIEW',
+        '完成说明',
+        true,
+        '需补充测试',
+      ),
+    ).toEqual({
+      initialValue: '完成说明',
+      mode: 'completion',
       type: 'dialog',
     });
   });
@@ -37,14 +54,25 @@ describe('P3 task status flow', () => {
     expect(
       validateTaskTransitionValues('completion', {
         completionNote: ' ',
+        rejectionReason: '',
         reopenReason: '',
       }),
     ).toBe('请填写任务完成说明。');
     expect(
       validateTaskTransitionValues('reopen', {
         completionNote: '说明',
+        rejectionReason: '',
         reopenReason: '',
       }),
     ).toBe('请填写重新打开任务的原因。');
+    expect(
+      validateTaskTransitionValues('rejection', {
+        completionNote: '',
+        rejectionReason: ' ',
+        reopenReason: '',
+      }),
+    ).toBe('请填写审核不通过原因。');
+    expect(canRejectPendingTask('PENDING_REVIEW', true)).toBe(true);
+    expect(canRejectPendingTask('PENDING_REVIEW', false)).toBe(false);
   });
 });

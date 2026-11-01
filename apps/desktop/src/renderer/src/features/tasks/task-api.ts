@@ -17,6 +17,7 @@ export interface TaskDto {
   readonly priority: TaskPriority;
   readonly projectId: string;
   readonly requirementId: string | null;
+  readonly rejectionReason: string | null;
   readonly status: TaskStatus;
   readonly tagNames: string[];
   readonly title: string;
@@ -47,6 +48,7 @@ export interface UpdateTaskInput {
 
 export interface UpdateTaskStatusInput {
   readonly completionNote?: string;
+  readonly rejectionReason?: string;
   readonly reopenReason?: string;
   readonly status: TaskStatus;
 }

@@ -264,6 +264,35 @@ try {
     .filter({ hasText: '实现 P3 任务工作流' })
     .getByRole('button', { name: '编辑任务', exact: true })
     .click();
+  await editDialog.getByRole('button', { name: '审核不通过', exact: true }).click();
+  transitionDialog = page.locator('.task-status-dialog');
+  await transitionDialog.locator('textarea').fill('缺少边界测试，请补充后重新提交。');
+  await transitionDialog.getByRole('button', { name: '确认不通过', exact: true }).click();
+  await page.getByText('审核不通过原因已记录。', { exact: true }).waitFor();
+  await page.getByText('审核不通过：缺少边界测试，请补充后重新提交。', { exact: true }).waitFor();
+
+  await page
+    .locator('.board-column--pending_review .task-card')
+    .filter({ hasText: '实现 P3 任务工作流' })
+    .getByRole('button', { name: '编辑任务', exact: true })
+    .click();
+  await editDialog.getByRole('button', { name: '重新提交审核', exact: true }).click();
+  transitionDialog = page.locator('.task-status-dialog');
+  await transitionDialog.locator('textarea').fill('已补充边界测试，重新提交审核。');
+  await transitionDialog.getByRole('button', { name: '确认提交', exact: true }).click();
+  await page.getByText('任务已更新为“待审核”。', { exact: true }).waitFor();
+  check(
+    (await page
+      .getByText('审核不通过：缺少边界测试，请补充后重新提交。', { exact: true })
+      .count()) === 0,
+    'Rejection reason remained after resubmission',
+  );
+
+  await page
+    .locator('.board-column--pending_review .task-card')
+    .filter({ hasText: '实现 P3 任务工作流' })
+    .getByRole('button', { name: '编辑任务', exact: true })
+    .click();
   await editDialog.getByRole('button', { name: '审核通过', exact: true }).click();
   transitionDialog = page.locator('.task-status-dialog');
   await transitionDialog.getByRole('button', { name: '确认提交', exact: true }).click();
@@ -278,14 +307,20 @@ try {
     .getByRole('link', { name: '实现 P3 任务工作流', exact: true })
     .click();
   await page.getByRole('heading', { name: '任务详情', exact: true }).waitFor();
-  await page.getByText('功能与自动化验证已完成。', { exact: true }).waitFor();
+  await page.getByText('已补充边界测试，重新提交审核。', { exact: true }).waitFor();
   check(
-    (await page.locator('.completion-note').innerText()).includes('功能与自动化验证已完成。'),
+    (await page.locator('.completion-note').innerText()).includes('已补充边界测试，重新提交审核。'),
     'Task completion note is missing from the detail page',
   );
   check(
     !(await page.locator('.task-detail-list--compact').innerText()).includes('未记录'),
     'Completed task did not show a completion time',
+  );
+  await page.getByText('暂无评论', { exact: true }).waitFor();
+  check(
+    (await page.locator('.activity-timeline').innerText()).includes('审核不通过') &&
+      (await page.locator('.activity-timeline').innerText()).includes('重新提交审核'),
+    'Task activity timeline is missing review history',
   );
   await capture('task-detail-completed.png');
 

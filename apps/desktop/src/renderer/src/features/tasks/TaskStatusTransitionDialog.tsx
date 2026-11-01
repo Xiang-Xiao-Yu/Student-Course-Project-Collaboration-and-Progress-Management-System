@@ -24,6 +24,7 @@ export function TaskStatusTransitionDialog({
   values,
 }: TaskStatusTransitionDialogProps) {
   const isCompletion = mode === 'completion';
+  const isRejection = mode === 'rejection';
 
   return (
     <div className="confirm-backdrop">
@@ -34,24 +35,36 @@ export function TaskStatusTransitionDialog({
         role="dialog"
       >
         <h2 id="task-status-dialog-title">
-          {isCompletion ? `提交到“${targetStatusLabel}”` : '重新打开任务'}
+          {isRejection
+            ? '审核不通过'
+            : isCompletion
+              ? `提交到“${targetStatusLabel}”`
+              : '重新打开任务'}
         </h2>
         <p>{taskTitle}</p>
         <label className="form-field confirm-dialog__field">
-          <span>{isCompletion ? '完成说明' : '重新打开原因'}</span>
+          <span>{isRejection ? '不通过原因' : isCompletion ? '完成说明' : '重新打开原因'}</span>
           <textarea
             disabled={isPending}
-            maxLength={isCompletion ? 5000 : 2000}
+            maxLength={isCompletion && !isRejection ? 5000 : 2000}
             onChange={(event) =>
               onChange({
                 ...values,
-                ...(isCompletion
-                  ? { completionNote: event.target.value }
-                  : { reopenReason: event.target.value }),
+                ...(isRejection
+                  ? { rejectionReason: event.target.value }
+                  : isCompletion
+                    ? { completionNote: event.target.value }
+                    : { reopenReason: event.target.value }),
               })
             }
             rows={4}
-            value={isCompletion ? values.completionNote : values.reopenReason}
+            value={
+              isRejection
+                ? values.rejectionReason
+                : isCompletion
+                  ? values.completionNote
+                  : values.reopenReason
+            }
           />
           {error ? <small>{error}</small> : null}
         </label>
@@ -70,7 +83,13 @@ export function TaskStatusTransitionDialog({
             onClick={onConfirm}
             type="button"
           >
-            {isPending ? '正在提交...' : isCompletion ? '确认提交' : '确认重新打开'}
+            {isPending
+              ? '正在提交...'
+              : isRejection
+                ? '确认不通过'
+                : isCompletion
+                  ? '确认提交'
+                  : '确认重新打开'}
           </button>
         </div>
       </section>
