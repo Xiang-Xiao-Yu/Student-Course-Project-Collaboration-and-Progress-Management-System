@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { listTaskActivity, listTaskComments } from './task-history-api';
+import {
+  listTaskActivity,
+  listTaskComments,
+  mergeTaskActivities,
+  TASK_ACTIVITY_PAGE_SIZE,
+} from './task-history-api';
 
 describe('P3 task history API', () => {
   it('正常场景请求任务评论和操作记录', async () => {
@@ -15,8 +20,41 @@ describe('P3 task history API', () => {
     );
     expect(api.get).toHaveBeenNthCalledWith(
       2,
-      '/projects/project-1/activity?targetId=task-1&targetType=TASK&limit=100',
+      `/projects/project-1/activity?targetId=task-1&targetType=TASK&limit=${TASK_ACTIVITY_PAGE_SIZE}`,
     );
+  });
+
+  it('边界场景传递活动分页游标并去重超过 100 条记录', async () => {
+    const api = { get: vi.fn(async () => []) };
+
+    await listTaskActivity(api as never, 'project-1', 'task-1', {
+      cursor: 'activity-100',
+      limit: 100,
+    });
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/projects/project-1/activity?targetId=task-1&targetType=TASK&limit=100&cursor=activity-100',
+    );
+
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      action: 'TASK_UPDATED',
+      actor: null,
+      afterValue: null,
+      beforeValue: null,
+      createdAt: '2026-11-03T00:00:00.000Z',
+      id: `activity-${index + 1}`,
+      targetId: 'task-1',
+      targetType: 'TASK',
+    }));
+    const secondPage = [
+      firstPage[99]!,
+      {
+        ...firstPage[0]!,
+        id: 'activity-101',
+      },
+    ];
+
+    expect(mergeTaskActivities(firstPage, secondPage)).toHaveLength(101);
   });
 
   it('边界场景编码项目和任务参数', async () => {

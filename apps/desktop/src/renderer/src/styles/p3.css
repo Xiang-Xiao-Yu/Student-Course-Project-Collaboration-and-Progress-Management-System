@@ -670,6 +670,12 @@
   font-size: 9px;
 }
 
+.activity-load-more {
+  justify-self: start;
+  min-height: 34px;
+  font-size: 11px;
+}
+
 @media (max-width: 900px) {
   .requirement-row {
     grid-template-columns: minmax(0, 1fr) auto;

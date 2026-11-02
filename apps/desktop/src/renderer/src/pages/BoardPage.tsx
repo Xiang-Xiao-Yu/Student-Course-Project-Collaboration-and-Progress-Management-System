@@ -10,6 +10,8 @@ import { LoadingState } from '../components/feedback/LoadingState';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import { useSession } from '../features/auth/session';
+import type { BoardTaskMutation } from '../features/tasks/board-task-state';
+import { applyBoardTaskMutation } from '../features/tasks/board-task-state';
 import type { ProjectDto, ProjectMemberDto } from '../features/projects/project-api';
 import { getProject, listProjectMembers } from '../features/projects/project-api';
 import {
@@ -159,6 +161,22 @@ export function BoardPage() {
     };
   }, [api, projectId, retryVersion]);
 
+  function mutateTasks(mutation: BoardTaskMutation): void {
+    setState((current) => {
+      if (current.status !== 'ready') {
+        return current;
+      }
+
+      return {
+        data: {
+          ...current.data,
+          tasks: applyBoardTaskMutation(current.data.tasks, mutation),
+        },
+        status: 'ready',
+      };
+    });
+  }
+
   async function handleCreate(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
@@ -180,10 +198,7 @@ export function BoardPage() {
     try {
       const task = await createTask(api, state.data.project.id, formToCreateTaskInput(createForm));
 
-      setState({
-        data: { ...state.data, tasks: [...state.data.tasks, task] },
-        status: 'ready',
-      });
+      mutateTasks({ task, type: 'created' });
       setCreateForm(EMPTY_TASK_FORM);
       setCreateMessage({ text: '任务已创建。', type: 'success' });
     } catch (error) {
@@ -245,13 +260,7 @@ export function BoardPage() {
         formToUpdateTaskInput(editForm),
       );
 
-      setState({
-        data: {
-          ...state.data,
-          tasks: state.data.tasks.map((item) => (item.id === task.id ? task : item)),
-        },
-        status: 'ready',
-      });
+      mutateTasks({ task, type: 'updated' });
       setEditingTask(null);
       setCreateMessage({ text: '任务信息已更新。', type: 'success' });
     } catch (error) {
@@ -271,13 +280,7 @@ export function BoardPage() {
 
     try {
       await deleteTask(api, state.data.project.id, taskToDelete.id);
-      setState({
-        data: {
-          ...state.data,
-          tasks: state.data.tasks.filter((task) => task.id !== taskToDelete.id),
-        },
-        status: 'ready',
-      });
+      mutateTasks({ taskId: taskToDelete.id, type: 'deleted' });
       setEditingTask(null);
       setTaskToDelete(null);
       setCreateMessage({ text: '任务已删除。', type: 'success' });
@@ -313,13 +316,7 @@ export function BoardPage() {
         assigneeId: reassignAssigneeId,
       });
 
-      setState({
-        data: {
-          ...state.data,
-          tasks: state.data.tasks.map((item) => (item.id === task.id ? task : item)),
-        },
-        status: 'ready',
-      });
+      mutateTasks({ task, type: 'updated' });
       setTaskToReassign(null);
       setReassignAssigneeId('');
       setCreateMessage({ text: '任务负责人已调整。', type: 'success' });
@@ -354,13 +351,7 @@ export function BoardPage() {
         ...(values.reopenReason.trim() ? { reopenReason: values.reopenReason.trim() } : {}),
       });
 
-      setState({
-        data: {
-          ...state.data,
-          tasks: state.data.tasks.map((item) => (item.id === updatedTask.id ? updatedTask : item)),
-        },
-        status: 'ready',
-      });
+      mutateTasks({ task: updatedTask, type: 'updated' });
       setTransitionRequest(null);
       setEditingTask(null);
       setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });

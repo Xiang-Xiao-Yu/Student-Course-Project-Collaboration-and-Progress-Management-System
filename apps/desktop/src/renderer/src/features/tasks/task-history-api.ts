@@ -33,14 +33,30 @@ export interface TaskActivityDto {
   readonly targetType: string;
 }
 
-function taskQuery(projectId: string, taskId: string, resource: 'activity' | 'comments'): string {
+export const TASK_ACTIVITY_PAGE_SIZE = 100;
+
+export interface TaskActivityQuery {
+  readonly cursor?: string;
+  readonly limit?: number;
+}
+
+function taskQuery(
+  projectId: string,
+  taskId: string,
+  resource: 'activity' | 'comments',
+  query: TaskActivityQuery = {},
+): string {
   const params = new URLSearchParams({
     targetId: taskId,
     targetType: 'TASK',
   });
 
   if (resource === 'activity') {
-    params.set('limit', '100');
+    params.set('limit', String(query.limit ?? TASK_ACTIVITY_PAGE_SIZE));
+
+    if (query.cursor) {
+      params.set('cursor', query.cursor);
+    }
   }
 
   return `/projects/${encodeURIComponent(projectId)}/${resource}?${params.toString()}`;
@@ -58,6 +74,20 @@ export function listTaskActivity(
   api: Pick<ApiClient, 'get'>,
   projectId: string,
   taskId: string,
+  query: TaskActivityQuery = {},
 ): Promise<TaskActivityDto[]> {
-  return api.get<TaskActivityDto[]>(taskQuery(projectId, taskId, 'activity'));
+  return api.get<TaskActivityDto[]>(taskQuery(projectId, taskId, 'activity', query));
+}
+
+export function mergeTaskActivities(
+  current: readonly TaskActivityDto[],
+  next: readonly TaskActivityDto[],
+): TaskActivityDto[] {
+  const byId = new Map(current.map((activity) => [activity.id, activity]));
+
+  for (const activity of next) {
+    byId.set(activity.id, activity);
+  }
+
+  return [...byId.values()];
 }

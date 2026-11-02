@@ -20,7 +20,12 @@ import { listRequirements } from '../features/requirements/requirement-api';
 import type { TaskDto } from '../features/tasks/task-api';
 import { getTask, updateTaskStatus } from '../features/tasks/task-api';
 import type { TaskActivityDto, TaskCommentDto } from '../features/tasks/task-history-api';
-import { listTaskActivity, listTaskComments } from '../features/tasks/task-history-api';
+import {
+  listTaskActivity,
+  listTaskComments,
+  mergeTaskActivities,
+  TASK_ACTIVITY_PAGE_SIZE,
+} from '../features/tasks/task-history-api';
 import {
   getTaskActivityDetail,
   getTaskActivityLabel,
@@ -88,7 +93,9 @@ export function TaskDetailPage() {
   }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [activityHasMore, setActivityHasMore] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<TaskDetailState>({ status: 'loading' });
   const [transitionError, setTransitionError] = useState<string | null>(null);
@@ -114,7 +121,9 @@ export function TaskDetailPage() {
       listRequirements(api, projectId),
       getTask(api, projectId, taskId),
       listTaskComments(api, projectId, taskId),
-      listTaskActivity(api, projectId, taskId),
+      listTaskActivity(api, projectId, taskId, {
+        limit: TASK_ACTIVITY_PAGE_SIZE,
+      }),
     ])
       .then(([project, members, requirements, task, comments, activities]) => {
         if (!isCancelled) {
@@ -122,6 +131,7 @@ export function TaskDetailPage() {
             data: { activities, comments, members, project, requirements, task },
             status: 'ready',
           });
+          setActivityHasMore(activities.length === TASK_ACTIVITY_PAGE_SIZE);
         }
       })
       .catch((error: unknown) => {
@@ -157,13 +167,16 @@ export function TaskDetailPage() {
           : {}),
         ...(values.reopenReason.trim() ? { reopenReason: values.reopenReason.trim() } : {}),
       });
-      const activities = await listTaskActivity(
-        api,
-        state.data.project.id,
-        state.data.task.id,
-      ).catch(() => state.data.activities);
+      const activities = await listTaskActivity(api, state.data.project.id, state.data.task.id, {
+        limit: TASK_ACTIVITY_PAGE_SIZE,
+      }).catch(() => state.data.activities);
 
-      setState({ data: { ...state.data, activities, task }, status: 'ready' });
+      setState((current) =>
+        current.status === 'ready'
+          ? { data: { ...current.data, activities, task }, status: 'ready' }
+          : current,
+      );
+      setActivityHasMore(activities.length === TASK_ACTIVITY_PAGE_SIZE);
       setTransitionRequest(null);
       setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
       setActionMessage(
@@ -228,6 +241,46 @@ export function TaskDetailPage() {
     setTransitionError(null);
     setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
     setTransitionRequest({ mode: 'rejection', targetStatus: 'PENDING_REVIEW' });
+  }
+
+  async function loadMoreActivities(): Promise<void> {
+    if (state.status !== 'ready' || !activityHasMore || isLoadingMoreActivities) {
+      return;
+    }
+
+    const cursor = state.data.activities.at(-1)?.id;
+
+    if (!cursor) {
+      setActivityHasMore(false);
+      return;
+    }
+
+    setIsLoadingMoreActivities(true);
+    setActionError(null);
+
+    try {
+      const nextPage = await listTaskActivity(api, state.data.project.id, state.data.task.id, {
+        cursor,
+        limit: TASK_ACTIVITY_PAGE_SIZE,
+      });
+
+      setState((current) =>
+        current.status === 'ready'
+          ? {
+              data: {
+                ...current.data,
+                activities: mergeTaskActivities(current.data.activities, nextPage),
+              },
+              status: 'ready',
+            }
+          : current,
+      );
+      setActivityHasMore(nextPage.length === TASK_ACTIVITY_PAGE_SIZE);
+    } catch (error) {
+      setActionError(getUserFacingError(error));
+    } finally {
+      setIsLoadingMoreActivities(false);
+    }
   }
 
   function confirmTransition(): void {
@@ -459,7 +512,9 @@ export function TaskDetailPage() {
           <div className="panel__header">
             <div>
               <h2>操作记录</h2>
-              <p>共 {activities.length} 条记录</p>
+              <p>
+                {activityHasMore ? '已加载' : '共'} {activities.length} 条记录
+              </p>
             </div>
           </div>
           {activities.length === 0 ? (
@@ -482,6 +537,16 @@ export function TaskDetailPage() {
                   </article>
                 );
               })}
+              {activityHasMore ? (
+                <button
+                  className="secondary-button activity-load-more"
+                  disabled={isLoadingMoreActivities}
+                  onClick={() => void loadMoreActivities()}
+                  type="button"
+                >
+                  {isLoadingMoreActivities ? '正在加载...' : '加载更多操作记录'}
+                </button>
+              ) : null}
             </div>
           )}
         </section>
