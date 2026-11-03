@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { RequireSession } from '../features/auth/RequireSession';
 import { AccountLayout } from '../layouts/AccountLayout';
 import { AppLayout } from '../layouts/AppLayout';
+import { BoardPage } from '../pages/BoardPage';
 import { LoginPage } from '../pages/LoginPage';
 import { MembersPage } from '../pages/MembersPage';
 import { MyTasksPage } from '../pages/MyTasksPage';
@@ -13,7 +14,10 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { ProjectsPage } from '../pages/ProjectsPage';
 import { ProjectSettingsPage } from '../pages/ProjectSettingsPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { RequirementDetailPage } from '../pages/RequirementDetailPage';
+import { RequirementsPage } from '../pages/RequirementsPage';
 import { SectionPage } from '../pages/SectionPage';
+import { TaskDetailPage } from '../pages/TaskDetailPage';
 
 export const appRoutes: RouteObject[] = [
   {
@@ -75,11 +79,19 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: 'requirements',
-            element: <SectionPage section="requirements" />,
+            element: <RequirementsPage />,
+          },
+          {
+            path: 'requirements/:requirementId',
+            element: <RequirementDetailPage />,
           },
           {
             path: 'board',
-            element: <SectionPage section="board" />,
+            element: <BoardPage />,
+          },
+          {
+            path: 'board/:taskId',
+            element: <TaskDetailPage />,
           },
           {
             path: 'iterations',
