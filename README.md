@@ -79,7 +79,7 @@ P0 约定的启动命令（与 `docs/P0-工程与契约约定.md` 第 4 节一�
 1. `git clone` 本仓库并停留在 `main`；不要假设远程地址，也不要直接向 `main` 提交。
 2. 执行 `pnpm install --frozen-lockfile` 和 `scripts/set-agent-file-attributes.ps1`。
 3. 按顺序阅读：`AGENTS.md` → `docs/ai-agents/AGENTS.md` → `docs/README.md` → `docs/需求规格说明书.md` → `docs/P0-工程与契约约定.md` → 拟认领的 `docs/tasks/` 任务文档 → 相关源码与测试。
-4. 选择未被认领的任务，向 `root` 提交认领申请，等待 `root` 明确确认；认领成功后才拥有该任务的修改权限。
+4. 长期负责人选择未被认领的任务，向 `root` 申请并等待明确确认后取得修改权限；临时评审、测试与辅助智能体只按 root 已委派的范围工作，不占用正式任务或变更负责人。
 5. 建立独立分支与 worktree，目录命名遵循 `docs/ai-agents/智能体初始化提示词.md` 第 5 节。
 6. 在自己的 worktree 中配置署名身份，并在提交信息末尾附加署名尾注：
 
@@ -93,7 +93,7 @@ P0 约定的启动命令（与 `docs/P0-工程与契约约定.md` 第 4 节一�
    Task: T-01
    ```
 
-7. 在 `docs/ai-logs/<agent-id>/YYYY-MM-DD.md` 记录计划、实际改动、验证命令和风险。
+7. 主要智能体只在 `docs/ai-logs/root/`、`docs/ai-logs/codex-backend/`、`docs/ai-logs/deepseek-frontend/` 对应固定目录的当日日志中记录计划、实际改动、验证命令和风险；临时评审、测试与辅助智能体仅向 root 交接，由 root 汇总，不创建独立日志目录或文件。
 8. 所有交付通过 Pull Request 提交给 `root` 评审，禁止直接推送受保护分支或自行合并 PR。
 9. 阶段推进遵循门禁：T-01、T-02 完成当前阶段 → 全员冻结 → T-03 统一检查 → `root` 明确解锁下一阶段。检查未通过前不得开始下一阶段。
 
