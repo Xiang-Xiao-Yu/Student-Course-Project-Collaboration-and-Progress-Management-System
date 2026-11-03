@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { buildProjectPath, buildRequirementPath } from '../app/navigation';
@@ -23,7 +23,7 @@ import type { TaskActivityDto, TaskCommentDto } from '../features/tasks/task-his
 import {
   listTaskActivity,
   listTaskComments,
-  mergeTaskActivities,
+  resolveTaskActivityPage,
   TASK_ACTIVITY_PAGE_SIZE,
 } from '../features/tasks/task-history-api';
 import {
@@ -51,6 +51,7 @@ import { getUserFacingError } from '../lib/api/errors';
 
 interface TaskDetailData {
   readonly activities: TaskActivityDto[];
+  readonly activityHasMore: boolean;
   readonly comments: TaskCommentDto[];
   readonly members: ProjectMemberDto[];
   readonly project: ProjectDto;
@@ -93,7 +94,6 @@ export function TaskDetailPage() {
   }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [activityHasMore, setActivityHasMore] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
@@ -105,6 +105,7 @@ export function TaskDetailPage() {
     rejectionReason: '',
     reopenReason: '',
   });
+  const activityRequestVersionRef = useRef(0);
 
   useEffect(() => {
     if (!projectId || !taskId) {
@@ -113,6 +114,7 @@ export function TaskDetailPage() {
     }
 
     let isCancelled = false;
+    const requestVersion = ++activityRequestVersionRef.current;
 
     setState({ status: 'loading' });
     void Promise.all([
@@ -126,16 +128,23 @@ export function TaskDetailPage() {
       }),
     ])
       .then(([project, members, requirements, task, comments, activities]) => {
-        if (!isCancelled) {
+        if (!isCancelled && requestVersion === activityRequestVersionRef.current) {
           setState({
-            data: { activities, comments, members, project, requirements, task },
+            data: {
+              activities,
+              activityHasMore: activities.length === TASK_ACTIVITY_PAGE_SIZE,
+              comments,
+              members,
+              project,
+              requirements,
+              task,
+            },
             status: 'ready',
           });
-          setActivityHasMore(activities.length === TASK_ACTIVITY_PAGE_SIZE);
         }
       })
       .catch((error: unknown) => {
-        if (!isCancelled) {
+        if (!isCancelled && requestVersion === activityRequestVersionRef.current) {
           setState({ message: getUserFacingError(error), status: 'error' });
         }
       });
@@ -167,16 +176,41 @@ export function TaskDetailPage() {
           : {}),
         ...(values.reopenReason.trim() ? { reopenReason: values.reopenReason.trim() } : {}),
       });
+      const requestVersion = ++activityRequestVersionRef.current;
       const activities = await listTaskActivity(api, state.data.project.id, state.data.task.id, {
         limit: TASK_ACTIVITY_PAGE_SIZE,
-      }).catch(() => state.data.activities);
+      }).catch(() => null);
 
-      setState((current) =>
-        current.status === 'ready'
-          ? { data: { ...current.data, activities, task }, status: 'ready' }
-          : current,
-      );
-      setActivityHasMore(activities.length === TASK_ACTIVITY_PAGE_SIZE);
+      setState((current) => {
+        if (current.status !== 'ready') {
+          return current;
+        }
+
+        if (!activities) {
+          return { data: { ...current.data, task }, status: 'ready' };
+        }
+
+        const resolution = resolveTaskActivityPage(
+          current.data.activities,
+          activities,
+          requestVersion,
+          activityRequestVersionRef.current,
+        );
+
+        if (!resolution.applied) {
+          return { data: { ...current.data, task }, status: 'ready' };
+        }
+
+        return {
+          data: {
+            ...current.data,
+            activities: resolution.activities,
+            activityHasMore: resolution.hasMore,
+            task,
+          },
+          status: 'ready',
+        };
+      });
       setTransitionRequest(null);
       setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
       setActionMessage(
@@ -244,38 +278,64 @@ export function TaskDetailPage() {
   }
 
   async function loadMoreActivities(): Promise<void> {
-    if (state.status !== 'ready' || !activityHasMore || isLoadingMoreActivities) {
+    if (
+      state.status !== 'ready' ||
+      !state.data.activityHasMore ||
+      isLoadingMoreActivities ||
+      isTransitioning
+    ) {
       return;
     }
 
     const cursor = state.data.activities.at(-1)?.id;
 
     if (!cursor) {
-      setActivityHasMore(false);
-      return;
-    }
-
-    setIsLoadingMoreActivities(true);
-    setActionError(null);
-
-    try {
-      const nextPage = await listTaskActivity(api, state.data.project.id, state.data.task.id, {
-        cursor,
-        limit: TASK_ACTIVITY_PAGE_SIZE,
-      });
-
       setState((current) =>
         current.status === 'ready'
           ? {
-              data: {
-                ...current.data,
-                activities: mergeTaskActivities(current.data.activities, nextPage),
-              },
+              data: { ...current.data, activityHasMore: false },
               status: 'ready',
             }
           : current,
       );
-      setActivityHasMore(nextPage.length === TASK_ACTIVITY_PAGE_SIZE);
+      return;
+    }
+
+    const projectId = state.data.project.id;
+    const taskId = state.data.task.id;
+    const requestVersion = activityRequestVersionRef.current;
+    setIsLoadingMoreActivities(true);
+    setActionError(null);
+
+    try {
+      const nextPage = await listTaskActivity(api, projectId, taskId, {
+        cursor,
+        limit: TASK_ACTIVITY_PAGE_SIZE,
+      });
+
+      setState((current) => {
+        if (current.status !== 'ready') {
+          return current;
+        }
+
+        const resolution = resolveTaskActivityPage(
+          current.data.activities,
+          nextPage,
+          requestVersion,
+          activityRequestVersionRef.current,
+        );
+
+        return resolution.applied
+          ? {
+              data: {
+                ...current.data,
+                activities: resolution.activities,
+                activityHasMore: resolution.hasMore,
+              },
+              status: 'ready',
+            }
+          : current;
+      });
     } catch (error) {
       setActionError(getUserFacingError(error));
     } finally {
@@ -320,7 +380,8 @@ export function TaskDetailPage() {
     );
   }
 
-  const { activities, comments, members, project, requirements, task } = state.data;
+  const { activities, activityHasMore, comments, members, project, requirements, task } =
+    state.data;
   const canEdit = canEditProjectContent(project.accessRole, project.status);
   const canReview = canReviewProjectTasks(project.accessRole);
   const canEditThisTask =
@@ -540,7 +601,7 @@ export function TaskDetailPage() {
               {activityHasMore ? (
                 <button
                   className="secondary-button activity-load-more"
-                  disabled={isLoadingMoreActivities}
+                  disabled={isLoadingMoreActivities || isTransitioning}
                   onClick={() => void loadMoreActivities()}
                   type="button"
                 >

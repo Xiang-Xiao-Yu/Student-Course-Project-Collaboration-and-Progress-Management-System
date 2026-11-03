@@ -7,7 +7,7 @@ export interface TaskFormValues {
   readonly estimatedHours: string;
   readonly priority: TaskPriority;
   readonly requirementId: string;
-  readonly tagNames: string;
+  readonly tagNames: readonly string[];
   readonly title: string;
 }
 
@@ -41,11 +41,20 @@ function isValidDateInput(value: string): boolean {
   );
 }
 
-export function parseTaskTags(value: string): string[] {
-  return value
-    .split(/[,，]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+export function normalizeTaskTags(tags: readonly string[]): string[] {
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of tags) {
+    const tag = value.trim();
+
+    if (tag && !seen.has(tag)) {
+      normalized.push(tag);
+      seen.add(tag);
+    }
+  }
+
+  return normalized;
 }
 
 export function validateTaskForm(values: TaskFormValues): TaskFormErrors {
@@ -60,7 +69,7 @@ export function validateTaskForm(values: TaskFormValues): TaskFormErrors {
     title?: string;
   } = {};
   const title = values.title.trim();
-  const tags = parseTaskTags(values.tagNames);
+  const tags = normalizeTaskTags(values.tagNames);
 
   if (!title) {
     errors.title = '请输入任务标题。';
@@ -113,12 +122,16 @@ export function taskToForm(task: TaskDto): TaskFormValues {
     estimatedHours: task.estimatedHours === null ? '' : String(task.estimatedHours),
     priority: task.priority,
     requirementId: task.requirementId ?? '',
-    tagNames: task.tagNames.join(', '),
+    tagNames: [...task.tagNames],
     title: task.title,
   };
 }
 
 export function hasUnsavedTaskChanges(original: TaskFormValues, current: TaskFormValues): boolean {
+  const tagsChanged =
+    original.tagNames.length !== current.tagNames.length ||
+    original.tagNames.some((tag, index) => tag !== current.tagNames[index]);
+
   return (
     original.assigneeId !== current.assigneeId ||
     original.description !== current.description ||
@@ -126,13 +139,13 @@ export function hasUnsavedTaskChanges(original: TaskFormValues, current: TaskFor
     original.estimatedHours !== current.estimatedHours ||
     original.priority !== current.priority ||
     original.requirementId !== current.requirementId ||
-    original.tagNames !== current.tagNames ||
+    tagsChanged ||
     original.title !== current.title
   );
 }
 
 export function formToCreateTaskInput(values: TaskFormValues): CreateTaskInput {
-  const tags = parseTaskTags(values.tagNames);
+  const tags = normalizeTaskTags(values.tagNames);
   const description = values.description.trim();
   const estimatedHours = values.estimatedHours ? Number(values.estimatedHours) : undefined;
 
@@ -154,6 +167,6 @@ export function formToUpdateTaskInput(values: TaskFormValues): UpdateTaskInput {
   return {
     ...createInput,
     description: values.description.trim(),
-    tagNames: parseTaskTags(values.tagNames),
+    tagNames: normalizeTaskTags(values.tagNames),
   };
 }

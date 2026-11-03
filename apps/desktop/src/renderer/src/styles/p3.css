@@ -218,6 +218,54 @@
   resize: vertical;
 }
 
+.task-tag-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.task-tag-editor__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.task-tag-editor__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 5px 3px 8px;
+  color: var(--primary);
+  border-radius: 4px;
+  background: var(--primary-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.task-tag-editor__tag button {
+  padding: 2px 4px;
+  color: var(--muted);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.task-tag-editor__entry {
+  display: flex;
+  gap: 8px;
+}
+
+.task-tag-editor__entry input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.task-tag-editor__entry .secondary-button {
+  flex: 0 0 auto;
+  min-height: 42px;
+}
+
 .task-board {
   display: grid;
   grid-template-columns: repeat(6, minmax(260px, 1fr));

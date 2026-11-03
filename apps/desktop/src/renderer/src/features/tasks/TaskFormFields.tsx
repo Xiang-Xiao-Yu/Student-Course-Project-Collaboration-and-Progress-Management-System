@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import type { ProjectMemberDto } from '../projects/project-api';
 import type { RequirementDto } from '../requirements/requirement-api';
 import type { TaskFormErrors, TaskFormValues } from './task-validation';
@@ -19,8 +21,31 @@ export function TaskFormFields({
   requirements,
   values,
 }: TaskFormFieldsProps) {
+  const [tagDraft, setTagDraft] = useState('');
+
   function update<K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]): void {
     onChange({ ...values, [key]: value });
+  }
+
+  function addTag(): void {
+    const tag = tagDraft.trim();
+
+    if (!tag) {
+      return;
+    }
+
+    if (!values.tagNames.includes(tag)) {
+      update('tagNames', [...values.tagNames, tag]);
+    }
+
+    setTagDraft('');
+  }
+
+  function removeTag(tag: string): void {
+    update(
+      'tagNames',
+      values.tagNames.filter((item) => item !== tag),
+    );
   }
 
   return (
@@ -134,17 +159,53 @@ export function TaskFormFields({
           {errors.estimatedHours ? <small>{errors.estimatedHours}</small> : null}
         </label>
 
-        <label className="form-field">
+        <div className="form-field task-tag-field">
           <span>任务标签</span>
-          <input
-            disabled={disabled}
-            maxLength={1000}
-            onChange={(event) => update('tagNames', event.target.value)}
-            placeholder="例如：backend, urgent"
-            value={values.tagNames}
-          />
+          <div className="task-tag-editor">
+            {values.tagNames.length > 0 ? (
+              <div className="task-tag-editor__list">
+                {values.tagNames.map((tag) => (
+                  <span className="task-tag-editor__tag" key={tag}>
+                    {tag}
+                    <button
+                      aria-label={`移除标签 ${tag}`}
+                      disabled={disabled}
+                      onClick={() => removeTag(tag)}
+                      type="button"
+                    >
+                      移除
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <div className="task-tag-editor__entry">
+              <input
+                aria-label="新任务标签"
+                disabled={disabled}
+                maxLength={50}
+                onChange={(event) => setTagDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addTag();
+                  }
+                }}
+                placeholder="输入完整标签，可包含逗号"
+                value={tagDraft}
+              />
+              <button
+                className="secondary-button"
+                disabled={disabled || !tagDraft.trim()}
+                onClick={addTag}
+                type="button"
+              >
+                添加
+              </button>
+            </div>
+          </div>
           {errors.tagNames ? <small>{errors.tagNames}</small> : null}
-        </label>
+        </div>
       </div>
     </>
   );

@@ -23,11 +23,11 @@ describe('P3 task history presentation', () => {
       getTaskActivityDetail(
         activity({
           action: 'TASK_STATUS_CHANGED',
-          afterValue: { status: 'IN_PROGRESS' },
+          afterValue: { reopenReason: null, status: 'IN_PROGRESS' },
           beforeValue: { status: 'TODO' },
         }),
       ),
-    ).toBe('待开始 → 进行中');
+    ).toBe('状态：待开始 → 进行中');
     expect(
       getTaskActivityDetail(
         activity({
@@ -35,7 +35,28 @@ describe('P3 task history presentation', () => {
           afterValue: { rejectionReason: '缺少边界测试' },
         }),
       ),
-    ).toBe('原因：缺少边界测试');
+    ).toBe('审核不通过原因：缺少边界测试');
+  });
+
+  it('正常场景展示任务更新和重新提交的修改前后内容', () => {
+    expect(
+      getTaskActivityDetail(
+        activity({
+          action: 'TASK_UPDATED',
+          beforeValue: { tagNames: ['api,v2'], title: '旧标题' },
+          afterValue: { tagNames: ['api,v2'], title: '新标题' },
+        }),
+      ),
+    ).toBe('标题：旧标题 → 新标题');
+    expect(
+      getTaskActivityDetail(
+        activity({
+          action: 'TASK_REVIEW_RESUBMITTED',
+          beforeValue: { completionNote: '旧说明', status: 'PENDING_REVIEW' },
+          afterValue: { completionNote: '新说明', status: 'PENDING_REVIEW' },
+        }),
+      ),
+    ).toBe('完成说明：旧说明 → 新说明');
   });
 
   it('边界场景对无状态值的时间线返回详情空值', () => {

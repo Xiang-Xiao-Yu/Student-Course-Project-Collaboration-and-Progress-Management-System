@@ -70,7 +70,7 @@ const EMPTY_TASK_FORM: TaskFormValues = {
   estimatedHours: '',
   priority: 'MEDIUM',
   requirementId: '',
-  tagNames: '',
+  tagNames: [],
   title: '',
 };
 

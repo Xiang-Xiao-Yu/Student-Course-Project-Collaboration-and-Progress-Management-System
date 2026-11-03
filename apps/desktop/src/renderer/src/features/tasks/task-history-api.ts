@@ -89,5 +89,37 @@ export function mergeTaskActivities(
     byId.set(activity.id, activity);
   }
 
-  return [...byId.values()];
+  return [...byId.values()].sort((left, right) => {
+    const createdAtOrder = right.createdAt.localeCompare(left.createdAt);
+
+    return createdAtOrder || right.id.localeCompare(left.id);
+  });
+}
+
+export type TaskActivityPageResolution =
+  | {
+      readonly activities: readonly TaskActivityDto[];
+      readonly applied: false;
+    }
+  | {
+      readonly activities: TaskActivityDto[];
+      readonly applied: true;
+      readonly hasMore: boolean;
+    };
+
+export function resolveTaskActivityPage(
+  current: readonly TaskActivityDto[],
+  page: readonly TaskActivityDto[],
+  requestVersion: number,
+  currentVersion: number,
+): TaskActivityPageResolution {
+  if (requestVersion !== currentVersion) {
+    return { activities: current, applied: false };
+  }
+
+  return {
+    activities: mergeTaskActivities(current, page),
+    applied: true,
+    hasMore: page.length === TASK_ACTIVITY_PAGE_SIZE,
+  };
 }

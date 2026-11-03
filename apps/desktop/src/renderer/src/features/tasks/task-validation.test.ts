@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formToCreateTaskInput,
+  formToUpdateTaskInput,
   hasTaskFormErrors,
   hasUnsavedTaskChanges,
-  parseTaskTags,
+  taskToForm,
   validateTaskForm,
 } from './task-validation';
 
@@ -15,14 +16,13 @@ const validTask = {
   estimatedHours: '4.5',
   priority: 'HIGH' as const,
   requirementId: 'requirement-1',
-  tagNames: 'backend, urgent',
+  tagNames: ['backend', 'urgent'],
   title: '任务看板',
 };
 
 describe('P3 task validation', () => {
   it('正常场景接受完整任务数据并规范化标签', () => {
     expect(validateTaskForm(validTask)).toEqual({});
-    expect(parseTaskTags('backend, urgent， frontend')).toEqual(['backend', 'urgent', 'frontend']);
     expect(formToCreateTaskInput(validTask)).toMatchObject({
       estimatedHours: 4.5,
       tagNames: ['backend', 'urgent'],
@@ -34,7 +34,7 @@ describe('P3 task validation', () => {
       ...validTask,
       dueDate: '2026-02-30',
       estimatedHours: '1.234',
-      tagNames: 'x'.repeat(51),
+      tagNames: ['x'.repeat(51)],
     });
 
     expect(errors.dueDate).toBe('请输入有效的截止日期。');
@@ -48,5 +48,32 @@ describe('P3 task validation', () => {
 
     expect(errors.title).toBe('请输入任务标题。');
     expect(hasUnsavedTaskChanges(validTask, { ...validTask, title: '新标题' })).toBe(true);
+  });
+
+  it('边界场景只改标题时保留含逗号的单个标签', () => {
+    const task = {
+      assigneeId: null,
+      completedAt: null,
+      completionNote: null,
+      createdAt: '2026-11-03T00:00:00.000Z',
+      createdById: 'owner-1',
+      description: null,
+      dueDate: null,
+      estimatedHours: null,
+      id: 'task-1',
+      priority: 'MEDIUM' as const,
+      projectId: 'project-1',
+      rejectionReason: null,
+      requirementId: null,
+      status: 'BACKLOG' as const,
+      tagNames: ['api,v2'],
+      title: '旧标题',
+      updatedAt: '2026-11-03T00:00:00.000Z',
+    };
+    const form = taskToForm(task);
+    const input = formToUpdateTaskInput({ ...form, title: '新标题' });
+
+    expect(form.tagNames).toEqual(['api,v2']);
+    expect(input.tagNames).toEqual(['api,v2']);
   });
 });

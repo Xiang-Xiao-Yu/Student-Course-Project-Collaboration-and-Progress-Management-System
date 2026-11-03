@@ -203,7 +203,11 @@ try {
   await createTaskForm.getByLabel('优先级').selectOption('HIGH');
   await createTaskForm.locator('input[type="date"]').fill('2026-01-01');
   await createTaskForm.getByLabel('预估工时', { exact: true }).fill('4.5');
-  await createTaskForm.getByLabel('任务标签', { exact: true }).fill('backend, urgent');
+  const tagInput = createTaskForm.getByLabel('新任务标签', { exact: true });
+  await tagInput.fill('backend,v2');
+  await createTaskForm.getByRole('button', { name: '添加', exact: true }).click();
+  await tagInput.fill('urgent');
+  await tagInput.press('Enter');
   await createTaskForm.getByRole('button', { name: '创建任务', exact: true }).click();
   await page.getByText('任务截止日期不能早于项目开始日期', { exact: false }).waitFor();
   await createTaskForm.locator('input[type="date"]').fill('2026-11-15');
@@ -214,6 +218,7 @@ try {
     .locator('.board-column--backlog .task-card')
     .filter({ hasText: '实现 P3 任务工作流' });
   await backlogCard.waitFor();
+  await backlogCard.getByText('backend,v2', { exact: true }).waitFor();
   await dragTaskToColumn(backlogCard, '.board-column--completed');
   await page.getByText('任务不能从“待规划”直接转为“已完成”。', { exact: true }).waitFor();
   check(
@@ -318,11 +323,14 @@ try {
   );
   await page.getByText('暂无评论', { exact: true }).waitFor();
   check(
-    (await page.locator('.activity-timeline').innerText()).includes('审核不通过') &&
-      (await page.locator('.activity-timeline').innerText()).includes('重新提交审核'),
+    (await page.locator('.activity-timeline').innerText()).includes('状态：') &&
+      (await page.locator('.activity-timeline').innerText()).includes('审核不通过原因：') &&
+      (await page.locator('.activity-timeline').innerText()).includes('完成说明：'),
     'Task activity timeline is missing review history',
   );
   await capture('task-detail-completed.png');
+  await page.locator('.activity-timeline').scrollIntoViewIfNeeded();
+  await captureCurrent('task-history-diff.png');
 
   await page.getByRole('button', { name: '重新打开任务', exact: true }).click();
   await transitionDialog.locator('textarea').fill('需要补充验收说明');
