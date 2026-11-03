@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
@@ -54,6 +54,12 @@ type RequirementDetailState =
     }
   | { readonly message: string; readonly status: 'error' };
 
+interface RequirementPageRequest {
+  readonly projectId: string;
+  readonly requirementId: string;
+  readonly version: number;
+}
+
 function toForm(requirement: RequirementDto): RequirementFormValues {
   return {
     acceptanceCriteria: requirement.acceptanceCriteria,
@@ -74,6 +80,7 @@ export function RequirementDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletedRequest, setDeletedRequest] = useState<RequirementPageRequest | null>(null);
   const [form, setForm] = useState<RequirementFormValues>({
     acceptanceCriteria: '',
     description: '',
@@ -87,8 +94,29 @@ export function RequirementDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<RequirementDetailState>({ status: 'loading' });
+  const activePageRef = useRef({ projectId, requirementId });
+  const pageRequestVersionRef = useRef(0);
+
+  activePageRef.current = { projectId, requirementId };
+
+  function isCurrentRequest(request: RequirementPageRequest): boolean {
+    return (
+      request.projectId === activePageRef.current.projectId &&
+      request.requirementId === activePageRef.current.requirementId &&
+      request.version === pageRequestVersionRef.current
+    );
+  }
 
   useEffect(() => {
+    pageRequestVersionRef.current += 1;
+    setActionError(null);
+    setActionMessage(null);
+    setDeleteDialogOpen(false);
+    setDeletedRequest(null);
+    setFormErrors({});
+    setIsDeleting(false);
+    setIsSaving(false);
+
     if (!projectId || !requirementId) {
       setState({ message: '没有可加载的需求。', status: 'error' });
       return;
@@ -115,15 +143,34 @@ export function RequirementDetailPage() {
 
     return () => {
       isCancelled = true;
+      pageRequestVersionRef.current += 1;
     };
   }, [api, projectId, requirementId, retryVersion]);
+
+  useEffect(() => {
+    if (
+      deletedRequest &&
+      deletedRequest.projectId === projectId &&
+      deletedRequest.requirementId === requirementId &&
+      deletedRequest.version === pageRequestVersionRef.current
+    ) {
+      navigate(buildProjectPath(deletedRequest.projectId, 'requirements'));
+    }
+  }, [deletedRequest, navigate, projectId, requirementId]);
 
   async function handleSave(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (state.status !== 'ready' || isSaving) {
+    if (state.status !== 'ready' || isSaving || isDeleting || deletedRequest) {
       return;
     }
+
+    const request: RequirementPageRequest = {
+      projectId: state.project.id,
+      requirementId: state.requirement.id,
+      version: pageRequestVersionRef.current,
+    };
+    if (!isCurrentRequest(request)) return;
 
     const nextErrors = validateRequirementForm(form);
 
@@ -148,10 +195,11 @@ export function RequirementDetailPage() {
     try {
       const requirement = await updateRequirement(
         api,
-        state.project.id,
-        state.requirement.id,
+        request.projectId,
+        request.requirementId,
         input,
       );
+      if (!isCurrentRequest(request)) return;
       const nextForm = toForm(requirement);
 
       setState({ ...state, requirement });
@@ -159,28 +207,39 @@ export function RequirementDetailPage() {
       setInitialForm(nextForm);
       setActionMessage('需求已保存。');
     } catch (error) {
-      setActionError(getUserFacingError(error));
+      if (isCurrentRequest(request)) setActionError(getUserFacingError(error));
     } finally {
-      setIsSaving(false);
+      if (isCurrentRequest(request)) setIsSaving(false);
     }
   }
 
   async function handleDelete(): Promise<void> {
-    if (state.status !== 'ready' || isDeleting) {
+    if (state.status !== 'ready' || isDeleting || isSaving || deletedRequest) {
       return;
     }
+
+    const request: RequirementPageRequest = {
+      projectId: state.project.id,
+      requirementId: state.requirement.id,
+      version: pageRequestVersionRef.current,
+    };
+    if (!isCurrentRequest(request)) return;
 
     setIsDeleting(true);
     setActionError(null);
 
     try {
-      await deleteRequirement(api, state.project.id, state.requirement.id);
-      navigate(buildProjectPath(state.project.id, 'requirements'));
-    } catch (error) {
+      await deleteRequirement(api, request.projectId, request.requirementId);
+      if (!isCurrentRequest(request)) return;
       setDeleteDialogOpen(false);
-      setActionError(getUserFacingError(error));
+      setDeletedRequest(request);
+    } catch (error) {
+      if (isCurrentRequest(request)) {
+        setDeleteDialogOpen(false);
+        setActionError(getUserFacingError(error));
+      }
     } finally {
-      setIsDeleting(false);
+      if (isCurrentRequest(request)) setIsDeleting(false);
     }
   }
 
@@ -216,7 +275,7 @@ export function RequirementDetailPage() {
     <div className="page-stack p3-page">
       <UnsavedChangesGuard
         message="需求修改尚未保存，离开后更改将丢失。"
-        when={hasUnsavedChanges || isSaving}
+        when={!deletedRequest && (hasUnsavedChanges || isSaving)}
       />
       <div className="page-heading-with-action">
         <PageHeader title="需求详情" description="维护需求内容、状态和关联任务。" />
@@ -390,7 +449,7 @@ export function RequirementDetailPage() {
           </div>
           <button
             className="danger-button"
-            disabled={isDeleting}
+            disabled={isDeleting || isSaving}
             onClick={() => setDeleteDialogOpen(true)}
             type="button"
           >

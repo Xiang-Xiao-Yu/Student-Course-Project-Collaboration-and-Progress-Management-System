@@ -166,7 +166,7 @@ export function RequirementsPage() {
     <div className="page-stack p3-page">
       <UnsavedChangesGuard
         message="新需求尚未保存，离开后填写内容将丢失。"
-        when={canCreate && hasCreateDraft && !isCreating}
+        when={canCreate && hasCreateDraft}
       />
       <div className="page-heading-with-action">
         <PageHeader title="需求管理" description="整理需求、验收标准和关联任务。" />
