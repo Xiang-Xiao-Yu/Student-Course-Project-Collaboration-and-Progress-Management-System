@@ -1,0 +1,371 @@
+{
+  "scope": "真实 Chrome + 已构建 React renderer + React Router；API 边界模拟，无真实后端验收",
+  "requirements": [
+    "FR-04",
+    "FR-05",
+    "AC-03",
+    "AC-04",
+    "AC-10"
+  ],
+  "results": [
+    {
+      "name": "requirement-pending-navigation",
+      "status": "passed",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/projects/review-project/requirements",
+          "status": 503
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "name": "requirement-dirty-delete",
+      "status": "passed",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements/requirement-a",
+          "status": 200
+        },
+        {
+          "method": "DELETE",
+          "path": "/projects/review-project/requirements/requirement-a",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "name": "board-transition-success",
+      "status": "passed",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/members",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/tasks",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/projects/review-project/tasks/task-a/status",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/projects/review-project/tasks/task-b",
+          "status": 200
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "name": "board-transition-failure",
+      "status": "passed",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/members",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/tasks",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/projects/review-project/tasks/task-a/status",
+          "status": 503
+        },
+        {
+          "method": "PATCH",
+          "path": "/projects/review-project/tasks/task-b",
+          "status": 200
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "name": "board-dirty-editor-close",
+      "status": "passed",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/members",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/tasks",
+          "status": 200
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "name": "requirement-detail-late-save",
+      "status": "passed",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements/requirement-b",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements/requirement-a",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/projects/review-project/requirements/requirement-a",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements/requirement-b",
+          "status": 200
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "name": "task-detail-late-response",
+      "status": "passed",
+      "requests": [
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/users/me",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/members",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/tasks/task-a",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/comments",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/activity",
+          "status": 200
+        },
+        {
+          "method": "PATCH",
+          "path": "/projects/review-project/tasks/task-a/status",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/members",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/requirements",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/tasks/task-b",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/comments",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/projects/review-project/activity",
+          "status": 200
+        }
+      ],
+      "pageErrors": []
+    }
+  ]
+}
