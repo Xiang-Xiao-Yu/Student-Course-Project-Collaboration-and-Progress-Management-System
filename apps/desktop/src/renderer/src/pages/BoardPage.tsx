@@ -110,6 +110,7 @@ export function BoardPage() {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false);
   const [isReassigning, setIsReassigning] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -126,6 +127,7 @@ export function BoardPage() {
     rejectionReason: '',
     reopenReason: '',
   });
+  const isTaskActionPending = isSavingEdit || isDeleting || isReassigning || isTransitioning;
 
   useEffect(() => {
     if (!projectId) {
@@ -209,6 +211,10 @@ export function BoardPage() {
   }
 
   function openTaskEditor(task: TaskDto): void {
+    if (isTaskActionPending) {
+      return;
+    }
+
     const form = taskToForm(task);
 
     setEditingTask(task);
@@ -216,12 +222,26 @@ export function BoardPage() {
     setEditInitialForm(form);
     setEditErrors({});
     setEditMessage(null);
+    setIsDiscardConfirmOpen(false);
+  }
+
+  function requestCloseTaskEditor(): void {
+    if (isTaskActionPending) {
+      return;
+    }
+
+    if (hasUnsavedTaskChanges(editInitialForm, editForm)) {
+      setIsDiscardConfirmOpen(true);
+      return;
+    }
+
+    setEditingTask(null);
   }
 
   async function handleEdit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (state.status !== 'ready' || !editingTask || isSavingEdit) {
+    if (state.status !== 'ready' || !editingTask || isTaskActionPending) {
       return;
     }
 
@@ -271,7 +291,7 @@ export function BoardPage() {
   }
 
   async function handleDeleteTask(): Promise<void> {
-    if (state.status !== 'ready' || !taskToDelete || isDeleting) {
+    if (state.status !== 'ready' || !taskToDelete || isTaskActionPending) {
       return;
     }
 
@@ -293,7 +313,7 @@ export function BoardPage() {
   }
 
   async function handleReassignTask(): Promise<void> {
-    if (state.status !== 'ready' || !taskToReassign || isReassigning) {
+    if (state.status !== 'ready' || !taskToReassign || isTaskActionPending) {
       return;
     }
 
@@ -332,7 +352,7 @@ export function BoardPage() {
     targetStatus: TaskDto['status'],
     values: TaskTransitionValues,
   ): Promise<void> {
-    if (state.status !== 'ready' || isTransitioning) {
+    if (state.status !== 'ready' || isTaskActionPending) {
       return;
     }
 
@@ -375,7 +395,7 @@ export function BoardPage() {
   }
 
   function attemptStatusTransition(task: TaskDto, targetStatus: TaskDto['status']): void {
-    if (state.status !== 'ready') {
+    if (state.status !== 'ready' || isTaskActionPending) {
       return;
     }
 
@@ -416,6 +436,10 @@ export function BoardPage() {
   }
 
   function attemptRejectTask(task: TaskDto): void {
+    if (isTaskActionPending) {
+      return;
+    }
+
     setEditingTask(null);
     setTransitionError(null);
     setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
@@ -546,7 +570,7 @@ export function BoardPage() {
                 }
               }}
               onDragOver={(event) => {
-                if (canEdit && draggedTaskId) {
+                if (canEdit && !isTaskActionPending && draggedTaskId) {
                   event.preventDefault();
                   event.dataTransfer.dropEffect = 'move';
                 }
@@ -558,7 +582,7 @@ export function BoardPage() {
                 const taskId = event.dataTransfer.getData('text/task-id') || draggedTaskId;
                 const task = tasks.find((item) => item.id === taskId);
 
-                if (task && canEdit) {
+                if (task && canEdit && !isTaskActionPending) {
                   attemptStatusTransition(task, status);
                 }
 
@@ -576,14 +600,14 @@ export function BoardPage() {
                   columnTasks.map((task) => (
                     <article
                       className={`task-card${draggedTaskId === task.id ? ' is-dragging' : ''}`}
-                      draggable={canEdit}
+                      draggable={canEdit && !isTaskActionPending}
                       key={task.id}
                       onDragEnd={() => {
                         setDraggedTaskId(null);
                         setDragOverStatus(null);
                       }}
                       onDragStart={(event) => {
-                        if (!canEdit) {
+                        if (!canEdit || isTaskActionPending) {
                           event.preventDefault();
                           return;
                         }
@@ -640,7 +664,12 @@ export function BoardPage() {
                         canReassign) ? (
                         <button
                           className="secondary-button task-card__edit"
+                          disabled={isTaskActionPending}
                           onClick={() => {
+                            if (isTaskActionPending) {
+                              return;
+                            }
+
                             if (
                               canEditTaskDetails(project.accessRole, task.assigneeId, currentUserId)
                             ) {
@@ -683,8 +712,8 @@ export function BoardPage() {
               </div>
               <button
                 className="secondary-button"
-                disabled={isSavingEdit}
-                onClick={() => setEditingTask(null)}
+                disabled={isTaskActionPending}
+                onClick={requestCloseTaskEditor}
                 type="button"
               >
                 关闭
@@ -693,7 +722,7 @@ export function BoardPage() {
             {editMessage ? <ErrorNotice message={editMessage} /> : null}
             <form className="auth-form task-form" onSubmit={(event) => void handleEdit(event)}>
               <TaskFormFields
-                disabled={isSavingEdit}
+                disabled={isTaskActionPending}
                 errors={editErrors}
                 members={members}
                 onChange={setEditForm}
@@ -709,7 +738,7 @@ export function BoardPage() {
                       .map((status) => (
                         <button
                           className="secondary-button"
-                          disabled={isSavingEdit || isTransitioning}
+                          disabled={isTaskActionPending}
                           key={status}
                           onClick={() => {
                             if (hasUnsavedTaskChanges(editInitialForm, editForm)) {
@@ -727,7 +756,7 @@ export function BoardPage() {
                     {canRejectPendingTask(editingTask.status, canReview) ? (
                       <button
                         className="danger-text-button"
-                        disabled={isSavingEdit || isTransitioning}
+                        disabled={isTaskActionPending}
                         onClick={() => {
                           if (hasUnsavedTaskChanges(editInitialForm, editForm)) {
                             setEditMessage('请先保存任务信息，或关闭后放弃修改。');
@@ -744,7 +773,7 @@ export function BoardPage() {
                     {editingTask.status === 'PENDING_REVIEW' && editingTask.rejectionReason ? (
                       <button
                         className="secondary-button"
-                        disabled={isSavingEdit || isTransitioning}
+                        disabled={isTaskActionPending}
                         onClick={() => {
                           if (hasUnsavedTaskChanges(editInitialForm, editForm)) {
                             setEditMessage('请先保存任务信息，或关闭后放弃修改。');
@@ -765,7 +794,7 @@ export function BoardPage() {
                 {canDelete ? (
                   <button
                     className="danger-text-button task-delete-button"
-                    disabled={isSavingEdit}
+                    disabled={isTaskActionPending}
                     onClick={() => setTaskToDelete(editingTask)}
                     type="button"
                   >
@@ -774,7 +803,9 @@ export function BoardPage() {
                 ) : null}
                 <button
                   className="primary-button"
-                  disabled={isSavingEdit || !hasUnsavedTaskChanges(editInitialForm, editForm)}
+                  disabled={
+                    isTaskActionPending || !hasUnsavedTaskChanges(editInitialForm, editForm)
+                  }
                   type="submit"
                 >
                   {isSavingEdit ? '正在保存...' : '保存任务'}
@@ -783,6 +814,23 @@ export function BoardPage() {
             </form>
           </section>
         </div>
+      ) : null}
+
+      {isDiscardConfirmOpen && editingTask ? (
+        <ConfirmDialog
+          confirmLabel="放弃修改"
+          isPending={isTaskActionPending}
+          message="任务信息尚未保存，关闭后填写内容将丢失。"
+          onCancel={() => setIsDiscardConfirmOpen(false)}
+          onConfirm={() => {
+            if (!isTaskActionPending) {
+              setIsDiscardConfirmOpen(false);
+              setEditingTask(null);
+            }
+          }}
+          title="放弃未保存的修改？"
+          tone="danger"
+        />
       ) : null}
 
       {taskToDelete ? (
