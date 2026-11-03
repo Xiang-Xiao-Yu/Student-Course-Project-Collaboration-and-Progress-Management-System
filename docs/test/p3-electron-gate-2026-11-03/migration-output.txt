@@ -1,0 +1,26 @@
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": SQLite database "p3.sqlite" at "file:D:/Claude Code/worktrees/student-pr36-review/tmp/ui-demo/p3-electron-gate-1793717460081/p3.sqlite"
+
+4 migrations found in prisma/migrations
+
+Applying migration `20260927150705_init`
+Applying migration `20261013142942_p1_auth_session`
+Applying migration `20261021145500_p2_project_permissions`
+Applying migration `20261025000000_p2_project_deletion_audit`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260927150705_init/
+    └─ migration.sql
+  └─ 20261013142942_p1_auth_session/
+    └─ migration.sql
+  └─ 20261021145500_p2_project_permissions/
+    └─ migration.sql
+  └─ 20261025000000_p2_project_deletion_audit/
+    └─ migration.sql
+
+All migrations have been successfully applied.

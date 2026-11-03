@@ -1,0 +1,455 @@
+{
+  "metadata": {
+    "runId": "1793717172412-49a09368",
+    "startedAt": "2026-11-03T14:46:12.616Z",
+    "apiBaseUrl": "http://127.0.0.1:65194/api/v1",
+    "runtime": {
+      "electron": "44.4.3",
+      "chrome": "152.0.7977.130",
+      "node": "24.21.0"
+    },
+    "fixture": {
+      "projectId": "cmw0sw4d5003tvt7oakf9qky6",
+      "ownerId": "cmw0sw4a9003pvt7ohkucpfgv",
+      "memberId": "cmw0sw4b7003qvt7ow723uxr1",
+      "observerId": "cmw0sw4c2003rvt7o8zi0tfb6"
+    },
+    "finishedAt": "2026-11-03T14:46:14.470Z",
+    "overall": "FAIL"
+  },
+  "cases": [
+    {
+      "id": "01",
+      "name": "真实 Electron 启动和隔离账号项目",
+      "references": [
+        "AC-03",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:46:12.616Z",
+      "assertions": [
+        {
+          "label": "使用项目锁定的 Electron 44.4.3",
+          "passed": true,
+          "actual": {
+            "electron": "44.4.3",
+            "chrome": "152.0.7977.130",
+            "node": "24.21.0"
+          }
+        },
+        {
+          "label": "空项目显示六列看板",
+          "passed": true
+        },
+        {
+          "label": "空项目没有伪造任务",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "01-empty-board.png"
+      ],
+      "finishedAt": "2026-11-03T14:46:13.873Z"
+    },
+    {
+      "id": "02",
+      "name": "负责人创建需求、验收标准和标题边界",
+      "references": [
+        "FR-04",
+        "AC-03",
+        "AC-10"
+      ],
+      "status": "FAIL",
+      "startedAt": "2026-11-03T14:46:13.874Z",
+      "assertions": [
+        {
+          "label": "需求标题前端限制 100 字符",
+          "passed": true
+        },
+        {
+          "label": "键盘输入第 101 个需求标题字符被阻止",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0sw4d5003tvt7oakf9qky6/requirements 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "需求验收标准持久化",
+          "passed": true
+        },
+        {
+          "label": "PATCH /projects/cmw0sw4d5003tvt7oakf9qky6/requirements/cmw0sw5gi0047vt7ol90cc911 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 接受 1 字需求标题",
+          "passed": true
+        },
+        {
+          "label": "真实 API 接受 100 字需求标题",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "02-failure.png"
+      ],
+      "error": "Error: API POST /projects/cmw0sw4d5003tvt7oakf9qky6/requirements: HTTP 400, code VALIDATION_FAILED\n    at rawApi (file:///D:/Claude%20Code/worktrees/student-pr36-review/apps/desktop/tests/p3-electron-acceptance.mjs:162:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async Object.run (file:///D:/Claude%20Code/worktrees/student-pr36-review/apps/desktop/tests/p3-electron-acceptance.mjs:514:19)\n    at async file:///D:/Claude%20Code/worktrees/student-pr36-review/apps/desktop/tests/p3-electron-acceptance.mjs:1200:7",
+      "visibleText": "课\n课程项目协作台\n协作与进度管理\n当前项目\nP3 Electron 验收 1793717172412-49a09368\n项目负责人\n切换项目\n工作区\n项目概览\n需求管理\n任务看板\n迭代计划\n会议纪要\n阶段验收\n项目管理\n统计与导出\n成员管理\n项目设置\n工作模式\n本机桌面端\n项目工作区\nP3 Electron 验收 1793717172412-49a09368\n我的任务\n个人资料\n验\n验收负责人\n已登录\n退出\n需求详情\n\n维护需求内容、状态和关联任务。\n\n返回需求列表\nREQ-001\n当前角色：项目负责人\n更新于 2026年11月3日\n需求已保存。\n需求内容\n\n需求状态只能按既定顺序向前推进。\n\n需求标题\n需求描述\n验收标准\n优先级\n高\n中\n低\n需求状态\n已确认\n开发中\n已拒绝\n保存需求\n关联任务\n\n暂未关联任务\n\n暂无关联任务\n优先级：高\n状态：已确认\n删除需求\n\n删除需求前请确认关联任务已处理完毕。\n\n删除需求",
+      "finishedAt": "2026-11-03T14:46:14.463Z"
+    },
+    {
+      "id": "03",
+      "name": "多关联任务、无负责人、截止日期和标签边界",
+      "references": [
+        "FR-05",
+        "AC-03",
+        "AC-10"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "04",
+      "name": "真实鼠标拖拽的非法跳转与合法推进",
+      "references": [
+        "FR-05",
+        "AC-04"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "05",
+      "name": "普通成员执行、阻塞恢复、完成说明校验与提交",
+      "references": [
+        "FR-05",
+        "AC-04",
+        "AC-08"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "06",
+      "name": "负责人驳回、保留待审核并展示理由",
+      "references": [
+        "FR-05",
+        "AC-04"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "07",
+      "name": "普通成员重新提交并清除驳回状态",
+      "references": [
+        "FR-05",
+        "AC-04"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "08",
+      "name": "负责人审核完成、完成时间与关联进度",
+      "references": [
+        "FR-04",
+        "FR-05",
+        "AC-03",
+        "AC-04"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "09",
+      "name": "已完成任务重新打开必须填写原因",
+      "references": [
+        "FR-05",
+        "AC-04",
+        "AC-10"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "10",
+      "name": "成员仅调整他人任务负责人、观察者严格只读",
+      "references": [
+        "FR-05",
+        "AC-08"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "11",
+      "name": "PR37 草稿关闭确认与任务删除取消确认",
+      "references": [
+        "FR-05",
+        "AC-10",
+        "NFR-9.3"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "12",
+      "name": "PR37 删除带草稿需求后正常返回列表",
+      "references": [
+        "FR-04",
+        "AC-10",
+        "NFR-9.3"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "13",
+      "name": "创建断网保留草稿、重试成功与请求期间离开保护",
+      "references": [
+        "FR-04",
+        "FR-05",
+        "AC-10"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "14",
+      "name": "状态断网回退和 PR37 请求期间编辑互斥",
+      "references": [
+        "FR-05",
+        "AC-04",
+        "AC-10"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "15",
+      "name": "完整状态历史、修改前后值、操作人与超过 100 条分页",
+      "references": [
+        "FR-07",
+        "AC-04"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "16",
+      "name": "真实评论 fixture 的作者、内容和时间读取",
+      "references": [
+        "FR-07",
+        "AC-04"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    },
+    {
+      "id": "17",
+      "name": "不存在任务、读取失败重试与渲染稳定性",
+      "references": [
+        "AC-10"
+      ],
+      "status": "NOT_RUN",
+      "reason": "前置运行组失败，保留失败证据后停止。"
+    }
+  ],
+  "network": [
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:12.663Z",
+      "method": "POST",
+      "path": "/auth/register",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:12.694Z",
+      "method": "POST",
+      "path": "/auth/register",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:12.725Z",
+      "method": "POST",
+      "path": "/auth/register",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:12.755Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:12.765Z",
+      "method": "POST",
+      "path": "/projects",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:12.781Z",
+      "method": "POST",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/members",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:12.796Z",
+      "method": "POST",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/members",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.369Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.385Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.385Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.503Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.507Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.609Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.620Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.740Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.740Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.741Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.745Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.910Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:13.910Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:14.183Z",
+      "method": "POST",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:14.267Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:14.267Z",
+      "method": "GET",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements/cmw0sw5gi0047vt7ol90cc911",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:46:14.336Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements/cmw0sw5gi0047vt7ol90cc911",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:14.366Z",
+      "method": "POST",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:14.383Z",
+      "method": "POST",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:46:14.386Z",
+      "method": "POST",
+      "path": "/projects/cmw0sw4d5003tvt7oakf9qky6/requirements",
+      "status": 400
+    }
+  ],
+  "rendererErrors": [],
+  "consoleErrors": []
+}

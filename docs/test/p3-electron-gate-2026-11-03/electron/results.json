@@ -1,0 +1,3963 @@
+{
+  "metadata": {
+    "runId": "1793717475465-83546af2",
+    "startedAt": "2026-11-03T14:51:15.680Z",
+    "apiBaseUrl": "http://127.0.0.1:62283/api/v1",
+    "runtime": {
+      "electron": "44.4.3",
+      "chrome": "152.0.7977.130",
+      "node": "24.21.0"
+    },
+    "fixture": {
+      "projectId": "cmw0t2m8c003tvtdgy8ekr7dh",
+      "ownerId": "cmw0t2m4r003pvtdgpspf0mpr",
+      "memberId": "cmw0t2m5t003qvtdg7jf310lw",
+      "observerId": "cmw0t2m6x003rvtdgra74r0ae",
+      "mainTaskId": "cmw0t2o05004lvtdg4rjgscgv"
+    },
+    "finishedAt": "2026-11-03T14:51:27.620Z",
+    "overall": "PASS"
+  },
+  "cases": [
+    {
+      "id": "01",
+      "name": "真实 Electron 启动和隔离账号项目",
+      "references": [
+        "AC-03",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:15.681Z",
+      "assertions": [
+        {
+          "label": "使用项目锁定的 Electron 44.4.3",
+          "passed": true,
+          "actual": {
+            "electron": "44.4.3",
+            "chrome": "152.0.7977.130",
+            "node": "24.21.0"
+          }
+        },
+        {
+          "label": "空项目显示六列看板",
+          "passed": true
+        },
+        {
+          "label": "空项目没有伪造任务",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "01-empty-board.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:17.086Z"
+    },
+    {
+      "id": "02",
+      "name": "负责人创建需求、验收标准和标题边界",
+      "references": [
+        "FR-04",
+        "AC-03",
+        "AC-10"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:17.087Z",
+      "assertions": [
+        {
+          "label": "需求标题前端限制 100 字符",
+          "passed": true
+        },
+        {
+          "label": "键盘输入第 101 个需求标题字符被阻止",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "需求验收标准持久化",
+          "passed": true
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2nhb0047vtdg8tc17y4y 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 接受 1 字需求标题",
+          "passed": true
+        },
+        {
+          "label": "真实 API 接受 100 字需求标题",
+          "passed": true
+        },
+        {
+          "label": "真实 API 拒绝 101 字需求标题",
+          "passed": true,
+          "actual": "VALIDATION_FAILED"
+        }
+      ],
+      "screenshots": [
+        "02-requirement.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:17.688Z"
+    },
+    {
+      "id": "03",
+      "name": "多关联任务、无负责人、截止日期和标签边界",
+      "references": [
+        "FR-05",
+        "AC-03",
+        "AC-10"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:17.688Z",
+      "assertions": [
+        {
+          "label": "键盘输入第 101 个任务标题字符被阻止",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks 返回预期状态",
+          "passed": true,
+          "actual": 422
+        },
+        {
+          "label": "错误截止日期未创建任务",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "截止日期等于项目开始日期可保存",
+          "passed": true
+        },
+        {
+          "label": "含逗号标签保持单标签",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "允许无负责人任务",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "真实 API 接受 1 字任务标题",
+          "passed": true
+        },
+        {
+          "label": "真实 API 接受 100 字任务标题",
+          "passed": true
+        },
+        {
+          "label": "真实 API 拒绝 101 字任务标题",
+          "passed": true,
+          "actual": "VALIDATION_FAILED"
+        },
+        {
+          "label": "需求详情展示两条关联任务",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "03-linked-tasks.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:18.502Z"
+    },
+    {
+      "id": "04",
+      "name": "真实鼠标拖拽的非法跳转与合法推进",
+      "references": [
+        "FR-05",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:18.503Z",
+      "assertions": [
+        {
+          "label": "原生拖拽源卡片和目标列具有布局区域",
+          "passed": true
+        },
+        {
+          "label": "拖拽源和目标同时位于可见视窗",
+          "passed": true,
+          "actual": {
+            "source": {
+              "x": 288.91644287109375,
+              "y": 477.409423828125,
+              "width": 238.14251708984375,
+              "height": 225.16064453125
+            },
+            "target": {
+              "x": 821.9479370117188,
+              "y": -550.3504028320312,
+              "width": 259.98834228515625,
+              "height": 1263.8433227539062
+            },
+            "viewport": {
+              "width": 1268,
+              "height": 766
+            },
+            "start": {
+              "x": 407.9877014160156,
+              "y": 486.409423828125
+            },
+            "end": {
+              "x": 951.9421081542969,
+              "y": 498.409423828125
+            }
+          }
+        },
+        {
+          "label": "鼠标起点命中指定任务的非链接顶部区域",
+          "passed": true,
+          "actual": {
+            "sourceHit": {
+              "tag": "ARTICLE",
+              "card": "成员执行的完整流程任务",
+              "column": "board-column board-column--backlog"
+            },
+            "targetHit": {
+              "tag": "SECTION",
+              "column": "board-column board-column--in_progress"
+            }
+          }
+        },
+        {
+          "label": "鼠标终点命中目标整列空白区域",
+          "passed": true,
+          "actual": {
+            "sourceHit": {
+              "tag": "ARTICLE",
+              "card": "成员执行的完整流程任务",
+              "column": "board-column board-column--backlog"
+            },
+            "targetHit": {
+              "tag": "SECTION",
+              "column": "board-column board-column--in_progress"
+            }
+          }
+        },
+        {
+          "label": "真实鼠标产生原生 dragstart",
+          "passed": true
+        },
+        {
+          "label": "真实鼠标在目标列产生原生 drop",
+          "passed": true
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 BACKLOG",
+          "passed": true,
+          "actual": "BACKLOG"
+        },
+        {
+          "label": "原生拖拽源卡片和目标列具有布局区域",
+          "passed": true
+        },
+        {
+          "label": "拖拽源和目标同时位于可见视窗",
+          "passed": true,
+          "actual": {
+            "source": {
+              "x": 288.91644287109375,
+              "y": 477.70147705078125,
+              "width": 238.14251708984375,
+              "height": 225.16064453125
+            },
+            "target": {
+              "x": 549.9707641601562,
+              "y": -550.058349609375,
+              "width": 259.98828125,
+              "height": 1263.8433227539062
+            },
+            "viewport": {
+              "width": 1268,
+              "height": 766
+            },
+            "start": {
+              "x": 407.9877014160156,
+              "y": 486.70147705078125
+            },
+            "end": {
+              "x": 679.9649047851562,
+              "y": 498.70147705078125
+            }
+          }
+        },
+        {
+          "label": "鼠标起点命中指定任务的非链接顶部区域",
+          "passed": true,
+          "actual": {
+            "sourceHit": {
+              "tag": "ARTICLE",
+              "card": "成员执行的完整流程任务",
+              "column": "board-column board-column--backlog"
+            },
+            "targetHit": {
+              "tag": "SECTION",
+              "column": "board-column board-column--todo"
+            }
+          }
+        },
+        {
+          "label": "鼠标终点命中目标整列空白区域",
+          "passed": true,
+          "actual": {
+            "sourceHit": {
+              "tag": "ARTICLE",
+              "card": "成员执行的完整流程任务",
+              "column": "board-column board-column--backlog"
+            },
+            "targetHit": {
+              "tag": "SECTION",
+              "column": "board-column board-column--todo"
+            }
+          }
+        },
+        {
+          "label": "真实鼠标产生原生 dragstart",
+          "passed": true
+        },
+        {
+          "label": "真实鼠标在目标列产生原生 drop",
+          "passed": true
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 TODO",
+          "passed": true,
+          "actual": "TODO"
+        }
+      ],
+      "screenshots": [
+        "04-drag-in_progress-before.png",
+        "04-drag-todo-before.png",
+        "04-native-drag.png"
+      ],
+      "dragEvidence": "04-native-drag-events.json",
+      "finishedAt": "2026-11-03T14:51:18.899Z"
+    },
+    {
+      "id": "05",
+      "name": "普通成员执行、阻塞恢复、完成说明校验与提交",
+      "references": [
+        "FR-05",
+        "AC-04",
+        "AC-08"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:18.900Z",
+      "assertions": [
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 IN_PROGRESS",
+          "passed": true,
+          "actual": "IN_PROGRESS"
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 BLOCKED",
+          "passed": true,
+          "actual": "BLOCKED"
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 IN_PROGRESS",
+          "passed": true,
+          "actual": "IN_PROGRESS"
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 IN_PROGRESS",
+          "passed": true,
+          "actual": "IN_PROGRESS"
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 PENDING_REVIEW",
+          "passed": true,
+          "actual": "PENDING_REVIEW"
+        },
+        {
+          "label": "普通成员看不到审核通过",
+          "passed": true
+        },
+        {
+          "label": "普通成员看不到审核不通过",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "05-member-pending.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:19.745Z"
+    },
+    {
+      "id": "06",
+      "name": "负责人驳回、保留待审核并展示理由",
+      "references": [
+        "FR-05",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:19.745Z",
+      "assertions": [
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 PENDING_REVIEW",
+          "passed": true,
+          "actual": "PENDING_REVIEW"
+        },
+        {
+          "label": "真实 API 保留驳回理由",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "06-rejected.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:20.235Z"
+    },
+    {
+      "id": "07",
+      "name": "普通成员重新提交并清除驳回状态",
+      "references": [
+        "FR-05",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:20.236Z",
+      "assertions": [
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 PENDING_REVIEW",
+          "passed": true,
+          "actual": "PENDING_REVIEW"
+        },
+        {
+          "label": "重新提交后 API 不再报告驳回",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "07-resubmitted.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:20.734Z"
+    },
+    {
+      "id": "08",
+      "name": "负责人审核完成、完成时间与关联进度",
+      "references": [
+        "FR-04",
+        "FR-05",
+        "AC-03",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:20.735Z",
+      "assertions": [
+        {
+          "label": "审核对话框保留成员完成说明",
+          "passed": true
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 COMPLETED",
+          "passed": true,
+          "actual": "COMPLETED"
+        },
+        {
+          "label": "真实 API 返回完成时间",
+          "passed": true,
+          "actual": "2026-11-03T14:51:21.052Z"
+        },
+        {
+          "label": "详情展示完成时间",
+          "passed": true
+        },
+        {
+          "label": "刷新后关联任务完成比例仍为 1/2",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "08-completed.png",
+        "08-requirement-progress.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:21.435Z"
+    },
+    {
+      "id": "09",
+      "name": "已完成任务重新打开必须填写原因",
+      "references": [
+        "FR-05",
+        "AC-04",
+        "AC-10"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:21.435Z",
+      "assertions": [
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 COMPLETED",
+          "passed": true,
+          "actual": "COMPLETED"
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 IN_PROGRESS",
+          "passed": true,
+          "actual": "IN_PROGRESS"
+        },
+        {
+          "label": "重新打开清除完成时间",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "09-reopened.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:21.720Z"
+    },
+    {
+      "id": "10",
+      "name": "成员仅调整他人任务负责人、观察者严格只读",
+      "references": [
+        "FR-05",
+        "AC-08"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:21.721Z",
+      "assertions": [
+        {
+          "label": "成员不能编辑他人任务内容",
+          "passed": true
+        },
+        {
+          "label": "调整负责人弹窗不暴露任务内容编辑",
+          "passed": true
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o4c004xvtdg6xf2vurw 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "成员可以调整他人任务负责人",
+          "passed": true
+        },
+        {
+          "label": "成员不能删除任务",
+          "passed": true
+        },
+        {
+          "label": "观察者没有创建任务表单",
+          "passed": true
+        },
+        {
+          "label": "观察者没有编辑任务入口",
+          "passed": true
+        },
+        {
+          "label": "观察者没有负责人调整入口",
+          "passed": true
+        },
+        {
+          "label": "观察者不能拖拽任务",
+          "passed": true
+        },
+        {
+          "label": "观察者需求详情只读",
+          "passed": true
+        },
+        {
+          "label": "观察者没有保存需求按钮",
+          "passed": true
+        },
+        {
+          "label": "观察者没有删除需求按钮",
+          "passed": true
+        },
+        {
+          "label": "观察者没有状态更新操作",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "10-observer-board.png",
+        "10-observer-detail.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:22.762Z"
+    },
+    {
+      "id": "11",
+      "name": "PR37 草稿关闭确认与任务删除取消确认",
+      "references": [
+        "FR-05",
+        "AC-10",
+        "NFR-9.3"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:22.763Z",
+      "assertions": [
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "保存其他字段不拆分含逗号标签",
+          "passed": true
+        },
+        {
+          "label": "取消关闭保留编辑草稿",
+          "passed": true
+        },
+        {
+          "label": "放弃草稿没有更新真实任务",
+          "passed": true
+        },
+        {
+          "label": "无草稿关闭无需确认",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "取消删除保留任务",
+          "passed": true
+        },
+        {
+          "label": "DELETE /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2s1e005zvtdgjvvfb4z3 返回预期状态",
+          "passed": true,
+          "actual": 200
+        }
+      ],
+      "screenshots": [
+        "11-task-delete.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:23.587Z"
+    },
+    {
+      "id": "12",
+      "name": "PR37 删除带草稿需求后正常返回列表",
+      "references": [
+        "FR-04",
+        "AC-10",
+        "NFR-9.3"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:23.587Z",
+      "assertions": [
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "取消删除保留需求草稿",
+          "passed": true
+        },
+        {
+          "label": "DELETE /projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2s9z0065vtdgrr5i6ub1 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "删除成功不被旧草稿离开提示拦截",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "12-requirement-delete.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:23.957Z"
+    },
+    {
+      "id": "13",
+      "name": "创建断网保留草稿、重试成功与请求期间离开保护",
+      "references": [
+        "FR-04",
+        "FR-05",
+        "AC-10"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:23.958Z",
+      "assertions": [
+        {
+          "label": "任务创建断网保留草稿",
+          "passed": true
+        },
+        {
+          "label": "断网没有创建服务端任务",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks 返回预期状态",
+          "passed": true,
+          "actual": 201
+        },
+        {
+          "label": "需求创建断网保留草稿",
+          "passed": true
+        },
+        {
+          "label": "真实创建请求等待时表单只读且保留草稿保护",
+          "passed": true
+        },
+        {
+          "label": "POST /projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements 返回预期状态",
+          "passed": true,
+          "actual": 201
+        }
+      ],
+      "screenshots": [
+        "13-create-pending.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:24.331Z"
+    },
+    {
+      "id": "14",
+      "name": "状态断网回退和 PR37 请求期间编辑互斥",
+      "references": [
+        "FR-05",
+        "AC-04",
+        "AC-10"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:24.332Z",
+      "assertions": [
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 IN_PROGRESS",
+          "passed": true,
+          "actual": "IN_PROGRESS"
+        },
+        {
+          "label": "失败状态请求不产生伪造操作记录",
+          "passed": true
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 BLOCKED",
+          "passed": true,
+          "actual": "BLOCKED"
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 IN_PROGRESS",
+          "passed": true,
+          "actual": "IN_PROGRESS"
+        },
+        {
+          "label": "状态等待期间禁止并发修改字段",
+          "passed": true
+        },
+        {
+          "label": "状态等待期间禁止关闭编辑器",
+          "passed": true
+        },
+        {
+          "label": "状态等待期间禁止保存",
+          "passed": true
+        },
+        {
+          "label": "状态等待期间禁止删除",
+          "passed": true
+        },
+        {
+          "label": "状态等待期间禁止打开其他任务草稿",
+          "passed": true
+        },
+        {
+          "label": "PATCH /projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status 返回预期状态",
+          "passed": true,
+          "actual": 200
+        },
+        {
+          "label": "真实 API 中 成员执行的完整流程任务 状态为 BLOCKED",
+          "passed": true,
+          "actual": "BLOCKED"
+        }
+      ],
+      "screenshots": [
+        "14-task-pending.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:24.906Z"
+    },
+    {
+      "id": "15",
+      "name": "完整状态历史、修改前后值、操作人与超过 100 条分页",
+      "references": [
+        "FR-07",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:24.907Z",
+      "assertions": [
+        {
+          "label": "真实 API 生成超过 100 条任务操作记录",
+          "passed": true,
+          "actual": 119
+        },
+        {
+          "label": "API 游标分页无重复记录",
+          "passed": true
+        },
+        {
+          "label": "每条状态历史都有操作人、前后状态和时间",
+          "passed": true
+        },
+        {
+          "label": "历史证明普通成员执行 TODO→IN_PROGRESS",
+          "passed": true
+        },
+        {
+          "label": "历史证明负责人审核完成",
+          "passed": true
+        },
+        {
+          "label": "驳回与重新提交均可追溯",
+          "passed": true
+        },
+        {
+          "label": "重新打开原因写入历史",
+          "passed": true
+        },
+        {
+          "label": "UI 完整显示真实 API 的所有活动",
+          "passed": true,
+          "actual": 119
+        },
+        {
+          "label": "UI 展示真实历史操作人",
+          "passed": true
+        },
+        {
+          "label": "UI 展示状态和字段修改前后值",
+          "passed": true
+        },
+        {
+          "label": "UI 展示活动时间",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "15-history-first-page.png",
+        "15-history-oldest.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:26.971Z"
+    },
+    {
+      "id": "16",
+      "name": "真实评论 fixture 的作者、内容和时间读取",
+      "references": [
+        "FR-07",
+        "AC-04"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:26.972Z",
+      "assertions": [
+        {
+          "label": "fixture 返回三条可追溯评论 ID",
+          "passed": true
+        },
+        {
+          "label": "真实 API 读取 fixture 评论及作者",
+          "passed": true
+        },
+        {
+          "label": "真实 API 只读取目标任务的两条评论",
+          "passed": true
+        },
+        {
+          "label": "UI 显示目标任务两条评论",
+          "passed": true
+        },
+        {
+          "label": "UI 不混入其他任务评论",
+          "passed": true
+        },
+        {
+          "label": "UI 评论时间与真实 API 一致",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "16-comment.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:27.228Z"
+    },
+    {
+      "id": "17",
+      "name": "不存在任务、读取失败重试与渲染稳定性",
+      "references": [
+        "AC-10"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-11-03T14:51:27.230Z",
+      "assertions": [
+        {
+          "label": "不存在的任务不会保留旧详情",
+          "passed": true
+        },
+        {
+          "label": "整个验收过程没有未处理的 renderer 异常",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "screenshots": [
+        "17-missing-task.png",
+        "17-read-retry.png"
+      ],
+      "finishedAt": "2026-11-03T14:51:27.598Z"
+    }
+  ],
+  "network": [
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:15.731Z",
+      "method": "POST",
+      "path": "/auth/register",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:15.764Z",
+      "method": "POST",
+      "path": "/auth/register",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:15.804Z",
+      "method": "POST",
+      "path": "/auth/register",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:15.845Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:15.857Z",
+      "method": "POST",
+      "path": "/projects",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:15.871Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:15.886Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.541Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.564Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.570Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.813Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.821Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.896Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.898Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.968Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.969Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.970Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:16.971Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.109Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.110Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.477Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.527Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.527Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2nhb0047vtdg8tc17y4y",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.589Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2nhb0047vtdg8tc17y4y",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:17.612Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:17.627Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:17.634Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 400
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.709Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.710Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.711Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:17.712Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.046Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 422
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.157Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.241Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.306Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:18.332Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:18.344Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:18.355Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 400
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.370Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.371Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.422Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.423Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2nhb0047vtdg8tc17y4y",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.526Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.526Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.527Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.540Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:18.727Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.841Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:18.851Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.922Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:18.937Z",
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.013Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.020Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.020Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.065Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.068Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.116Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.118Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.118Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.118Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.165Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.169Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.169Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.169Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.170Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.170Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.219Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.224Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:19.325Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:19.330Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.353Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.358Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:19.453Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.480Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.487Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:19.564Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:19.610Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.641Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.645Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:19.687Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.767Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.785Z",
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.861Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.867Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.869Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.887Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.892Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.939Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.940Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.941Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.942Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.985Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.985Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.986Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.986Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.987Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:19.996Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.092Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.098Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:20.161Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:20.182Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.255Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.269Z",
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.362Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.369Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.372Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.414Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.419Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.461Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.462Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.462Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.463Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.512Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.514Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.515Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.515Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.523Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.523Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.599Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.616Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:20.670Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:20.676Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.756Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.775Z",
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.858Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.864Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.866Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.895Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.900Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.929Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.929Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.931Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.931Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.979Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.981Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.981Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.981Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.982Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:20.983Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.059Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.064Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:21.139Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:21.159Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.224Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.226Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.269Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2nhb0047vtdg8tc17y4y",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.282Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.350Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.350Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.360Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.361Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2nhb0047vtdg8tc17y4y",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.459Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.462Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.462Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.467Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.510Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.511Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.511Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.512Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.512Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.513Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:21.577Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.623Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.628Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:21.670Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.745Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.765Z",
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.853Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.860Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.862Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.902Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.906Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.956Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.957Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.958Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:21.958Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.037Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o4c004xvtdg6xf2vurw",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:22.096Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:22.102Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o4c004xvtdg6xf2vurw",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.147Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.164Z",
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.263Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.270Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.272Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.317Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.321Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.374Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.376Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.377Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.378Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.504Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.505Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.552Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.553Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2nhb0047vtdg8tc17y4y",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.611Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.613Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.614Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.614Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.667Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.669Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.670Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.670Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.671Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.672Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.782Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.802Z",
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.890Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.897Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.899Z",
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.921Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.926Z",
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.967Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.967Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.969Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:22.969Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.054Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:23.103Z",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:23.120Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.156Z",
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.156Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.172Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.172Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.172Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.172Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:23.290Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.385Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 201
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:23.458Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2s1e005zvtdgjvvfb4z3",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.489Z",
+      "method": "DELETE",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2s1e005zvtdgjvvfb4z3",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:23.507Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2s1e005zvtdgjvvfb4z3",
+      "status": 404
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.609Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.611Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.694Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.735Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2s9z0065vtdgrr5i6ub1",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.751Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.855Z",
+      "method": "DELETE",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2s9z0065vtdgrr5i6ub1",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.865Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.865Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:23.905Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements/cmw0t2s9z0065vtdgrr5i6ub1",
+      "status": 404
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.979Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.980Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.981Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:23.981Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.028Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.057Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "failure": "net::ERR_FAILED"
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.076Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.109Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.140Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.141Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.200Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "failure": "net::ERR_FAILED"
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.326Z",
+      "method": "POST",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 201
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.352Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.352Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.353Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.353Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.407Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.408Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.409Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.409Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.410Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.410Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.443Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetType=TASK&targetId=cmw0t2o05004lvtdg4rjgscgv&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.462Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "failure": "net::ERR_FAILED"
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.488Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.506Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetType=TASK&targetId=cmw0t2o05004lvtdg4rjgscgv&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.536Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.542Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.613Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.640Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.646Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.722Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.739Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.739Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.740Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.742Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:24.880Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv/status",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.906Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.929Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.958Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.974Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:24.989Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.006Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.036Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.051Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.067Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.084Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.099Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.116Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.131Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.146Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.162Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.192Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.209Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.224Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.234Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.254Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.287Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.300Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.316Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.330Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.347Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.375Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.393Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.409Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.425Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.439Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.449Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.469Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.483Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.493Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.513Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.530Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.546Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.563Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.577Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.592Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.607Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.620Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.630Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.652Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.668Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.679Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.698Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.713Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.743Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.761Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.775Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.792Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.806Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.816Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.837Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.854Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.868Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.884Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.900Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.915Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.930Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.945Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.961Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.980Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:25.993Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.007Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.024Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.042Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.056Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.070Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.087Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.100Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.111Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.120Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.133Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.147Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.178Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.193Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.209Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.229Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.241Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.258Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.273Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.286Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.303Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.320Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.335Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.349Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.366Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.378Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.396Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.425Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.441Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.457Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.471Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.486Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.502Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.516Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.534Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.548Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.563Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.579Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.594Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.604Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.625Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.642Z",
+      "method": "PATCH",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.655Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetType=TASK&targetId=cmw0t2o05004lvtdg4rjgscgv&limit=100",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:26.666Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetType=TASK&targetId=cmw0t2o05004lvtdg4rjgscgv&limit=100&cursor=cmw0t2tbe006zvtdgumj0freh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:26.705Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:26.707Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:26.708Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:26.708Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:26.710Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:26.710Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:26.831Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100&cursor=cmw0t2tbe006zvtdgumj0freh",
+      "status": 200
+    },
+    {
+      "source": "api",
+      "at": "2026-11-03T14:51:27.057Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetType=TASK&targetId=cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.078Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.080Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.080Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.081Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.124Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.126Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.126Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.127Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/cmw0t2o05004lvtdg4rjgscgv",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.128Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.129Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=cmw0t2o05004lvtdg4rjgscgv&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.248Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.250Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.250Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.254Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.293Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.294Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/comments?targetId=missing-1793717475465-83546af2&targetType=TASK",
+      "status": 404
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.296Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks/missing-1793717475465-83546af2",
+      "status": 404
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.297Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.297Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.301Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/activity?targetId=missing-1793717475465-83546af2&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.386Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.388Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.388Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.389Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.429Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.430Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.475Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "failure": "net::ERR_FAILED"
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.479Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.480Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.481Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.502Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.503Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/members",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.503Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/tasks",
+      "status": 200
+    },
+    {
+      "source": "renderer",
+      "at": "2026-11-03T14:51:27.520Z",
+      "method": "GET",
+      "path": "/projects/cmw0t2m8c003tvtdgy8ekr7dh/requirements",
+      "status": 200
+    }
+  ],
+  "rendererErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: net::ERR_FAILED"
+  ]
+}

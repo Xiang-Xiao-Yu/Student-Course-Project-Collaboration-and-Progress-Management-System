@@ -1,0 +1,39 @@
+{
+  "base": "7f789e00df3e369145e3ce1ad88f15c1fe21ec91",
+  "node": "v24.18.0",
+  "runDirectory": "D:\\Claude Code\\worktrees\\student-pr36-review\\tmp\\ui-demo\\p3-electron-gate-1793716493065",
+  "commands": [
+    {
+      "name": "electron-version",
+      "startedAt": "2026-11-03T14:34:53.067Z",
+      "finishedAt": "2026-11-03T14:34:53.136Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "name": "migration",
+      "startedAt": "2026-11-03T14:34:53.137Z",
+      "finishedAt": "2026-11-03T14:34:55.427Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "name": "http",
+      "startedAt": "2026-11-03T14:34:56.932Z",
+      "finishedAt": "2026-11-03T14:35:09.586Z",
+      "exitCode": 0,
+      "timedOut": false
+    },
+    {
+      "name": "electron",
+      "startedAt": "2026-11-03T14:35:09.586Z",
+      "finishedAt": "2026-11-03T14:35:10.608Z",
+      "exitCode": 1,
+      "timedOut": false
+    }
+  ],
+  "electron": "44.4.3",
+  "apiBaseUrl": "http://127.0.0.1:49472/api/v1",
+  "passed": false,
+  "error": "ENOENT: no such file or directory, open 'D:\\Claude Code\\worktrees\\student-pr36-review\\tmp\\ui-demo\\p3-electron-gate-1793716493065\\electron\\results.json'"
+}

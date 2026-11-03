@@ -1,0 +1,1 @@
+{"passed":137,"failed":0,"aborted":false,"reportPath":"D:\\Claude Code\\worktrees\\student-pr36-review\\tmp\\ui-demo\\p3-electron-gate-1793717460081\\http\\http-acceptance-1793717462470-ed2086.json"}

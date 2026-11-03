@@ -1,0 +1,655 @@
+[
+  {
+    "taskId": "cmw0t2o05004lvtdg4rjgscgv",
+    "from": "BACKLOG",
+    "to": "IN_PROGRESS",
+    "source": {
+      "x": 288.91644287109375,
+      "y": 477.409423828125,
+      "width": 238.14251708984375,
+      "height": 225.16064453125
+    },
+    "target": {
+      "x": 821.9479370117188,
+      "y": -550.3504028320312,
+      "width": 259.98834228515625,
+      "height": 1263.8433227539062
+    },
+    "viewport": {
+      "width": 1268,
+      "height": 766
+    },
+    "start": {
+      "x": 407.9877014160156,
+      "y": 486.409423828125
+    },
+    "end": {
+      "x": 951.9421081542969,
+      "y": 498.409423828125
+    },
+    "geometry": {
+      "sourceHit": {
+        "tag": "ARTICLE",
+        "card": "成员执行的完整流程任务",
+        "column": "board-column board-column--backlog"
+      },
+      "targetHit": {
+        "tag": "SECTION",
+        "column": "board-column board-column--in_progress"
+      }
+    },
+    "events": [
+      {
+        "type": "dragstart",
+        "trusted": true,
+        "x": 407,
+        "y": 486,
+        "defaultPrevented": false,
+        "column": "board-column board-column--backlog",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 414,
+        "y": 487,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 418,
+        "y": 488,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 421,
+        "y": 489,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 448,
+        "y": 489,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 474,
+        "y": 490,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 501,
+        "y": 490,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 580,
+        "y": 492,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 607,
+        "y": 492,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 633,
+        "y": 493,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 660,
+        "y": 493,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 686,
+        "y": 493,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 713,
+        "y": 494,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 739,
+        "y": 494,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 766,
+        "y": 495,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 792,
+        "y": 495,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 872,
+        "y": 497,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 898,
+        "y": 497,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 925,
+        "y": 497,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 951,
+        "y": 498,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 952,
+        "y": 499,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 953,
+        "y": 500,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 953,
+        "y": 500,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "drop",
+        "trusted": true,
+        "x": 953,
+        "y": 500,
+        "defaultPrevented": true,
+        "column": "board-column board-column--in_progress",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragend",
+        "trusted": true,
+        "x": 953,
+        "y": 500,
+        "defaultPrevented": false,
+        "column": "board-column board-column--backlog",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      }
+    ]
+  },
+  {
+    "taskId": "cmw0t2o05004lvtdg4rjgscgv",
+    "from": "BACKLOG",
+    "to": "TODO",
+    "source": {
+      "x": 288.91644287109375,
+      "y": 477.70147705078125,
+      "width": 238.14251708984375,
+      "height": 225.16064453125
+    },
+    "target": {
+      "x": 549.9707641601562,
+      "y": -550.058349609375,
+      "width": 259.98828125,
+      "height": 1263.8433227539062
+    },
+    "viewport": {
+      "width": 1268,
+      "height": 766
+    },
+    "start": {
+      "x": 407.9877014160156,
+      "y": 486.70147705078125
+    },
+    "end": {
+      "x": 679.9649047851562,
+      "y": 498.70147705078125
+    },
+    "geometry": {
+      "sourceHit": {
+        "tag": "ARTICLE",
+        "card": "成员执行的完整流程任务",
+        "column": "board-column board-column--backlog"
+      },
+      "targetHit": {
+        "tag": "SECTION",
+        "column": "board-column board-column--todo"
+      }
+    },
+    "events": [
+      {
+        "type": "dragstart",
+        "trusted": true,
+        "x": 407,
+        "y": 486,
+        "defaultPrevented": false,
+        "column": "board-column board-column--backlog",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 414,
+        "y": 488,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 418,
+        "y": 488,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 421,
+        "y": 489,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 434,
+        "y": 490,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 447,
+        "y": 490,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 460,
+        "y": 491,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 473,
+        "y": 491,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 499,
+        "y": 492,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 525,
+        "y": 493,
+        "defaultPrevented": true,
+        "column": "board-column board-column--backlog is-drag-over",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 563,
+        "y": 494,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 576,
+        "y": 495,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 589,
+        "y": 495,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 602,
+        "y": 496,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 615,
+        "y": 496,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 628,
+        "y": 496,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 641,
+        "y": 497,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 654,
+        "y": 497,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 667,
+        "y": 498,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 679,
+        "y": 498,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 680,
+        "y": 499,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 681,
+        "y": 500,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragover",
+        "trusted": true,
+        "x": 681,
+        "y": 500,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo is-drag-over",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "drop",
+        "trusted": true,
+        "x": 681,
+        "y": 500,
+        "defaultPrevented": true,
+        "column": "board-column board-column--todo",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      },
+      {
+        "type": "dragend",
+        "trusted": true,
+        "x": 681,
+        "y": 500,
+        "defaultPrevented": false,
+        "column": "board-column board-column--backlog",
+        "task": "成员执行的完整流程任务",
+        "transferTypes": [
+          "text/task-id"
+        ]
+      }
+    ]
+  }
+]

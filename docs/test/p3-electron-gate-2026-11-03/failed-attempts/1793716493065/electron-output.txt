@@ -1,0 +1,13 @@
+START 01 真实 Electron 启动和隔离账号项目
+D:\Claude Code\CodeNest\node_modules\playwright-core\lib\coreBundle.js:45527
+  const failError = new Error("Process failed to launch!");
+                    ^
+
+Error: Process failed to launch!
+    at waitForLine (D:\Claude Code\CodeNest\node_modules\playwright-core\lib\coreBundle.js:45527:21)
+    at Electron.launch (D:\Claude Code\CodeNest\node_modules\playwright-core\lib\coreBundle.js:45737:36)
+    at async ElectronDispatcher.launch (D:\Claude Code\CodeNest\node_modules\playwright-core\lib\coreBundle.js:57017:37)
+    at async _ProgressController.run (D:\Claude Code\CodeNest\node_modules\playwright-core\lib\coreBundle.js:13018:27)
+    at async DispatcherConnection.dispatch (D:\Claude Code\CodeNest\node_modules\playwright-core\lib\coreBundle.js:20191:27)
+
+Node.js v24.18.0
