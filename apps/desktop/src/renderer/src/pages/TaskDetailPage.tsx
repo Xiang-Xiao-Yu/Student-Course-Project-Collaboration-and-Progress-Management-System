@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { buildProjectPath, buildRequirementPath } from '../app/navigation';
@@ -30,6 +30,10 @@ import {
   getTaskActivityDetail,
   getTaskActivityLabel,
 } from '../features/tasks/task-history-presentation';
+import {
+  isTaskPageRequestCurrent,
+  type TaskPageRequest,
+} from '../features/tasks/task-page-request';
 import { canEditTaskDetails } from '../features/tasks/task-permissions';
 import type {
   TaskTransitionDialogMode,
@@ -69,6 +73,12 @@ interface TransitionRequest {
   readonly targetStatus: TaskDto['status'];
 }
 
+const EMPTY_TRANSITION_VALUES: TaskTransitionValues = {
+  completionNote: '',
+  rejectionReason: '',
+  reopenReason: '',
+};
+
 function formatDateTime(value: string | null): string {
   if (!value) {
     return '未记录';
@@ -100,21 +110,45 @@ export function TaskDetailPage() {
   const [state, setState] = useState<TaskDetailState>({ status: 'loading' });
   const [transitionError, setTransitionError] = useState<string | null>(null);
   const [transitionRequest, setTransitionRequest] = useState<TransitionRequest | null>(null);
-  const [transitionValues, setTransitionValues] = useState<TaskTransitionValues>({
-    completionNote: '',
-    rejectionReason: '',
-    reopenReason: '',
-  });
-  const activityRequestVersionRef = useRef(0);
+  const [transitionValues, setTransitionValues] =
+    useState<TaskTransitionValues>(EMPTY_TRANSITION_VALUES);
+  const activeProjectIdRef = useRef(projectId);
+  const activeTaskIdRef = useRef(taskId);
+  const pageRequestVersionRef = useRef(0);
+  const transitionRequestVersionRef = useRef(0);
+
+  activeProjectIdRef.current = projectId;
+  activeTaskIdRef.current = taskId;
+
+  const isCurrentPageRequest = useCallback((request: TaskPageRequest): boolean => {
+    return isTaskPageRequestCurrent(request, {
+      projectId: activeProjectIdRef.current,
+      taskId: activeTaskIdRef.current,
+      version: pageRequestVersionRef.current,
+    });
+  }, []);
 
   useEffect(() => {
+    transitionRequestVersionRef.current += 1;
+    setIsTransitioning(false);
+    setIsLoadingMoreActivities(false);
+    setActionError(null);
+    setActionMessage(null);
+    setTransitionError(null);
+    setTransitionRequest(null);
+    setTransitionValues(EMPTY_TRANSITION_VALUES);
+
     if (!projectId || !taskId) {
       setState({ message: '没有可加载的任务。', status: 'error' });
       return;
     }
 
     let isCancelled = false;
-    const requestVersion = ++activityRequestVersionRef.current;
+    const request: TaskPageRequest = {
+      projectId,
+      taskId,
+      version: ++pageRequestVersionRef.current,
+    };
 
     setState({ status: 'loading' });
     void Promise.all([
@@ -128,7 +162,7 @@ export function TaskDetailPage() {
       }),
     ])
       .then(([project, members, requirements, task, comments, activities]) => {
-        if (!isCancelled && requestVersion === activityRequestVersionRef.current) {
+        if (!isCancelled && isCurrentPageRequest(request)) {
           setState({
             data: {
               activities,
@@ -144,7 +178,7 @@ export function TaskDetailPage() {
         }
       })
       .catch((error: unknown) => {
-        if (!isCancelled && requestVersion === activityRequestVersionRef.current) {
+        if (!isCancelled && isCurrentPageRequest(request)) {
           setState({ message: getUserFacingError(error), status: 'error' });
         }
       });
@@ -152,7 +186,7 @@ export function TaskDetailPage() {
     return () => {
       isCancelled = true;
     };
-  }, [api, projectId, retryVersion, taskId]);
+  }, [api, isCurrentPageRequest, projectId, retryVersion, taskId]);
 
   async function applyTransition(
     targetStatus: TaskDto['status'],
@@ -166,9 +200,15 @@ export function TaskDetailPage() {
     setActionError(null);
     setActionMessage(null);
     setTransitionError(null);
+    const transitionVersion = ++transitionRequestVersionRef.current;
+    const request: TaskPageRequest = {
+      projectId: state.data.project.id,
+      taskId: state.data.task.id,
+      version: pageRequestVersionRef.current,
+    };
 
     try {
-      const task = await updateTaskStatus(api, state.data.project.id, state.data.task.id, {
+      const task = await updateTaskStatus(api, request.projectId, request.taskId, {
         status: targetStatus,
         ...(values.completionNote.trim() ? { completionNote: values.completionNote.trim() } : {}),
         ...(values.rejectionReason.trim()
@@ -176,13 +216,22 @@ export function TaskDetailPage() {
           : {}),
         ...(values.reopenReason.trim() ? { reopenReason: values.reopenReason.trim() } : {}),
       });
-      const requestVersion = ++activityRequestVersionRef.current;
-      const activities = await listTaskActivity(api, state.data.project.id, state.data.task.id, {
+
+      if (!isCurrentPageRequest(request)) {
+        return;
+      }
+
+      const activities = await listTaskActivity(api, request.projectId, request.taskId, {
         limit: TASK_ACTIVITY_PAGE_SIZE,
       }).catch(() => null);
 
       setState((current) => {
-        if (current.status !== 'ready') {
+        if (
+          current.status !== 'ready' ||
+          current.data.project.id !== request.projectId ||
+          current.data.task.id !== request.taskId ||
+          !isCurrentPageRequest(request)
+        ) {
           return current;
         }
 
@@ -193,8 +242,8 @@ export function TaskDetailPage() {
         const resolution = resolveTaskActivityPage(
           current.data.activities,
           activities,
-          requestVersion,
-          activityRequestVersionRef.current,
+          request.version,
+          pageRequestVersionRef.current,
         );
 
         if (!resolution.applied) {
@@ -211,14 +260,23 @@ export function TaskDetailPage() {
           status: 'ready',
         };
       });
+
+      if (!isCurrentPageRequest(request)) {
+        return;
+      }
+
       setTransitionRequest(null);
-      setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
+      setTransitionValues(EMPTY_TRANSITION_VALUES);
       setActionMessage(
         values.rejectionReason.trim()
           ? '审核不通过原因已记录。'
           : `任务已更新为“${getTaskStatusLabel(task.status)}”。`,
       );
     } catch (error) {
+      if (!isCurrentPageRequest(request)) {
+        return;
+      }
+
       const message = getUserFacingError(error);
 
       if (transitionRequest) {
@@ -227,7 +285,9 @@ export function TaskDetailPage() {
         setActionError(message);
       }
     } finally {
-      setIsTransitioning(false);
+      if (transitionRequestVersionRef.current === transitionVersion) {
+        setIsTransitioning(false);
+      }
     }
   }
 
@@ -301,28 +361,35 @@ export function TaskDetailPage() {
       return;
     }
 
-    const projectId = state.data.project.id;
-    const taskId = state.data.task.id;
-    const requestVersion = activityRequestVersionRef.current;
+    const request: TaskPageRequest = {
+      projectId: state.data.project.id,
+      taskId: state.data.task.id,
+      version: pageRequestVersionRef.current,
+    };
     setIsLoadingMoreActivities(true);
     setActionError(null);
 
     try {
-      const nextPage = await listTaskActivity(api, projectId, taskId, {
+      const nextPage = await listTaskActivity(api, request.projectId, request.taskId, {
         cursor,
         limit: TASK_ACTIVITY_PAGE_SIZE,
       });
 
       setState((current) => {
-        if (current.status !== 'ready') {
+        if (
+          current.status !== 'ready' ||
+          current.data.project.id !== request.projectId ||
+          current.data.task.id !== request.taskId ||
+          !isCurrentPageRequest(request)
+        ) {
           return current;
         }
 
         const resolution = resolveTaskActivityPage(
           current.data.activities,
           nextPage,
-          requestVersion,
-          activityRequestVersionRef.current,
+          request.version,
+          pageRequestVersionRef.current,
         );
 
         return resolution.applied
@@ -337,9 +404,13 @@ export function TaskDetailPage() {
           : current;
       });
     } catch (error) {
-      setActionError(getUserFacingError(error));
+      if (isCurrentPageRequest(request)) {
+        setActionError(getUserFacingError(error));
+      }
     } finally {
-      setIsLoadingMoreActivities(false);
+      if (isCurrentPageRequest(request)) {
+        setIsLoadingMoreActivities(false);
+      }
     }
   }
 
