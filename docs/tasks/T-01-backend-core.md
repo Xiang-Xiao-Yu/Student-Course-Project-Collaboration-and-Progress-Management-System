@@ -6,7 +6,7 @@
 - 任务名称：后端核心、数据模型、权限和 API 契约
 - 负责人标签：`Codex@backend`
 - 负责人：`Codex@backend`
-- 状态：`进行中`
+- 状态：`已认领`
 - 优先级：MVP 必须
 - 对应需求：MVP 范围内的 FR-01～FR-11；AC-01～AC-11
 - 范围说明：FR-12～FR-14 为 S（建议扩展）、FR-15 为 C（后续扩展），不属于当前阶段任务范围。需要提前排期时，必须先创建 GitHub Issue，经 `root` 批准并更新需求文档与任务文档后再实施。
@@ -99,7 +99,7 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P3 需求、任务与状态记录（已解锁；范围限 P3.1～P3.4，FR-04/FR-05/FR-07、AC-03/AC-04）
+- 当前阶段：P4 迭代、评论与操作记录（P3 完整门禁已通过，项目组长授权后 root 于 2026-11-03 解锁 P4；待负责人按既有清单启动，P5 及以后锁定）
 - P3 解锁（2026-10-26）：T-03 P2-R1 门禁通过后，项目组长在本轮明确确认，root 已解锁 T-01 P3。范围依现有任务清单，限 P3.1～P3.4（FR-04、FR-05、FR-07；AC-03、AC-04）；PR #28 仍待常规评审与合并。
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
@@ -123,6 +123,9 @@
 - P3.1 完成（2026-10-26）：需求列表、创建、详情、编辑和删除 API 已实现；项目内自动生成 `REQ-xxx` 编号，支持优先级、验收标准和需求状态转换；创建/更新/删除写入 ActivityLog；暂停项目禁止新增、归档项目只读。需求 SERVICE 与 DTO 定向测试 6 项通过，类型检查通过。
 - P3.2～P3.4 完成（2026-10-26）：任务列表、创建、详情、编辑和删除 API 已实现；支持负责人、优先级、截止日期、预估工时、需求和标签关联；任务状态按看板规则流转，提交审核要求完成说明，只有 OWNER/管理员可审核完成，重新打开必须填写原因并清空完成时间；需求与任务状态变化均写 ActivityLog。需求详情返回关联任务摘要。真实 SQLite/HTTP 回归及 API 143、Desktop 69、Shared 6 共 218 项测试通过。
 - P3 前端联调补充（2026-10-27）：针对 T-02 P3.4 无法展示评论和操作记录的问题，新增任务/需求/会议评论只读查询 `GET /api/v1/projects/:projectId/comments?targetType=TASK&targetId=:taskId`，以及项目/目标级操作记录查询 `GET /api/v1/projects/:projectId/activity?targetType=TASK&targetId=:taskId&limit=50`；评论作者上传头像转换为可展示 data URL，活动前后值安全解析，两个接口均执行项目访问隔离。任务完成时间继续使用任务详情已有 `completedAt`。补充真实 SQLite/HTTP 回归后，P3 重新进入待测试；等待 T-03 检查和 root 解锁 P4。
+
+- P3 完整验收冻结（2026-11-03）：root 根据已合并的 PR #34/#35/#36/#37 和 P3 待测试交接，统一冻结 `7f789e0` 作为本轮基线；修正顶部滞后的“进行中”。项目组长授权完整 Electron/API/SQLite 验收、必要修复以及全部通过后解锁 P4。
+- P3 完整门禁通过 / P4 解锁（2026-11-03）：基线 `7f789e0`，4份迁移成功，全仓326/326、真实HTTP137/137、Electron17/17及lint/typecheck/build通过，独立证据复核通过。项目组长已明确“通过后解锁P4”，root正式开放本任务P4.1～P4.4（FR-06/FR-07、AC-05及权限/异常），不更换负责人或扩大范围；P3已完成，P5以后锁定。报告：[P3完整Electron门禁](../test/p3-electron-gate-2026-11-03.md)。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 
