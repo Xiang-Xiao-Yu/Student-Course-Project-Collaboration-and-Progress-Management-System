@@ -1,10 +1,25 @@
-import { Controller, Get, HttpStatus, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 
 import { AppException } from '../../common/errors/app.exception';
 import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
 import { AuthGuard } from '../auth/auth.guard';
 import { CommentsService } from './comments.service';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { ListCommentsQueryDto } from './dto/list-comments-query.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 import type { CommentResponse } from './interfaces/comment-response';
 
 @Controller('projects/:projectId/comments')
@@ -24,6 +39,40 @@ export class CommentsController {
       query.targetType,
       query.targetId,
     );
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  createComment(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateCommentDto,
+  ): Promise<CommentResponse> {
+    return this.commentsService.createComment(this.requireUserId(request), projectId, dto);
+  }
+
+  @Patch(':commentId')
+  updateComment(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId') projectId: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: UpdateCommentDto,
+  ): Promise<CommentResponse> {
+    return this.commentsService.updateComment(
+      this.requireUserId(request),
+      projectId,
+      commentId,
+      dto,
+    );
+  }
+
+  @Delete(':commentId')
+  deleteComment(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId') projectId: string,
+    @Param('commentId') commentId: string,
+  ): Promise<{ deleted: true }> {
+    return this.commentsService.deleteComment(this.requireUserId(request), projectId, commentId);
   }
 
   private requireUserId(request: AuthenticatedRequest): string {
