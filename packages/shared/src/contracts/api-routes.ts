@@ -237,6 +237,11 @@ export const API_ROUTE_CONTRACTS = {
     method: 'POST',
     path: `${API_BASE_PATH}/projects/:projectId/iterations/:iterationId/close`,
   },
+  iterationsStats: {
+    access: projectPermission('PROJECT_VIEW'),
+    method: 'GET',
+    path: `${API_BASE_PATH}/projects/:projectId/iterations/:iterationId/stats`,
+  },
   commentsList: {
     access: projectPermission('PROJECT_VIEW'),
     method: 'GET',
