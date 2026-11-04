@@ -1,0 +1,411 @@
+import 'reflect-metadata';
+
+import { vi } from 'vitest';
+
+vi.hoisted(() => {
+  process.env['NODE_ENV'] = 'test';
+  process.env['APP_HOST'] = '127.0.0.1';
+  process.env['APP_PORT'] = '3000';
+  process.env['DATABASE_URL'] = 'file::memory:';
+  process.env['JWT_SECRET'] = 'test-only-secret';
+  process.env['JWT_EXPIRES_IN'] = '15m';
+  process.env['CORS_ORIGINS'] = 'http://localhost:5173';
+  process.env['LOG_LEVEL'] = 'error';
+});
+
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { AppModule } from '../../app.module';
+import { PrismaService } from '../../prisma/prisma.service';
+
+interface RegisterEnvelope {
+  data: { id: string };
+}
+
+interface LoginEnvelope {
+  data: { accessToken: string };
+}
+
+interface ProjectEnvelope {
+  data: { id: string };
+}
+
+interface IterationEnvelope {
+  data: {
+    id: string;
+    name: string;
+    status: string;
+    taskCount: number;
+    tasks: Array<{ id: string; status: string; title: string }>;
+  };
+}
+
+interface IterationStatsEnvelope {
+  data: {
+    blocked: number;
+    completed: number;
+    completionRate: number;
+    inProgress: number;
+    overdue: number;
+    total: number;
+  };
+}
+
+interface CommentEnvelope {
+  data: {
+    author: { id: string };
+    content: string;
+    id: string;
+    targetType: string;
+  };
+}
+
+interface CommentListEnvelope {
+  data: Array<{ content: string; id: string }>;
+}
+
+describe('P4 iterations and comments with SQLite', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  let baseUrl: string;
+  let testDirectory: string;
+  const password = 'p4-test-password';
+  const accounts: Record<
+    'owner' | 'member' | 'outsider' | 'observer',
+    { id: string; token: string; username: string }
+  > = {} as never;
+
+  beforeAll(async () => {
+    testDirectory = await mkdtemp(join(tmpdir(), 'scpc-p4-integration-'));
+    const databasePath = join(testDirectory, 'p4.db');
+    prisma = new PrismaService({
+      datasources: { db: { url: `file:${databasePath.replace(/\\/g, '/')}` } },
+    });
+    const migrationsPath = resolve(__dirname, '../../../../../prisma/migrations');
+
+    for (const entry of (await readdir(migrationsPath, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .sort((a, b) => a.name.localeCompare(b.name))) {
+      const sql = await readFile(resolve(migrationsPath, entry.name, 'migration.sql'), 'utf8');
+      for (const statement of sql.split(';').filter((statement) => statement.trim())) {
+        await prisma.$executeRawUnsafe(statement);
+      }
+    }
+
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(PrismaService)
+      .useValue(prisma)
+      .compile();
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(
+      new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }),
+    );
+    await app.listen(0, '127.0.0.1');
+    const address = app.getHttpServer().address() as AddressInfo;
+    baseUrl = `http://127.0.0.1:${address.port}/api/v1`;
+
+    for (const name of ['owner', 'member', 'outsider', 'observer'] as const) {
+      accounts[name] = await createAccount(name);
+    }
+  });
+
+  afterAll(async () => {
+    await app?.close();
+    await prisma?.$disconnect();
+    await rm(testDirectory, { force: true, recursive: true });
+  });
+
+  async function request(
+    path: string,
+    method: string,
+    token?: string,
+    body?: unknown,
+  ): Promise<Response> {
+    return fetch(`${baseUrl}${path}`, {
+      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: {
+        'content-type': 'application/json',
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      method,
+    });
+  }
+
+  async function createAccount(
+    name: 'owner' | 'member' | 'outsider' | 'observer',
+  ): Promise<{ id: string; token: string; username: string }> {
+    const username = `${name}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const registration = await request('/auth/register', 'POST', undefined, {
+      nickname: name,
+      password,
+      username,
+    });
+    const registered = (await registration.json()) as RegisterEnvelope;
+    const login = await request('/auth/login', 'POST', undefined, {
+      password,
+      username,
+    });
+    const session = (await login.json()) as LoginEnvelope;
+
+    return {
+      id: registered.data.id,
+      token: session.data.accessToken,
+      username,
+    };
+  }
+
+  async function createProject(): Promise<string> {
+    const created = await request('/projects', 'POST', accounts.owner.token, {
+      endDate: '2026-12-31',
+      name: `P4 项目 ${Date.now()}`,
+      startDate: '2026-11-01',
+    });
+    const project = (await created.json()) as ProjectEnvelope;
+    const projectId = project.data.id;
+    await request(`/projects/${projectId}/members`, 'POST', accounts.owner.token, {
+      role: 'MEMBER',
+      username: accounts.member.username,
+    });
+    await request(`/projects/${projectId}/members`, 'POST', accounts.owner.token, {
+      role: 'OBSERVER',
+      username: accounts.observer.username,
+    });
+
+    return projectId;
+  }
+
+  it('supports the complete iteration lifecycle with statistics and task migration', async () => {
+    const projectId = await createProject();
+    const invalid = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2026-10-01T00:00:00.000Z',
+        name: '非法迭代',
+        startDate: '2026-11-01T00:00:00.000Z',
+      },
+    );
+    expect(invalid.status).toBe(422);
+
+    const memberCreate = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.member.token,
+      {
+        endDate: '2026-11-30T00:00:00.000Z',
+        name: '成员创建',
+        startDate: '2026-11-01T00:00:00.000Z',
+      },
+    );
+    expect(memberCreate.status).toBe(403);
+
+    const created = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2026-11-30T00:00:00.000Z',
+        goal: 'P4 迭代',
+        name: '迭代一',
+        startDate: '2026-11-01T00:00:00.000Z',
+      },
+    );
+    expect(created.status).toBe(201);
+    const iteration = (await created.json()) as IterationEnvelope;
+    expect(iteration.data).toMatchObject({ name: '迭代一', status: 'NOT_STARTED', taskCount: 0 });
+
+    await prisma.task.createMany({
+      data: [
+        {
+          createdById: accounts.owner.id,
+          projectId,
+          status: 'BACKLOG',
+          title: '未完成任务',
+        },
+        {
+          completedAt: new Date('2026-11-10T00:00:00.000Z'),
+          createdById: accounts.owner.id,
+          projectId,
+          status: 'COMPLETED',
+          title: '已完成任务',
+        },
+      ],
+    });
+    const unfinished = await prisma.task.findFirstOrThrow({
+      select: { id: true },
+      where: { projectId, title: '未完成任务' },
+    });
+    const completedTask = await prisma.task.findFirstOrThrow({
+      select: { id: true },
+      where: { projectId, title: '已完成任务' },
+    });
+
+    const started = await request(
+      `/projects/${projectId}/iterations/${iteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      { status: 'IN_PROGRESS' },
+    );
+    expect(started.status).toBe(200);
+    expect(((await started.json()) as IterationEnvelope).data.status).toBe('IN_PROGRESS');
+
+    for (const taskId of [unfinished.id, completedTask.id]) {
+      const added = await request(
+        `/projects/${projectId}/iterations/${iteration.data.id}/tasks`,
+        'POST',
+        accounts.owner.token,
+        { taskId },
+      );
+      expect(added.status).toBe(200);
+    }
+
+    const statsResponse = await request(
+      `/projects/${projectId}/iterations/${iteration.data.id}/stats`,
+      'GET',
+      accounts.member.token,
+    );
+    expect(statsResponse.status).toBe(200);
+    expect(((await statsResponse.json()) as IterationStatsEnvelope).data).toEqual({
+      blocked: 0,
+      completed: 1,
+      completionRate: 0.5,
+      inProgress: 0,
+      overdue: 0,
+      total: 2,
+    });
+
+    const nextCreated = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2026-12-31T00:00:00.000Z',
+        name: '迭代二',
+        startDate: '2026-12-01T00:00:00.000Z',
+      },
+    );
+    const nextIteration = (await nextCreated.json()) as IterationEnvelope;
+    const closed = await request(
+      `/projects/${projectId}/iterations/${iteration.data.id}/close`,
+      'POST',
+      accounts.owner.token,
+      { nextIterationId: nextIteration.data.id },
+    );
+    expect(closed.status).toBe(200);
+    const closedIteration = (await closed.json()) as IterationEnvelope;
+    expect(closedIteration.data.status).toBe('COMPLETED');
+    expect(closedIteration.data.tasks.map((task) => task.title)).toEqual(['已完成任务']);
+    const nextDetail = await request(
+      `/projects/${projectId}/iterations/${nextIteration.data.id}`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(
+      ((await nextDetail.json()) as IterationEnvelope).data.tasks.map((task) => task.title),
+    ).toEqual(['未完成任务']);
+
+    const deleted = await request(
+      `/projects/${projectId}/iterations/${nextIteration.data.id}`,
+      'DELETE',
+      accounts.owner.token,
+    );
+    expect(deleted.status).toBe(200);
+    expect(await prisma.iteration.count({ where: { id: nextIteration.data.id } })).toBe(0);
+  });
+
+  it('allows members to create, edit and delete only their own comments', async () => {
+    const projectId = await createProject();
+    const task = await prisma.task.create({
+      data: { createdById: accounts.member.id, projectId, title: '评论目标任务' },
+    });
+
+    const created = await request(
+      `/projects/${projectId}/comments`,
+      'POST',
+      accounts.member.token,
+      { content: '第一条评论', targetId: task.id, targetType: 'TASK' },
+    );
+    expect(created.status).toBe(201);
+    const comment = (await created.json()) as CommentEnvelope;
+    expect(comment.data).toMatchObject({
+      author: { id: accounts.member.id },
+      content: '第一条评论',
+      targetType: 'TASK',
+    });
+
+    const updated = await request(
+      `/projects/${projectId}/comments/${comment.data.id}`,
+      'PATCH',
+      accounts.member.token,
+      { content: '修改后的评论' },
+    );
+    expect(updated.status).toBe(200);
+    expect(((await updated.json()) as CommentEnvelope).data.content).toBe('修改后的评论');
+
+    const forbiddenUpdate = await request(
+      `/projects/${projectId}/comments/${comment.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      { content: '越权修改' },
+    );
+    expect(forbiddenUpdate.status).toBe(403);
+
+    const observerList = await request(
+      `/projects/${projectId}/comments?targetType=TASK&targetId=${task.id}`,
+      'GET',
+      accounts.observer.token,
+    );
+    expect(observerList.status).toBe(200);
+    expect(((await observerList.json()) as CommentListEnvelope).data).toHaveLength(1);
+
+    const observerCreate = await request(
+      `/projects/${projectId}/comments`,
+      'POST',
+      accounts.observer.token,
+      { content: '观察者评论', targetId: task.id, targetType: 'TASK' },
+    );
+    expect(observerCreate.status).toBe(403);
+
+    const missingTarget = await request(
+      `/projects/${projectId}/comments`,
+      'POST',
+      accounts.member.token,
+      { content: '评论', targetId: 'missing-task', targetType: 'TASK' },
+    );
+    expect(missingTarget.status).toBe(404);
+
+    const outsiderDelete = await request(
+      `/projects/${projectId}/comments/${comment.data.id}`,
+      'DELETE',
+      accounts.outsider.token,
+    );
+    expect(outsiderDelete.status).toBe(404);
+
+    const deleted = await request(
+      `/projects/${projectId}/comments/${comment.data.id}`,
+      'DELETE',
+      accounts.member.token,
+    );
+    expect(deleted.status).toBe(200);
+    expect(await prisma.comment.count({ where: { id: comment.data.id } })).toBe(0);
+
+    expect(
+      await prisma.activityLog.count({
+        where: { projectId, targetType: 'COMMENT' },
+      }),
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      await prisma.activityLog.count({
+        where: { projectId, targetType: 'ITERATION' },
+      }),
+    ).toBe(0);
+  });
+});
