@@ -1,31 +1,31 @@
 import { Transform } from 'class-transformer';
-import { IsDateString, IsIn, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsDateString, IsIn, IsString, Length, MaxLength, ValidateIf } from 'class-validator';
 
 import { ITERATION_STATUSES } from '../iteration.constants';
 import type { IterationStatus } from '../iteration.constants';
 
 export class UpdateIterationDto {
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @Length(1, 100)
   name?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @MaxLength(1000)
   goal?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsDateString({ strict: true })
   startDate?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsDateString({ strict: true })
   endDate?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsIn(ITERATION_STATUSES)
   status?: IterationStatus;
 }

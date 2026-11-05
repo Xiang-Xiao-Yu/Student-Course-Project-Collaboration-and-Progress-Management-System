@@ -134,25 +134,6 @@ describe('CommentsService', () => {
     );
   });
 
-  it('rejects creating a comment on a missing target', async () => {
-    const { access, repository, service } = createService();
-
-    access.requirePermission.mockResolvedValue(undefined);
-    repository.targetExists.mockResolvedValue(false);
-
-    await expect(
-      service.createComment('user-1', 'project-1', {
-        content: '评论',
-        targetId: 'missing',
-        targetType: 'TASK',
-      }),
-    ).rejects.toMatchObject({
-      response: { code: 'COMMENT_TARGET_NOT_FOUND' },
-      status: HttpStatus.NOT_FOUND,
-    });
-    expect(repository.createComment).not.toHaveBeenCalled();
-  });
-
   it('updates and deletes a comment through the repository', async () => {
     const { access, repository, service } = createService();
 

@@ -41,16 +41,6 @@ export class CommentsService {
     dto: CreateCommentDto,
   ): Promise<CommentResponse> {
     await this.projectAccessService.requirePermission(projectId, userId, 'COMMENT_CREATE');
-    const exists = await this.commentsRepository.targetExists(
-      projectId,
-      dto.targetType,
-      dto.targetId,
-    );
-
-    if (!exists) {
-      throw new AppException(HttpStatus.NOT_FOUND, 'COMMENT_TARGET_NOT_FOUND', '评论目标不存在');
-    }
-
     const comment = await this.commentsRepository.createComment(
       projectId,
       userId,

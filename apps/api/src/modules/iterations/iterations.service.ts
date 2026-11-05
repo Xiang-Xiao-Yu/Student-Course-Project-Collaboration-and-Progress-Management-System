@@ -53,8 +53,11 @@ export class IterationsService {
     dto: CreateIterationDto,
   ): Promise<IterationDetailResponse> {
     await this.projectAccessService.requirePermission(projectId, userId, 'PROJECT_UPDATE');
-    const startDate = new Date(dto.startDate);
-    const endDate = new Date(dto.endDate);
+    const startDate = this.parseDate(dto.startDate);
+    const endDate = this.parseDate(dto.endDate);
+    if (!startDate || !endDate) {
+      throw this.invalidDateRange();
+    }
     this.assertDateRange(startDate, endDate);
 
     const iteration = await this.iterationsRepository.createIteration(projectId, userId, {
@@ -89,8 +92,8 @@ export class IterationsService {
       );
     }
 
-    const startDate = dto.startDate !== undefined ? new Date(dto.startDate) : undefined;
-    const endDate = dto.endDate !== undefined ? new Date(dto.endDate) : undefined;
+    const startDate = this.parseDate(dto.startDate);
+    const endDate = this.parseDate(dto.endDate);
     this.assertDateRange(startDate, endDate);
 
     const iteration = await this.iterationsRepository.updateIteration(
@@ -215,6 +218,31 @@ export class IterationsService {
         '迭代结束日期不能早于开始日期',
       );
     }
+  }
+
+  private parseDate(value: unknown): Date | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (typeof value !== 'string' || value.length === 0) {
+      throw this.invalidDateRange();
+    }
+
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) {
+      throw this.invalidDateRange();
+    }
+
+    return date;
+  }
+
+  private invalidDateRange(): AppException {
+    return new AppException(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'ITERATION_DATE_RANGE_INVALID',
+      '迭代结束日期不能早于开始日期',
+    );
   }
 
   private toSummary(iteration: IterationRecord): IterationResponse {

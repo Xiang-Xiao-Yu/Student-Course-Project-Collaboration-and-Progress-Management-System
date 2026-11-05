@@ -38,8 +38,10 @@ interface ProjectEnvelope {
 
 interface IterationEnvelope {
   data: {
+    endDate: string;
     id: string;
     name: string;
+    startDate: string;
     status: string;
     taskCount: number;
     tasks: Array<{ id: string; status: string; title: string }>;
@@ -321,6 +323,61 @@ describe('P4 iterations and comments with SQLite', () => {
     expect(await prisma.iteration.count({ where: { id: nextIteration.data.id } })).toBe(0);
   });
 
+  it('rejects iteration creation on paused projects and empty update dates', async () => {
+    const projectId = await createProject();
+    const endpoint = `/projects/${projectId}/iterations`;
+    const created = await request(endpoint, 'POST', accounts.owner.token, {
+      endDate: '2026-11-30T00:00:00.000Z',
+      name: '暂定迭代',
+      startDate: '2026-11-01T00:00:00.000Z',
+    });
+    expect(created.status).toBe(201);
+    const iteration = (await created.json()) as IterationEnvelope;
+
+    await request(`/projects/${projectId}/status`, 'PATCH', accounts.owner.token, {
+      status: 'ACTIVE',
+    });
+    await request(`/projects/${projectId}/status`, 'PATCH', accounts.owner.token, {
+      status: 'PAUSED',
+    });
+
+    const pausedCreate = await request(endpoint, 'POST', accounts.owner.token, {
+      endDate: '2026-12-31T00:00:00.000Z',
+      name: '暂停中新增',
+      startDate: '2026-12-01T00:00:00.000Z',
+    });
+    expect(pausedCreate.status).toBe(409);
+    expect(((await pausedCreate.json()) as { error?: { code?: string } }).error?.code).toBe(
+      'PROJECT_PAUSED',
+    );
+
+    const nullDate = await request(
+      `/projects/${projectId}/iterations/${iteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      { startDate: null },
+    );
+    expect(nullDate.status).toBe(400);
+    const emptyDate = await request(
+      `/projects/${projectId}/iterations/${iteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      { startDate: '' },
+    );
+    expect(emptyDate.status).toBe(400);
+
+    const detail = await request(
+      `/projects/${projectId}/iterations/${iteration.data.id}`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(((await detail.json()) as IterationEnvelope).data).toMatchObject({
+      endDate: '2026-11-30T00:00:00.000Z',
+      startDate: '2026-11-01T00:00:00.000Z',
+      status: 'NOT_STARTED',
+    });
+  });
+
   it('allows members to create, edit and delete only their own comments', async () => {
     const projectId = await createProject();
     const task = await prisma.task.create({
@@ -381,6 +438,19 @@ describe('P4 iterations and comments with SQLite', () => {
       { content: '评论', targetId: 'missing-task', targetType: 'TASK' },
     );
     expect(missingTarget.status).toBe(404);
+
+    const deletedTargetTask = await prisma.task.create({
+      data: { createdById: accounts.member.id, projectId, title: '即将删除的目标' },
+    });
+    await prisma.task.delete({ where: { id: deletedTargetTask.id } });
+    const deletedTarget = await request(
+      `/projects/${projectId}/comments`,
+      'POST',
+      accounts.member.token,
+      { content: '评论', targetId: deletedTargetTask.id, targetType: 'TASK' },
+    );
+    expect(deletedTarget.status).toBe(404);
+    expect(await prisma.comment.count({ where: { projectId } })).toBe(1);
 
     const outsiderDelete = await request(
       `/projects/${projectId}/comments/${comment.data.id}`,

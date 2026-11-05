@@ -106,17 +106,35 @@ export class CommentsRepository {
       authorId,
       'COMMENT_CREATE',
       async (transaction) => {
+        const targetExists = await this.targetExistsInTransaction(
+          transaction,
+          projectId,
+          targetType,
+          targetId,
+        );
+        if (!targetExists) {
+          throw this.commentTargetNotFound();
+        }
+
         const target = this.targetFilter(targetType, targetId);
-        const created = await transaction.comment.create({
-          data: {
-            authorId,
-            content,
-            projectId,
-            targetType,
-            ...target,
-          },
-          select: commentSelect,
-        });
+        let created: CommentRecord;
+        try {
+          created = await transaction.comment.create({
+            data: {
+              authorId,
+              content,
+              projectId,
+              targetType,
+              ...target,
+            },
+            select: commentSelect,
+          });
+        } catch (error: unknown) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+            throw this.commentTargetNotFound();
+          }
+          throw error;
+        }
 
         await transaction.activityLog.create({
           data: {
@@ -234,6 +252,23 @@ export class CommentsRepository {
     return { meetingId: targetId };
   }
 
+  private async targetExistsInTransaction(
+    transaction: Prisma.TransactionClient,
+    projectId: string,
+    targetType: CommentTargetType,
+    targetId: string,
+  ): Promise<boolean> {
+    if (targetType === 'TASK') {
+      return (await transaction.task.count({ where: { id: targetId, projectId } })) === 1;
+    }
+
+    if (targetType === 'REQUIREMENT') {
+      return (await transaction.requirement.count({ where: { id: targetId, projectId } })) === 1;
+    }
+
+    return (await transaction.meeting.count({ where: { id: targetId, projectId } })) === 1;
+  }
+
   private assertOwnComment(authorId: string, actorId: string): void {
     if (authorId !== actorId) {
       throw new AppException(HttpStatus.FORBIDDEN, 'COMMENT_NOT_OWNER', '只能修改或删除自己的评论');
@@ -242,5 +277,9 @@ export class CommentsRepository {
 
   private commentNotFound(): AppException {
     return new AppException(HttpStatus.NOT_FOUND, 'COMMENT_NOT_FOUND', '评论不存在');
+  }
+
+  private commentTargetNotFound(): AppException {
+    return new AppException(HttpStatus.NOT_FOUND, 'COMMENT_TARGET_NOT_FOUND', '评论目标不存在');
   }
 }

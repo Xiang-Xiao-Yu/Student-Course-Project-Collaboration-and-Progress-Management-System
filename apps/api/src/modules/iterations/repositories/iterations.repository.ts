@@ -163,7 +163,7 @@ export class IterationsRepository {
 
         return this.requireDetail(transaction, projectId, created.id);
       },
-      { ownerOnly: true },
+      { creating: true, ownerOnly: true },
     );
   }
 
