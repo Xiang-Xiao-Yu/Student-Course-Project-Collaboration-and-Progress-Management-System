@@ -1,21 +1,5 @@
 import type { ApiClient } from '../../lib/api/client';
 
-export interface TaskCommentAuthorDto {
-  readonly avatarUrl: string | null;
-  readonly id: string;
-  readonly nickname: string;
-  readonly username: string;
-}
-
-export interface TaskCommentDto {
-  readonly author: TaskCommentAuthorDto;
-  readonly content: string;
-  readonly createdAt: string;
-  readonly id: string;
-  readonly targetType: 'TASK';
-  readonly updatedAt: string;
-}
-
 export interface TaskActivityActorDto {
   readonly id: string;
   readonly nickname: string;
@@ -40,34 +24,19 @@ export interface TaskActivityQuery {
   readonly limit?: number;
 }
 
-function taskQuery(
-  projectId: string,
-  taskId: string,
-  resource: 'activity' | 'comments',
-  query: TaskActivityQuery = {},
-): string {
+function taskQuery(projectId: string, taskId: string, query: TaskActivityQuery = {}): string {
   const params = new URLSearchParams({
     targetId: taskId,
     targetType: 'TASK',
   });
 
-  if (resource === 'activity') {
-    params.set('limit', String(query.limit ?? TASK_ACTIVITY_PAGE_SIZE));
+  params.set('limit', String(query.limit ?? TASK_ACTIVITY_PAGE_SIZE));
 
-    if (query.cursor) {
-      params.set('cursor', query.cursor);
-    }
+  if (query.cursor) {
+    params.set('cursor', query.cursor);
   }
 
-  return `/projects/${encodeURIComponent(projectId)}/${resource}?${params.toString()}`;
-}
-
-export function listTaskComments(
-  api: Pick<ApiClient, 'get'>,
-  projectId: string,
-  taskId: string,
-): Promise<TaskCommentDto[]> {
-  return api.get<TaskCommentDto[]>(taskQuery(projectId, taskId, 'comments'));
+  return `/projects/${encodeURIComponent(projectId)}/activity?${params.toString()}`;
 }
 
 export function listTaskActivity(
@@ -76,7 +45,7 @@ export function listTaskActivity(
   taskId: string,
   query: TaskActivityQuery = {},
 ): Promise<TaskActivityDto[]> {
-  return api.get<TaskActivityDto[]>(taskQuery(projectId, taskId, 'activity', query));
+  return api.get<TaskActivityDto[]>(taskQuery(projectId, taskId, query));
 }
 
 export function mergeTaskActivities(

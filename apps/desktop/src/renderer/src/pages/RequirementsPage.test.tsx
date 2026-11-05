@@ -45,7 +45,10 @@ vi.mock('react-router-dom', async (importOriginal) => ({
 }));
 
 vi.mock('../features/auth/session', () => ({
-  useSession: () => ({ api: boundary.api }),
+  useSession: () => ({
+    api: boundary.api,
+    session: { user: { id: 'owner-1' } },
+  }),
 }));
 
 interface EffectSlot {
@@ -223,6 +226,7 @@ beforeEach(() => {
   boundary.api.get.mockImplementation(async (path) => {
     if (path === '/projects/project-1') return project;
     if (path === '/projects/project-1/requirements') return [];
+    if (path.startsWith('/projects/project-1/comments?')) return [];
     const id = path.match(/^\/projects\/project-1\/requirements\/(.+)$/)?.[1];
     if (id) return requirement(id);
     throw new Error(`Unexpected request: ${path}`);

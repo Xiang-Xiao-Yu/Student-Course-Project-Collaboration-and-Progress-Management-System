@@ -10,6 +10,9 @@ import { LoadingState } from '../components/feedback/LoadingState';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import { useSession } from '../features/auth/session';
+import type { CommentDto } from '../features/comments/comment-api';
+import { listComments } from '../features/comments/comment-api';
+import { CommentPanel } from '../features/comments/CommentPanel';
 import type { ProjectDto } from '../features/projects/project-api';
 import { getProject } from '../features/projects/project-api';
 import {
@@ -48,6 +51,7 @@ import { getUserFacingError } from '../lib/api/errors';
 type RequirementDetailState =
   | { readonly status: 'loading' }
   | {
+      readonly comments: CommentDto[];
       readonly project: ProjectDto;
       readonly requirement: RequirementDto;
       readonly status: 'ready';
@@ -71,7 +75,7 @@ function toForm(requirement: RequirementDto): RequirementFormValues {
 }
 
 export function RequirementDetailPage() {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const navigate = useNavigate();
   const { projectId = '', requirementId = '' } = useParams<{
     projectId: string;
@@ -125,12 +129,16 @@ export function RequirementDetailPage() {
     let isCancelled = false;
 
     setState({ status: 'loading' });
-    void Promise.all([getProject(api, projectId), getRequirement(api, projectId, requirementId)])
-      .then(([project, requirement]) => {
+    void Promise.all([
+      getProject(api, projectId),
+      getRequirement(api, projectId, requirementId),
+      listComments(api, projectId, 'REQUIREMENT', requirementId),
+    ])
+      .then(([project, requirement, comments]) => {
         if (!isCancelled) {
           const nextForm = toForm(requirement);
 
-          setState({ project, requirement, status: 'ready' });
+          setState({ comments, project, requirement, status: 'ready' });
           setForm(nextForm);
           setInitialForm(nextForm);
         }
@@ -438,6 +446,17 @@ export function RequirementDetailPage() {
           </div>
         </section>
       </div>
+
+      <CommentPanel
+        api={api}
+        canComment={canEdit}
+        currentUserId={session?.user.id}
+        initialComments={state.comments}
+        projectId={state.project.id}
+        targetId={state.requirement.id}
+        targetType="REQUIREMENT"
+        title="需求评论"
+      />
 
       {canDelete ? (
         <section className="panel danger-zone">

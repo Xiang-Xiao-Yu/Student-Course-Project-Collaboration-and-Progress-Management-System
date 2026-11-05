@@ -18,6 +18,7 @@ import { RequirementDetailPage } from '../pages/RequirementDetailPage';
 import { RequirementsPage } from '../pages/RequirementsPage';
 import { SectionPage } from '../pages/SectionPage';
 import { TaskDetailPage } from '../pages/TaskDetailPage';
+import { IterationsPage } from '../pages/IterationsPage';
 
 export const appRoutes: RouteObject[] = [
   {
@@ -95,7 +96,7 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: 'iterations',
-            element: <SectionPage section="iterations" />,
+            element: <IterationsPage />,
           },
           {
             path: 'meetings',

@@ -1,0 +1,346 @@
+{
+  "cases": [
+    {
+      "name": "iteration creation and task membership",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration statistics and task removal",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration close and incomplete task migration",
+      "status": "PASS"
+    },
+    {
+      "name": "task comment create edit delete",
+      "status": "PASS"
+    },
+    {
+      "name": "requirement comments and observer read-only access",
+      "status": "PASS"
+    }
+  ],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/tasks",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/stats",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/stats",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/stats",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/tasks/cmw3ieh7h00bf4hggtc9gow1t",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/stats",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/stats",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/close",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3ieik300bv4hggscv29u6a/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3iejdj00cb4hggitj1uyzd",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/iterations/cmw3iejdj00cb4hggitj1uyzd/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/tasks/cmw3ieh4x00bb4hggxfwvsg4y",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/comments?targetId=cmw3ieh4x00bb4hggxfwvsg4y&targetType=TASK",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/activity?targetId=cmw3ieh4x00bb4hggxfwvsg4y&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/members",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/comments",
+      "status": 201
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/comments/cmw3iejr900ch4hggkab55qfg",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/comments/cmw3iejr900ch4hggkab55qfg",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/requirements/cmw3iegy900az4hggojsw43uq",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/comments?targetId=cmw3iegy900az4hggojsw43uq&targetType=REQUIREMENT",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/comments",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/requirements/cmw3iegy900az4hggojsw43uq",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw3iegu400ap4hggamc2qkne/comments?targetId=cmw3iegy900az4hggojsw43uq&targetType=REQUIREMENT",
+      "status": 200
+    }
+  ]
+}
