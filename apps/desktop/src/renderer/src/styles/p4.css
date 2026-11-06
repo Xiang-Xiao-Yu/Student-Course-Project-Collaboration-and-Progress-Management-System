@@ -123,6 +123,23 @@
   font-size: 11px;
 }
 
+.iteration-stats-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.iteration-stats-error > :first-child {
+  flex: 1 1 auto;
+}
+
+.iteration-stats-error .secondary-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  white-space: nowrap;
+}
+
 .iteration-stats {
   display: grid;
   grid-template-columns: repeat(6, minmax(80px, 1fr));
@@ -318,6 +335,11 @@
 }
 
 @media (max-width: 700px) {
+  .iteration-stats-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .iteration-stats {
     grid-template-columns: repeat(2, minmax(80px, 1fr));
   }

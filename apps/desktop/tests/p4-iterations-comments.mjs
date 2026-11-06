@@ -233,7 +233,31 @@ try {
   await page.getByText('迭代已更新为“进行中”。', { exact: true }).waitFor();
 
   await createIteration('P4 迁移迭代', '接收主迭代未完成任务。', '2026-12-01', '2026-12-31');
+  await page.locator('.iteration-add-task select').selectOption(overdueTask.id);
+  await page.getByRole('button', { name: '加入迭代', exact: true }).click();
+  const migrationDialog = page.locator('.confirm-dialog').filter({ hasText: '迁移任务' });
+  await migrationDialog.waitFor();
+  check(
+    (await migrationDialog.innerText()).includes('P4 主迭代'),
+    'Task migration confirmation does not show the source iteration',
+  );
+  await migrationDialog.getByRole('button', { name: '取消', exact: true }).click();
+  results.push({ name: 'task source display and migration confirmation', status: 'PASS' });
   await page.locator('.iteration-list-row').filter({ hasText: 'P4 主迭代' }).click();
+  await page.locator('.iteration-detail-panel h2').filter({ hasText: 'P4 主迭代' }).waitFor();
+
+  await page.getByRole('button', { name: '编辑迭代', exact: true }).click();
+  await page.locator('.iteration-edit-form textarea').fill('尚未保存的迭代目标');
+  await page.locator('.iteration-list-row').filter({ hasText: 'P4 迁移迭代' }).click();
+  const switchDialog = page.locator('.confirm-dialog').filter({ hasText: '切换迭代' });
+  await switchDialog.waitFor();
+  await switchDialog.getByRole('button', { name: '取消', exact: true }).click();
+  check(
+    (await page.locator('.iteration-detail-panel').innerText()).includes('P4 主迭代'),
+    'Unsaved edit confirmation cancel changed the selected iteration',
+  );
+  results.push({ name: 'unsaved iteration switch confirmation', status: 'PASS' });
+  await page.getByRole('button', { name: '收起编辑', exact: true }).click();
 
   await page.getByRole('button', { name: '关闭迭代', exact: true }).click();
   const closeDialog = page.locator('.iteration-close-dialog');

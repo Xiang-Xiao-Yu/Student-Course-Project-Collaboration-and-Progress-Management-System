@@ -32,4 +32,15 @@ describe('P4 iteration presentation', () => {
       isIterationTaskOverdue({ dueDate: '2026-11-01T00:00:00.000Z', status: 'IN_PROGRESS' }, now),
     ).toBe(true);
   });
+
+  it('边界场景按北京日历日计算，截止当天结束前不计逾期', () => {
+    const task = {
+      dueDate: '2026-11-05T00:00:00.000Z',
+      status: 'IN_PROGRESS' as const,
+    };
+
+    expect(isIterationTaskOverdue(task, new Date('2026-11-05T00:00:00.000Z'))).toBe(false);
+    expect(isIterationTaskOverdue(task, new Date('2026-11-05T15:59:59.999Z'))).toBe(false);
+    expect(isIterationTaskOverdue(task, new Date('2026-11-05T16:00:00.000Z'))).toBe(true);
+  });
 });

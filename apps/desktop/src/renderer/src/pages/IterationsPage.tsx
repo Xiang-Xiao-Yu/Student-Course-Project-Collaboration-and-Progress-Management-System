@@ -33,6 +33,11 @@ import {
   getIterationStatusTransitions,
   isIterationTaskOverdue,
 } from '../features/iterations/iteration-presentation';
+import {
+  isIterationResponseCurrent,
+  requiresIterationSwitchConfirmation,
+  resolveIterationStatsRefresh,
+} from '../features/iterations/iteration-state';
 import type {
   IterationFormErrors,
   IterationFormValues,
@@ -78,6 +83,7 @@ interface IterationsData {
   readonly project: ProjectDto;
   readonly selected: IterationDetailDto | null;
   readonly stats: IterationStatsDto;
+  readonly taskIterations: Readonly<Record<string, TaskIterationOwnership>>;
   readonly tasks: TaskDto[];
 }
 
@@ -85,6 +91,17 @@ type IterationsState =
   | { readonly status: 'loading' }
   | { readonly data: IterationsData; readonly status: 'ready' }
   | { readonly message: string; readonly status: 'error' };
+
+interface TaskIterationOwnership {
+  readonly iterationId: string;
+  readonly iterationName: string;
+  readonly iterationStatus: IterationStatus;
+}
+
+interface IterationDataSnapshot {
+  readonly iterations: IterationSummaryDto[];
+  readonly taskIterations: Readonly<Record<string, TaskIterationOwnership>>;
+}
 
 function toSummary(iteration: IterationDetailDto): IterationSummaryDto {
   return {
@@ -99,6 +116,56 @@ function toSummary(iteration: IterationDetailDto): IterationSummaryDto {
     taskCount: iteration.taskCount,
     updatedAt: iteration.updatedAt,
   };
+}
+
+function buildTaskIterations(
+  iterations: readonly IterationSummaryDto[],
+  details: readonly IterationDetailDto[],
+): Readonly<Record<string, TaskIterationOwnership>> {
+  const iterationById = new Map(iterations.map((iteration) => [iteration.id, iteration]));
+  const ownership: Record<string, TaskIterationOwnership> = {};
+
+  for (const detail of details) {
+    const iteration = iterationById.get(detail.id);
+
+    if (!iteration) {
+      continue;
+    }
+
+    for (const task of detail.tasks) {
+      ownership[task.id] = {
+        iterationId: iteration.id,
+        iterationName: iteration.name,
+        iterationStatus: iteration.status,
+      };
+    }
+  }
+
+  return ownership;
+}
+
+function applySelectedIterationOwnership(
+  current: Readonly<Record<string, TaskIterationOwnership>>,
+  selected: IterationDetailDto,
+): Readonly<Record<string, TaskIterationOwnership>> {
+  const next = { ...current };
+  const selectedTaskIds = new Set(selected.tasks.map((task) => task.id));
+
+  for (const [taskId, ownership] of Object.entries(next)) {
+    if (ownership.iterationId === selected.id && !selectedTaskIds.has(taskId)) {
+      delete next[taskId];
+    }
+  }
+
+  for (const task of selected.tasks) {
+    next[task.id] = {
+      iterationId: selected.id,
+      iterationName: selected.name,
+      iterationStatus: selected.status,
+    };
+  }
+
+  return next;
 }
 
 function replaceSummary(
@@ -135,16 +202,23 @@ export function IterationsPage() {
   const [isClosing, setIsClosing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoadingSelection, setIsLoadingSelection] = useState(false);
+  const [isRefreshingStats, setIsRefreshingStats] = useState(false);
   const [isRemovingTaskId, setIsRemovingTaskId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingIterationId, setPendingIterationId] = useState<string | null>(null);
+  const [pendingTaskMigrationId, setPendingTaskMigrationId] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [state, setState] = useState<IterationsState>({ status: 'loading' });
   const [statusAction, setStatusAction] = useState<IterationStatus | null>(null);
   const selectionVersionRef = useRef(0);
+  const selectedIterationIdRef = useRef<string | null>(null);
 
   const selectedIterationId = state.status === 'ready' ? (state.data.selected?.id ?? null) : null;
   const selectedIterationUpdatedAt =
     state.status === 'ready' ? (state.data.selected?.updatedAt ?? null) : null;
+
+  selectedIterationIdRef.current = selectedIterationId;
 
   useEffect(() => {
     selectionVersionRef.current += 1;
@@ -156,6 +230,10 @@ export function IterationsPage() {
     setCreateErrors({});
     setEditErrors({});
     setEditOpen(false);
+    setIsRefreshingStats(false);
+    setPendingIterationId(null);
+    setPendingTaskMigrationId(null);
+    setStatsError(null);
     setStatusAction(null);
 
     if (!projectId) {
@@ -173,17 +251,32 @@ export function IterationsPage() {
       listTasks(api, projectId),
     ])
       .then(async ([project, iterations, tasks]) => {
-        const firstIteration = iterations[0] ?? null;
-        const [selected, stats] = firstIteration
-          ? await Promise.all([
-              getIteration(api, projectId, firstIteration.id),
-              getIterationStats(api, projectId, firstIteration.id),
-            ])
-          : [null, EMPTY_STATS];
+        const details = await Promise.all(
+          iterations.map((iteration) => getIteration(api, projectId, iteration.id)),
+        );
+        const selected = details[0] ?? null;
+        let stats = EMPTY_STATS;
+        let statsFailure: string | null = null;
+
+        if (selected) {
+          try {
+            stats = await getIterationStats(api, projectId, selected.id);
+          } catch (error) {
+            statsFailure = getUserFacingError(error);
+          }
+        }
 
         if (!isCancelled && selectionVersionRef.current === requestVersion) {
+          setStatsError(statsFailure);
           setState({
-            data: { iterations, project, selected, stats, tasks },
+            data: {
+              iterations,
+              project,
+              selected,
+              stats,
+              taskIterations: buildTaskIterations(iterations, details),
+              tasks,
+            },
             status: 'ready',
           });
         }
@@ -213,6 +306,15 @@ export function IterationsPage() {
     }
   }, [selectedIterationId, selectedIterationUpdatedAt, state.status]);
 
+  function requestIterationSelection(iterationId: string): void {
+    if (requiresIterationSwitchConfirmation(editOpen, editInitialForm, editForm)) {
+      setPendingIterationId(iterationId);
+      return;
+    }
+
+    void selectIteration(iterationId);
+  }
+
   async function selectIteration(iterationId: string): Promise<void> {
     if (state.status !== 'ready' || state.data.selected?.id === iterationId) {
       return;
@@ -222,9 +324,10 @@ export function IterationsPage() {
     setIsLoadingSelection(true);
     setAddTaskError(null);
     setCreateMessage(null);
+    setPendingIterationId(null);
 
     try {
-      const [selected, stats] = await Promise.all([
+      const [selectedResult, statsResult] = await Promise.allSettled([
         getIteration(api, state.data.project.id, iterationId),
         getIterationStats(api, state.data.project.id, iterationId),
       ]);
@@ -233,15 +336,28 @@ export function IterationsPage() {
         return;
       }
 
+      if (selectedResult.status === 'rejected') {
+        setCreateMessage({
+          text: getUserFacingError(selectedResult.reason),
+          type: 'error',
+        });
+        return;
+      }
+
+      const selected = selectedResult.value;
+      const statsRefresh = resolveIterationStatsRefresh(
+        EMPTY_STATS,
+        statsResult.status === 'fulfilled'
+          ? { status: 'fulfilled', value: statsResult.value }
+          : { message: getUserFacingError(statsResult.reason), status: 'rejected' },
+      );
+
+      setStatsError(statsRefresh.error);
       setState((current) =>
         current.status === 'ready'
-          ? { data: { ...current.data, selected, stats }, status: 'ready' }
+          ? { data: { ...current.data, selected, stats: statsRefresh.stats }, status: 'ready' }
           : current,
       );
-    } catch (error) {
-      if (selectionVersionRef.current === requestVersion) {
-        setCreateMessage({ text: getUserFacingError(error), type: 'error' });
-      }
     } finally {
       if (selectionVersionRef.current === requestVersion) {
         setIsLoadingSelection(false);
@@ -270,6 +386,7 @@ export function IterationsPage() {
     }
 
     setIsCreating(true);
+    const selectedAtStart = selectedIterationIdRef.current;
 
     try {
       const selected = await createIteration(
@@ -277,7 +394,10 @@ export function IterationsPage() {
         state.data.project.id,
         formToCreateIterationInput(createForm),
       );
-      ++selectionVersionRef.current;
+      const shouldActivate = isIterationResponseCurrent(
+        selectedAtStart,
+        selectedIterationIdRef.current,
+      );
 
       setState((current) =>
         current.status === 'ready'
@@ -285,8 +405,8 @@ export function IterationsPage() {
               data: {
                 ...current.data,
                 iterations: replaceSummary(current.data.iterations, selected),
-                selected,
-                stats: EMPTY_STATS,
+                selected: shouldActivate ? selected : current.data.selected,
+                stats: shouldActivate ? EMPTY_STATS : current.data.stats,
               },
               status: 'ready',
             }
@@ -294,6 +414,9 @@ export function IterationsPage() {
       );
       setCreateForm(EMPTY_ITERATION_FORM);
       setCreateErrors({});
+      if (shouldActivate) {
+        setStatsError(null);
+      }
       setCreateMessage({ text: '迭代已创建。', type: 'success' });
     } catch (error) {
       setCreateMessage({ text: getUserFacingError(error), type: 'error' });
@@ -318,16 +441,21 @@ export function IterationsPage() {
       return;
     }
 
+    const targetIterationId = state.data.selected.id;
+    const projectId = state.data.project.id;
     setIsUpdating(true);
 
     try {
       const selected = await updateIteration(
         api,
-        state.data.project.id,
-        state.data.selected.id,
+        projectId,
+        targetIterationId,
         formToUpdateIterationInput(editForm),
       );
-      ++selectionVersionRef.current;
+      const shouldActivate = isIterationResponseCurrent(
+        targetIterationId,
+        selectedIterationIdRef.current,
+      );
 
       setState((current) =>
         current.status === 'ready'
@@ -335,15 +463,22 @@ export function IterationsPage() {
               data: {
                 ...current.data,
                 iterations: replaceSummary(current.data.iterations, selected),
-                selected,
+                selected: shouldActivate ? selected : current.data.selected,
+                taskIterations: shouldActivate
+                  ? applySelectedIterationOwnership(current.data.taskIterations, selected)
+                  : current.data.taskIterations,
               },
               status: 'ready',
             }
           : current,
       );
-      setCreateMessage({ text: '迭代信息已更新。', type: 'success' });
+      if (shouldActivate) {
+        setCreateMessage({ text: '迭代信息已更新。', type: 'success' });
+      }
     } catch (error) {
-      setCreateMessage({ text: getUserFacingError(error), type: 'error' });
+      if (isIterationResponseCurrent(targetIterationId, selectedIterationIdRef.current)) {
+        setCreateMessage({ text: getUserFacingError(error), type: 'error' });
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -355,16 +490,17 @@ export function IterationsPage() {
     }
 
     const selectedId = state.data.selected.id;
+    const projectId = state.data.project.id;
     const nextStatus = statusAction;
     setStatusAction(null);
     setIsUpdating(true);
     setCreateMessage(null);
 
     try {
-      const selected = await updateIteration(api, state.data.project.id, selectedId, {
+      const selected = await updateIteration(api, projectId, selectedId, {
         status: nextStatus,
       });
-      ++selectionVersionRef.current;
+      const shouldActivate = isIterationResponseCurrent(selectedId, selectedIterationIdRef.current);
 
       setState((current) =>
         current.status === 'ready'
@@ -372,33 +508,44 @@ export function IterationsPage() {
               data: {
                 ...current.data,
                 iterations: replaceSummary(current.data.iterations, selected),
-                selected,
+                selected: shouldActivate ? selected : current.data.selected,
+                taskIterations: shouldActivate
+                  ? applySelectedIterationOwnership(current.data.taskIterations, selected)
+                  : current.data.taskIterations,
               },
               status: 'ready',
             }
           : current,
       );
-      setCreateMessage({
-        text: `迭代已更新为“${getIterationStatusLabel(selected.status)}”。`,
-        type: 'success',
-      });
+      if (shouldActivate) {
+        setCreateMessage({
+          text: `迭代已更新为“${getIterationStatusLabel(selected.status)}”。`,
+          type: 'success',
+        });
+      }
     } catch (error) {
-      setCreateMessage({ text: getUserFacingError(error), type: 'error' });
+      if (isIterationResponseCurrent(selectedId, selectedIterationIdRef.current)) {
+        setCreateMessage({ text: getUserFacingError(error), type: 'error' });
+      }
     } finally {
       setIsUpdating(false);
     }
   }
 
-  async function refreshIterationSummaries(): Promise<IterationSummaryDto[]> {
-    if (state.status !== 'ready') {
-      return [];
-    }
+  async function loadIterationData(projectId: string): Promise<IterationDataSnapshot> {
+    const iterations = await listIterations(api, projectId);
+    const details = await Promise.all(
+      iterations.map((iteration) => getIteration(api, projectId, iteration.id)),
+    );
 
-    return listIterations(api, state.data.project.id);
+    return {
+      iterations,
+      taskIterations: buildTaskIterations(iterations, details),
+    };
   }
 
-  async function handleAddTask(): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isAddingTask) {
+  function requestAddTask(): void {
+    if (state.status !== 'ready' || !state.data.selected) {
       return;
     }
 
@@ -414,22 +561,63 @@ export function IterationsPage() {
       return;
     }
 
+    const source = state.data.taskIterations[selectedTaskId];
+
+    if (source && source.iterationId !== state.data.selected.id) {
+      setPendingTaskMigrationId(selectedTaskId);
+      return;
+    }
+
+    void handleAddTask(selectedTaskId, source);
+  }
+
+  async function handleAddTask(
+    taskIdOverride?: string,
+    sourceOverride?: TaskIterationOwnership,
+  ): Promise<void> {
+    if (state.status !== 'ready' || !state.data.selected || isAddingTask) {
+      return;
+    }
+
+    const projectId = state.data.project.id;
+    const targetIterationId = state.data.selected.id;
+    const selectedTaskId =
+      taskIdOverride ||
+      addTaskId ||
+      state.data.tasks.find(
+        (task) => !state.data.selected?.tasks.some((item) => item.id === task.id),
+      )?.id ||
+      '';
+
+    if (!selectedTaskId) {
+      setAddTaskError('没有可加入当前迭代的任务。');
+      return;
+    }
+
+    const source = sourceOverride ?? state.data.taskIterations[selectedTaskId];
+    const taskTitle =
+      state.data.tasks.find((task) => task.id === selectedTaskId)?.title ?? '该任务';
     setIsAddingTask(true);
     setAddTaskError(null);
     setCreateMessage(null);
 
     try {
-      const selected = await addIterationTask(
-        api,
-        state.data.project.id,
-        state.data.selected.id,
-        selectedTaskId,
-      );
-      const [statsResult, iterationsResult] = await Promise.allSettled([
-        getIterationStats(api, state.data.project.id, selected.id),
-        refreshIterationSummaries(),
+      const selected = await addIterationTask(api, projectId, targetIterationId, selectedTaskId);
+      const [statsResult, ownershipResult] = await Promise.allSettled([
+        getIterationStats(api, projectId, selected.id),
+        loadIterationData(projectId),
       ]);
-      ++selectionVersionRef.current;
+      const shouldActivate = isIterationResponseCurrent(
+        targetIterationId,
+        selectedIterationIdRef.current,
+      );
+      const statsFailed = shouldActivate && statsResult.status === 'rejected';
+
+      if (shouldActivate) {
+        setStatsError(statsFailed ? getUserFacingError(statsResult.reason) : null);
+      } else if (!shouldActivate && source?.iterationId === selectedIterationIdRef.current) {
+        setStatsError('任务归属已变化，请重新加载当前迭代统计。');
+      }
 
       setState((current) =>
         current.status === 'ready'
@@ -437,20 +625,38 @@ export function IterationsPage() {
               data: {
                 ...current.data,
                 iterations:
-                  iterationsResult.status === 'fulfilled' && iterationsResult.value.length > 0
-                    ? iterationsResult.value
+                  ownershipResult.status === 'fulfilled'
+                    ? ownershipResult.value.iterations
                     : replaceSummary(current.data.iterations, selected),
-                selected,
-                stats: statsResult.status === 'fulfilled' ? statsResult.value : current.data.stats,
+                selected: shouldActivate ? selected : current.data.selected,
+                stats: shouldActivate
+                  ? statsResult.status === 'fulfilled'
+                    ? statsResult.value
+                    : EMPTY_STATS
+                  : current.data.stats,
+                taskIterations:
+                  ownershipResult.status === 'fulfilled'
+                    ? ownershipResult.value.taskIterations
+                    : applySelectedIterationOwnership(current.data.taskIterations, selected),
               },
               status: 'ready',
             }
           : current,
       );
       setAddTaskId('');
-      setCreateMessage({ text: '任务已加入迭代。', type: 'success' });
+      setPendingTaskMigrationId(null);
+      if (shouldActivate) {
+        setCreateMessage({
+          text: source
+            ? `任务“${taskTitle}”已从“${source.iterationName}”迁移到当前迭代。`
+            : '任务已加入迭代。',
+          type: 'success',
+        });
+      }
     } catch (error) {
-      setAddTaskError(getUserFacingError(error));
+      if (isIterationResponseCurrent(targetIterationId, selectedIterationIdRef.current)) {
+        setAddTaskError(getUserFacingError(error));
+      }
     } finally {
       setIsAddingTask(false);
     }
@@ -461,22 +667,28 @@ export function IterationsPage() {
       return;
     }
 
+    const projectId = state.data.project.id;
+    const targetIterationId = state.data.selected.id;
     setIsRemovingTaskId(taskId);
     setAddTaskError(null);
     setCreateMessage(null);
 
     try {
-      const selected = await removeIterationTask(
-        api,
-        state.data.project.id,
-        state.data.selected.id,
-        taskId,
-      );
-      const [statsResult, iterationsResult] = await Promise.allSettled([
-        getIterationStats(api, state.data.project.id, selected.id),
-        refreshIterationSummaries(),
+      const selected = await removeIterationTask(api, projectId, targetIterationId, taskId);
+      const [statsResult, ownershipResult] = await Promise.allSettled([
+        getIterationStats(api, projectId, selected.id),
+        loadIterationData(projectId),
       ]);
-      ++selectionVersionRef.current;
+      const shouldActivate = isIterationResponseCurrent(
+        targetIterationId,
+        selectedIterationIdRef.current,
+      );
+
+      setStatsError(
+        shouldActivate && statsResult.status === 'rejected'
+          ? getUserFacingError(statsResult.reason)
+          : null,
+      );
 
       setState((current) =>
         current.status === 'ready'
@@ -484,19 +696,31 @@ export function IterationsPage() {
               data: {
                 ...current.data,
                 iterations:
-                  iterationsResult.status === 'fulfilled' && iterationsResult.value.length > 0
-                    ? iterationsResult.value
+                  ownershipResult.status === 'fulfilled'
+                    ? ownershipResult.value.iterations
                     : replaceSummary(current.data.iterations, selected),
-                selected,
-                stats: statsResult.status === 'fulfilled' ? statsResult.value : current.data.stats,
+                selected: shouldActivate ? selected : current.data.selected,
+                stats: shouldActivate
+                  ? statsResult.status === 'fulfilled'
+                    ? statsResult.value
+                    : EMPTY_STATS
+                  : current.data.stats,
+                taskIterations:
+                  ownershipResult.status === 'fulfilled'
+                    ? ownershipResult.value.taskIterations
+                    : applySelectedIterationOwnership(current.data.taskIterations, selected),
               },
               status: 'ready',
             }
           : current,
       );
-      setCreateMessage({ text: '任务已移出迭代。', type: 'success' });
+      if (shouldActivate) {
+        setCreateMessage({ text: '任务已移出迭代。', type: 'success' });
+      }
     } catch (error) {
-      setAddTaskError(getUserFacingError(error));
+      if (isIterationResponseCurrent(targetIterationId, selectedIterationIdRef.current)) {
+        setAddTaskError(getUserFacingError(error));
+      }
     } finally {
       setIsRemovingTaskId(null);
     }
@@ -507,21 +731,38 @@ export function IterationsPage() {
       return;
     }
 
+    const projectId = state.data.project.id;
+    const targetIterationId = state.data.selected.id;
+    const movingTaskIds = state.data.selected.tasks
+      .filter((task) => task.status !== 'COMPLETED')
+      .map((task) => task.id);
+    const nextIteration = closeNextIterationId
+      ? state.data.iterations.find((iteration) => iteration.id === closeNextIterationId)
+      : null;
     setIsClosing(true);
     setCloseError(null);
 
     try {
       const selected = await closeIteration(
         api,
-        state.data.project.id,
-        state.data.selected.id,
+        projectId,
+        targetIterationId,
         closeNextIterationId ? { nextIterationId: closeNextIterationId } : {},
       );
-      const [statsResult, iterationsResult] = await Promise.allSettled([
-        getIterationStats(api, state.data.project.id, selected.id),
-        refreshIterationSummaries(),
+      const [statsResult, ownershipResult] = await Promise.allSettled([
+        getIterationStats(api, projectId, selected.id),
+        loadIterationData(projectId),
       ]);
-      ++selectionVersionRef.current;
+      const shouldActivate = isIterationResponseCurrent(
+        targetIterationId,
+        selectedIterationIdRef.current,
+      );
+
+      setStatsError(
+        shouldActivate && statsResult.status === 'rejected'
+          ? getUserFacingError(statsResult.reason)
+          : null,
+      );
 
       setState((current) =>
         current.status === 'ready'
@@ -529,11 +770,34 @@ export function IterationsPage() {
               data: {
                 ...current.data,
                 iterations:
-                  iterationsResult.status === 'fulfilled' && iterationsResult.value.length > 0
-                    ? iterationsResult.value
+                  ownershipResult.status === 'fulfilled'
+                    ? ownershipResult.value.iterations
                     : replaceSummary(current.data.iterations, selected),
-                selected,
-                stats: statsResult.status === 'fulfilled' ? statsResult.value : current.data.stats,
+                selected: shouldActivate ? selected : current.data.selected,
+                stats: shouldActivate
+                  ? statsResult.status === 'fulfilled'
+                    ? statsResult.value
+                    : EMPTY_STATS
+                  : current.data.stats,
+                taskIterations:
+                  ownershipResult.status === 'fulfilled'
+                    ? ownershipResult.value.taskIterations
+                    : movingTaskIds.reduce<Record<string, TaskIterationOwnership>>(
+                        (ownership, taskId) => {
+                          if (nextIteration) {
+                            ownership[taskId] = {
+                              iterationId: nextIteration.id,
+                              iterationName: nextIteration.name,
+                              iterationStatus: nextIteration.status,
+                            };
+                          }
+
+                          return ownership;
+                        },
+                        {
+                          ...applySelectedIterationOwnership(current.data.taskIterations, selected),
+                        },
+                      ),
               },
               status: 'ready',
             }
@@ -541,14 +805,47 @@ export function IterationsPage() {
       );
       setCloseOpen(false);
       setCloseNextIterationId('');
-      setCreateMessage({
-        text: closeNextIterationId ? '迭代已关闭，未完成任务已迁移到下一迭代。' : '迭代已关闭。',
-        type: 'success',
-      });
+      if (shouldActivate) {
+        setCreateMessage({
+          text: closeNextIterationId ? '迭代已关闭，未完成任务已迁移到下一迭代。' : '迭代已关闭。',
+          type: 'success',
+        });
+      }
     } catch (error) {
-      setCloseError(getUserFacingError(error));
+      if (isIterationResponseCurrent(targetIterationId, selectedIterationIdRef.current)) {
+        setCloseError(getUserFacingError(error));
+      }
     } finally {
       setIsClosing(false);
+    }
+  }
+
+  async function retrySelectedIterationStats(): Promise<void> {
+    if (state.status !== 'ready' || !state.data.selected || isRefreshingStats) {
+      return;
+    }
+
+    const iterationId = state.data.selected.id;
+    const projectId = state.data.project.id;
+    setIsRefreshingStats(true);
+
+    try {
+      const stats = await getIterationStats(api, projectId, iterationId);
+
+      if (isIterationResponseCurrent(iterationId, selectedIterationIdRef.current)) {
+        setState((current) =>
+          current.status === 'ready' && current.data.selected?.id === iterationId
+            ? { data: { ...current.data, stats }, status: 'ready' }
+            : current,
+        );
+        setStatsError(null);
+      }
+    } catch (error) {
+      if (isIterationResponseCurrent(iterationId, selectedIterationIdRef.current)) {
+        setStatsError(getUserFacingError(error));
+      }
+    } finally {
+      setIsRefreshingStats(false);
     }
   }
 
@@ -575,8 +872,15 @@ export function IterationsPage() {
     );
   }
 
-  const { iterations, project, selected, stats, tasks } = state.data;
+  const { iterations, project, selected, stats, taskIterations, tasks } = state.data;
   const canManage = canManageProject(project.accessRole) && project.status !== 'ARCHIVED';
+  const statsUnavailable = statsError !== null;
+  const localOverdueCount = selected
+    ? selected.tasks.filter((task) => isIterationTaskOverdue(task)).length
+    : stats.overdue;
+  const pendingTaskMigrationSource = pendingTaskMigrationId
+    ? taskIterations[pendingTaskMigrationId]
+    : null;
   const availableTasks = selected
     ? tasks.filter((task) => !selected.tasks.some((item) => item.id === task.id))
     : [];
@@ -708,9 +1012,9 @@ export function IterationsPage() {
                   className={`iteration-list-row${
                     selected?.id === iteration.id ? ' is-active' : ''
                   }`}
-                  disabled={isLoadingSelection}
+                  disabled={isLoadingSelection || isAddingTask || isClosing}
                   key={iteration.id}
-                  onClick={() => void selectIteration(iteration.id)}
+                  onClick={() => requestIterationSelection(iteration.id)}
                   type="button"
                 >
                   <div>
@@ -753,30 +1057,46 @@ export function IterationsPage() {
                 <span>{formatProjectDate(selected.endDate)}</span>
               </div>
 
+              {statsError ? (
+                <div className="iteration-stats-error">
+                  <ErrorNotice message={`迭代统计刷新失败：${statsError}`} />
+                  <button
+                    className="secondary-button"
+                    disabled={isRefreshingStats}
+                    onClick={() => void retrySelectedIterationStats()}
+                    type="button"
+                  >
+                    {isRefreshingStats ? '正在重新加载...' : '重新加载统计'}
+                  </button>
+                </div>
+              ) : null}
+
               <div className="iteration-stats" aria-label="迭代统计">
                 <article>
                   <span>任务总数</span>
-                  <strong>{stats.total}</strong>
+                  <strong>{statsUnavailable ? '-' : stats.total}</strong>
                 </article>
                 <article>
                   <span>已完成</span>
-                  <strong>{stats.completed}</strong>
+                  <strong>{statsUnavailable ? '-' : stats.completed}</strong>
                 </article>
                 <article>
                   <span>进行中</span>
-                  <strong>{stats.inProgress}</strong>
+                  <strong>{statsUnavailable ? '-' : stats.inProgress}</strong>
                 </article>
                 <article>
                   <span>阻塞</span>
-                  <strong>{stats.blocked}</strong>
+                  <strong>{statsUnavailable ? '-' : stats.blocked}</strong>
                 </article>
-                <article className={stats.overdue > 0 ? 'is-warning' : ''}>
+                <article className={!statsUnavailable && localOverdueCount > 0 ? 'is-warning' : ''}>
                   <span>逾期</span>
-                  <strong>{stats.overdue}</strong>
+                  <strong>{statsUnavailable ? '-' : localOverdueCount}</strong>
                 </article>
                 <article>
                   <span>完成率</span>
-                  <strong>{formatCompletionRate(stats.completionRate)}</strong>
+                  <strong>
+                    {statsUnavailable ? '-' : formatCompletionRate(stats.completionRate)}
+                  </strong>
                 </article>
               </div>
 
@@ -926,6 +1246,9 @@ export function IterationsPage() {
                           availableTasks.map((task) => (
                             <option key={task.id} value={task.id}>
                               {task.title} · {getTaskStatusLabel(task.status)}
+                              {taskIterations[task.id]
+                                ? ` · 当前属于“${taskIterations[task.id]?.iterationName}”`
+                                : ''}
                             </option>
                           ))
                         )}
@@ -934,7 +1257,7 @@ export function IterationsPage() {
                     <button
                       className="secondary-button"
                       disabled={isAddingTask || availableTasks.length === 0}
-                      onClick={() => void handleAddTask()}
+                      onClick={requestAddTask}
                       type="button"
                     >
                       {isAddingTask ? '正在加入...' : '加入迭代'}
@@ -984,6 +1307,43 @@ export function IterationsPage() {
           ) : null}
         </div>
       )}
+
+      {pendingIterationId ? (
+        <ConfirmDialog
+          confirmLabel="放弃并切换"
+          message="当前迭代还有未保存的修改，切换后这些修改将丢失。"
+          onCancel={() => setPendingIterationId(null)}
+          onConfirm={() => {
+            const iterationId = pendingIterationId;
+
+            setPendingIterationId(null);
+            setEditOpen(false);
+            setEditErrors({});
+            void selectIteration(iterationId);
+          }}
+          title="切换迭代"
+          tone="danger"
+        />
+      ) : null}
+
+      {pendingTaskMigrationId && pendingTaskMigrationSource ? (
+        <ConfirmDialog
+          confirmLabel="确认迁移"
+          message={`任务当前属于“${pendingTaskMigrationSource.iterationName}”（${getIterationStatusLabel(
+            pendingTaskMigrationSource.iterationStatus,
+          )}）。继续后会将其移入当前迭代，原迭代统计也会变化。`}
+          onCancel={() => setPendingTaskMigrationId(null)}
+          onConfirm={() => {
+            const taskId = pendingTaskMigrationId;
+            const source = pendingTaskMigrationSource;
+
+            setPendingTaskMigrationId(null);
+            void handleAddTask(taskId, source);
+          }}
+          title="迁移任务"
+          tone="danger"
+        />
+      ) : null}
 
       {statusAction ? (
         <ConfirmDialog

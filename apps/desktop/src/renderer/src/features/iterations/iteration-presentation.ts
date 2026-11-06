@@ -42,15 +42,35 @@ export function formatCompletionRate(rate: number): string {
   return `${Number.isInteger(percentage) ? percentage : percentage.toFixed(1)}%`;
 }
 
+function toCalendarDate(value: Date, timeZone: string): string | null {
+  if (Number.isNaN(value.getTime())) {
+    return null;
+  }
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone,
+    year: 'numeric',
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
 export function isIterationTaskOverdue(
   task: Pick<IterationTaskSummaryDto, 'dueDate' | 'status'>,
   now = new Date(),
+  timeZone = 'Asia/Shanghai',
 ): boolean {
   if (!task.dueDate || task.status === 'COMPLETED') {
     return false;
   }
 
-  const dueDate = new Date(task.dueDate);
+  const dueDate = /^(\d{4}-\d{2}-\d{2})/.exec(task.dueDate)?.[1] ?? null;
+  const today = toCalendarDate(now, timeZone);
 
-  return !Number.isNaN(dueDate.getTime()) && dueDate.getTime() < now.getTime();
+  return Boolean(dueDate && today && dueDate < today);
 }
