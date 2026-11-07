@@ -483,7 +483,7 @@ export function RequirementDetailPage() {
         <ConfirmDialog
           confirmLabel="确认删除"
           isPending={isDeleting}
-          message={`删除需求 ${state.requirement.number} 后不可恢复。`}
+          message={`删除需求 ${state.requirement.number} 后不可恢复。${commentDirty ? '未保存的评论也会丢失。' : ''}`}
           onCancel={() => setDeleteDialogOpen(false)}
           onConfirm={() => void handleDelete()}
           title="删除需求"

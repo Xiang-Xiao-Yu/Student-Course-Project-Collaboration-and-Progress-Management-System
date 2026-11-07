@@ -263,6 +263,20 @@ describe('FR-04 需求页面异步操作回归', () => {
     expect(page.guardsUnsavedChanges()).toBe(false);
   });
 
+  it('删除需求前提示未保存的评论草稿也会丢失', async () => {
+    const page = new PageReplay(RequirementDetailPage);
+    await page.settle();
+    page.props<ComponentProps<typeof CommentPanel>>(CommentPanel).onDirtyChange?.(true);
+    page.render();
+    const button = page.find('button').find((element) => element.props.children === '删除需求');
+    (button?.props.onClick as () => void)();
+    page.render();
+
+    expect(page.props<ComponentProps<typeof ConfirmDialog>>(ConfirmDialog).message).toContain(
+      '未保存的评论',
+    );
+  });
+
   it('创建请求尚未完成时继续提示未保存内容', async () => {
     const pending = deferred<RequirementDto>();
     boundary.api.post.mockReturnValue(pending.promise);
