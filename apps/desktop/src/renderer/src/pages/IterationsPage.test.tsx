@@ -408,6 +408,36 @@ describe('P4 iteration page regressions', () => {
     await page.settle();
   });
 
+  it('移出完成前禁止切换，完成后同步任务和统计', async () => {
+    const pending = deferred<unknown>();
+    boundary.api.delete.mockReturnValue(pending.promise);
+    let removed = false;
+    boundary.api.get.mockImplementation(async (path) => {
+      if (path === '/projects/project-1') return project;
+      if (path === '/projects/project-1/tasks') return [task];
+      if (path === '/projects/project-1/iterations') {
+        return [iteration('a', removed ? [] : [task]), iteration('b', [])];
+      }
+      if (path === '/projects/project-1/iterations/a') return iteration('a', removed ? [] : [task]);
+      if (path === '/projects/project-1/iterations/b') return iteration('b', []);
+      if (path.endsWith('/stats')) return { ...stats, total: removed ? 0 : 1 };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    const page = new PageReplay();
+    await page.settle();
+    page.clickButton('移出迭代');
+    const next = page.find('button').find((item) => item.key === 'b');
+    expect(next?.props.disabled).toBe(true);
+    removed = true;
+    pending.resolve(iteration('a', []));
+    await page.settle();
+
+    expect(page.find('article').some((item) => item.key === task.id)).toBe(false);
+    const cards = page.find('div').find((item) => item.props['aria-label'] === '迭代统计');
+    expect(findElements(cards, 'strong')[0]?.props.children).toBe(0);
+    expect(page.find('button').find((item) => item.key === 'b')?.props.disabled).toBe(false);
+  });
+
   it('移出任务后切换往返时不使用旧响应覆盖新迭代详情', async () => {
     const pending = deferred<unknown>();
     boundary.api.delete.mockReturnValue(pending.promise);

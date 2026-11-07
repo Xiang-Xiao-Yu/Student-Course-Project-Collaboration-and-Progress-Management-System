@@ -1127,9 +1127,7 @@ export function IterationsPage() {
                   className={`iteration-list-row${
                     selected?.id === iteration.id ? ' is-active' : ''
                   }`}
-                  disabled={
-                    isLoadingSelection || isAddingTask || isClosing || isUpdating || isCreating
-                  }
+                  disabled={isWritePending}
                   key={iteration.id}
                   onClick={() => requestIterationSelection(iteration.id)}
                   type="button"
