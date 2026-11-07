@@ -9,7 +9,9 @@ const root = resolve(process.argv[2] ?? '');
 const playwrightPackage = process.argv[3];
 const electronExe = process.argv[4];
 const apiBaseUrl = process.argv[5];
-const runDirectory = join(root, 'tmp', 'ui-demo', 'p4-run-' + Date.now());
+const runDirectory = process.argv[6]
+  ? resolve(process.argv[6])
+  : join(root, 'tmp', 'ui-demo', 'p4-run-' + Date.now());
 mkdirSync(runDirectory, { recursive: true });
 
 const { _electron } = createRequire(playwrightPackage)('playwright');
@@ -163,6 +165,7 @@ try {
     requirementId: requirement.id,
   });
   const removableTask = await createTask(owner.token, project.id, '临时移出任务', '2026-12-15');
+  const staleTask = await createTask(owner.token, project.id, '并发迁移任务', '2026-12-16');
 
   await setTaskStatus(owner.token, project.id, blockedTask.id, 'TODO');
   await setTaskStatus(owner.token, project.id, blockedTask.id, 'BLOCKED');
@@ -179,6 +182,7 @@ try {
     args: [
       join(root, 'apps', 'desktop', 'out', 'main', 'index.js'),
       '--user-data-dir=' + join(runDirectory, 'electron-profile'),
+      ...(process.env.P4_TEST_NO_SANDBOX === '1' ? ['--no-sandbox'] : []),
     ],
     env: { ...process.env, ELECTRON_API_BASE_URL: apiBaseUrl },
     timeout: 20000,
@@ -257,7 +261,22 @@ try {
     'Unsaved edit confirmation cancel changed the selected iteration',
   );
   results.push({ name: 'unsaved iteration switch confirmation', status: 'PASS' });
+  await createIteration('P4 草稿验证迭代', '验证创建时保留当前编辑。', '2026-12-01', '2026-12-31');
+  check(
+    (await page.locator('.iteration-edit-form textarea').inputValue()) === '尚未保存的迭代目标',
+    'Creating another iteration lost the unsaved edit',
+  );
+  check(
+    (await page.locator('.iteration-detail-panel h2').innerText()) === 'P4 主迭代',
+    'Creating another iteration changed selection while editing',
+  );
   await page.getByRole('button', { name: '收起编辑', exact: true }).click();
+  await page.locator('.iteration-list-row').filter({ hasText: 'P4 迁移迭代' }).click();
+  await switchDialog.waitFor();
+  await switchDialog.getByRole('button', { name: '取消', exact: true }).click();
+  await page.getByRole('button', { name: '编辑迭代', exact: true }).click();
+  await page.getByRole('button', { name: '放弃修改', exact: true }).click();
+  results.push({ name: 'creation and collapsed editor preserve unsaved changes', status: 'PASS' });
 
   await page.getByRole('button', { name: '关闭迭代', exact: true }).click();
   const closeDialog = page.locator('.iteration-close-dialog');
@@ -282,6 +301,47 @@ try {
   results.push({ name: 'iteration statistics and task removal', status: 'PASS' });
   results.push({ name: 'iteration close and incomplete task migration', status: 'PASS' });
 
+  await createIteration('P4 取消迭代', '验证终态未完成任务迁移。', '2026-11-01', '2026-11-30');
+  await addTaskToSelectedIteration(removableTask);
+  await page.getByRole('button', { name: '取消迭代', exact: true }).click();
+  await confirmDialog.getByRole('button', { name: '确认更新', exact: true }).click();
+  await page.getByText('迭代已更新为“已取消”。', { exact: true }).waitFor();
+  check(
+    (await page.getByRole('button', { name: '加入迭代', exact: true }).count()) === 0,
+    'Canceled iteration still offers an invalid add action',
+  );
+  await page.locator('.iteration-list-row').filter({ hasText: 'P4 迁移迭代' }).click();
+  await page.locator('.iteration-add-task select').selectOption(removableTask.id);
+  await page.getByRole('button', { name: '加入迭代', exact: true }).click();
+  await migrationDialog.getByRole('button', { name: '确认迁移', exact: true }).click();
+  await page.locator('.iteration-task-row').filter({ hasText: removableTask.title }).waitFor();
+  results.push({ name: 'unfinished tasks can move out of canceled iterations', status: 'PASS' });
+
+  const iterations = await apiRequest(`/projects/${project.id}/iterations`, 'GET', owner.token);
+  const concurrentSource = iterations.find((item) => item.name === 'P4 草稿验证迭代');
+  await apiRequest(
+    `/projects/${project.id}/iterations/${concurrentSource.id}/tasks`,
+    'POST',
+    owner.token,
+    { expectedIterationId: null, taskId: staleTask.id },
+  );
+  await page.locator('.iteration-add-task select').selectOption(staleTask.id);
+  await page.getByRole('button', { name: '加入迭代', exact: true }).click();
+  await page.getByText('任务归属已变化，请刷新后重试', { exact: true }).waitFor();
+  const sourceAfterConflict = await apiRequest(
+    `/projects/${project.id}/iterations/${concurrentSource.id}`,
+    'GET',
+    owner.token,
+  );
+  check(
+    sourceAfterConflict.tasks.some((item) => item.id === staleTask.id),
+    'Stale migration overwrote another iteration',
+  );
+  results.push({
+    name: 'stale task ownership is rejected without moving the task',
+    status: 'PASS',
+  });
+
   await page.getByRole('link', { name: '任务看板', exact: true }).click();
   await page
     .locator('.board-column--completed .task-card')
@@ -292,6 +352,13 @@ try {
 
   const taskCommentPanel = page.locator('.comment-panel');
   await taskCommentPanel.getByLabel('发布评论', { exact: true }).fill('第一轮任务评论');
+  await page.getByRole('link', { name: '需求管理', exact: true }).click();
+  const unsavedDialog = page.locator('.confirm-dialog').filter({ hasText: '存在未保存内容' });
+  await unsavedDialog.getByRole('button', { name: '继续编辑', exact: true }).click();
+  check(
+    (await taskCommentPanel.locator('.comment-compose textarea').inputValue()) === '第一轮任务评论',
+    'Task comment draft was lost when navigation was canceled',
+  );
   await taskCommentPanel.getByRole('button', { name: '发表评论', exact: true }).click();
   await page.getByText('评论已发布。', { exact: true }).waitFor();
   const taskComment = taskCommentPanel
@@ -300,6 +367,8 @@ try {
   const editingTaskComment = taskCommentPanel.locator('.comment-row').first();
   await taskComment.getByRole('button', { name: '编辑', exact: true }).click();
   await editingTaskComment.locator('textarea').fill('修改后的任务评论');
+  await page.getByRole('link', { name: '需求管理', exact: true }).click();
+  await unsavedDialog.getByRole('button', { name: '继续编辑', exact: true }).click();
   await editingTaskComment.getByRole('button', { name: '保存评论', exact: true }).click();
   await page.getByText('评论已更新。', { exact: true }).waitFor();
   await capture('task-comment-edited.png');
@@ -324,8 +393,14 @@ try {
   await requirementCommentPanel
     .getByLabel('发布评论', { exact: true })
     .fill('观察员只能查看的需求评论');
+  await page.getByRole('link', { name: '任务看板', exact: true }).click();
+  await unsavedDialog.getByRole('button', { name: '继续编辑', exact: true }).click();
   await requirementCommentPanel.getByRole('button', { name: '发表评论', exact: true }).click();
   await page.getByText('评论已发布。', { exact: true }).waitFor();
+  results.push({
+    name: 'comment drafts block navigation on task and requirement pages',
+    status: 'PASS',
+  });
 
   await logout();
   await login(observer.username);

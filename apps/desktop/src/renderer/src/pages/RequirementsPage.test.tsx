@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
+import { CommentPanel } from '../features/comments/CommentPanel';
 import type { ProjectDto } from '../features/projects/project-api';
 import type { RequirementDto } from '../features/requirements/requirement-api';
 import { RequirementDetailPage } from './RequirementDetailPage';
@@ -245,6 +246,23 @@ async function createDraft(): Promise<PageReplay> {
 }
 
 describe('FR-04 需求页面异步操作回归', () => {
+  it('评论草稿与需求表单共用离开提醒', async () => {
+    const page = new PageReplay(RequirementDetailPage);
+    await page.settle();
+    const panel = page.props<
+      ComponentProps<typeof CommentPanel> & {
+        onDirtyChange?: (dirty: boolean) => void;
+      }
+    >(CommentPanel);
+
+    panel.onDirtyChange?.(true);
+    page.render();
+    expect(page.guardsUnsavedChanges()).toBe(true);
+    panel.onDirtyChange?.(false);
+    page.render();
+    expect(page.guardsUnsavedChanges()).toBe(false);
+  });
+
   it('创建请求尚未完成时继续提示未保存内容', async () => {
     const pending = deferred<RequirementDto>();
     boundary.api.post.mockReturnValue(pending.promise);

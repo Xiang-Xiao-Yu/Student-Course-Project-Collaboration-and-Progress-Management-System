@@ -43,4 +43,14 @@ describe('P4 iteration presentation', () => {
     expect(isIterationTaskOverdue(task, new Date('2026-11-05T15:59:59.999Z'))).toBe(false);
     expect(isIterationTaskOverdue(task, new Date('2026-11-05T16:00:00.000Z'))).toBe(true);
   });
+
+  it('截止时间跨越 UTC 日期时仍按上海日历日判断', () => {
+    const task = {
+      dueDate: '2026-11-06T20:00:00.000Z',
+      status: 'IN_PROGRESS' as const,
+    };
+
+    expect(isIterationTaskOverdue(task, new Date('2026-11-06T18:00:00.000Z'))).toBe(false);
+    expect(isIterationTaskOverdue(task, new Date('2026-11-07T16:00:00.000Z'))).toBe(true);
+  });
 });

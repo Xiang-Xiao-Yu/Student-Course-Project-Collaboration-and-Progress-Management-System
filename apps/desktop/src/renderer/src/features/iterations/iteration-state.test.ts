@@ -30,11 +30,8 @@ describe('P4 iteration response state', () => {
   });
 
   it('编辑有未保存内容时切换迭代需要确认', () => {
-    expect(requiresIterationSwitchConfirmation(true, form, { ...form, goal: '新目标' })).toBe(true);
-    expect(requiresIterationSwitchConfirmation(false, form, { ...form, goal: '新目标' })).toBe(
-      false,
-    );
-    expect(requiresIterationSwitchConfirmation(true, form, form)).toBe(false);
+    expect(requiresIterationSwitchConfirmation(form, { ...form, goal: '新目标' })).toBe(true);
+    expect(requiresIterationSwitchConfirmation(form, form)).toBe(false);
   });
 
   it('统计刷新失败保留原值但返回明确错误，由页面隐藏旧数字并允许重试', () => {

@@ -213,12 +213,15 @@ export function IterationsPage() {
   const [statusAction, setStatusAction] = useState<IterationStatus | null>(null);
   const selectionVersionRef = useRef(0);
   const selectedIterationIdRef = useRef<string | null>(null);
+  const editDirtyRef = useRef(false);
+  const editIterationIdRef = useRef<string | null>(null);
 
   const selectedIterationId = state.status === 'ready' ? (state.data.selected?.id ?? null) : null;
   const selectedIterationUpdatedAt =
     state.status === 'ready' ? (state.data.selected?.updatedAt ?? null) : null;
 
   selectedIterationIdRef.current = selectedIterationId;
+  editDirtyRef.current = hasUnsavedIterationChanges(editInitialForm, editForm);
 
   useEffect(() => {
     selectionVersionRef.current += 1;
@@ -297,6 +300,11 @@ export function IterationsPage() {
 
   useEffect(() => {
     if (state.status === 'ready' && state.data.selected) {
+      const selectionChanged = editIterationIdRef.current !== state.data.selected.id;
+      editIterationIdRef.current = state.data.selected.id;
+      if (!selectionChanged && editDirtyRef.current) {
+        return;
+      }
       const nextForm = iterationToForm(state.data.selected);
 
       setEditForm(nextForm);
@@ -307,7 +315,10 @@ export function IterationsPage() {
   }, [selectedIterationId, selectedIterationUpdatedAt, state.status]);
 
   function requestIterationSelection(iterationId: string): void {
-    if (requiresIterationSwitchConfirmation(editOpen, editInitialForm, editForm)) {
+    if (iterationId === selectedIterationIdRef.current) {
+      return;
+    }
+    if (requiresIterationSwitchConfirmation(editInitialForm, editForm)) {
       setPendingIterationId(iterationId);
       return;
     }
@@ -394,10 +405,9 @@ export function IterationsPage() {
         state.data.project.id,
         formToCreateIterationInput(createForm),
       );
-      const shouldActivate = isIterationResponseCurrent(
-        selectedAtStart,
-        selectedIterationIdRef.current,
-      );
+      const shouldActivate =
+        isIterationResponseCurrent(selectedAtStart, selectedIterationIdRef.current) &&
+        !editDirtyRef.current;
 
       setState((current) =>
         current.status === 'ready'
@@ -473,6 +483,11 @@ export function IterationsPage() {
           : current,
       );
       if (shouldActivate) {
+        const nextForm = iterationToForm(selected);
+        setEditForm(nextForm);
+        setEditInitialForm(nextForm);
+        setEditErrors({});
+        setEditOpen(false);
         setCreateMessage({ text: '迭代信息已更新。', type: 'success' });
       }
     } catch (error) {
@@ -602,7 +617,13 @@ export function IterationsPage() {
     setCreateMessage(null);
 
     try {
-      const selected = await addIterationTask(api, projectId, targetIterationId, selectedTaskId);
+      const selected = await addIterationTask(
+        api,
+        projectId,
+        targetIterationId,
+        selectedTaskId,
+        source?.iterationId ?? null,
+      );
       const [statsResult, ownershipResult] = await Promise.allSettled([
         getIterationStats(api, projectId, selected.id),
         loadIterationData(projectId),
@@ -684,11 +705,11 @@ export function IterationsPage() {
         selectedIterationIdRef.current,
       );
 
-      setStatsError(
-        shouldActivate && statsResult.status === 'rejected'
-          ? getUserFacingError(statsResult.reason)
-          : null,
-      );
+      if (shouldActivate) {
+        setStatsError(
+          statsResult.status === 'rejected' ? getUserFacingError(statsResult.reason) : null,
+        );
+      }
 
       setState((current) =>
         current.status === 'ready'
@@ -758,11 +779,11 @@ export function IterationsPage() {
         selectedIterationIdRef.current,
       );
 
-      setStatsError(
-        shouldActivate && statsResult.status === 'rejected'
-          ? getUserFacingError(statsResult.reason)
-          : null,
-      );
+      if (shouldActivate) {
+        setStatsError(
+          statsResult.status === 'rejected' ? getUserFacingError(statsResult.reason) : null,
+        );
+      }
 
       setState((current) =>
         current.status === 'ready'
@@ -881,8 +902,17 @@ export function IterationsPage() {
   const pendingTaskMigrationSource = pendingTaskMigrationId
     ? taskIterations[pendingTaskMigrationId]
     : null;
+  const selectedIsTerminal = selected?.status === 'COMPLETED' || selected?.status === 'CANCELED';
   const availableTasks = selected
-    ? tasks.filter((task) => !selected.tasks.some((item) => item.id === task.id))
+    ? tasks.filter((task) => {
+        const source = taskIterations[task.id];
+        const sourceIsTerminal =
+          source?.iterationStatus === 'COMPLETED' || source?.iterationStatus === 'CANCELED';
+        return (
+          !selected.tasks.some((item) => item.id === task.id) &&
+          !(sourceIsTerminal && task.status === 'COMPLETED')
+        );
+      })
     : [];
   const nextIterationOptions = selected
     ? iterations.filter(
@@ -897,7 +927,7 @@ export function IterationsPage() {
     createForm.goal.length > 0 ||
     createForm.startDate.length > 0 ||
     createForm.endDate.length > 0;
-  const editDirty = editOpen && hasUnsavedIterationChanges(editInitialForm, editForm);
+  const editDirty = hasUnsavedIterationChanges(editInitialForm, editForm);
 
   return (
     <div className="page-stack p4-page">
@@ -1116,7 +1146,7 @@ export function IterationsPage() {
                       .map((status) => (
                         <button
                           className="secondary-button"
-                          disabled={isUpdating}
+                          disabled={isUpdating || editDirty}
                           key={status}
                           onClick={() => setStatusAction(status)}
                           type="button"
@@ -1127,7 +1157,7 @@ export function IterationsPage() {
                     {getIterationStatusTransitions(selected.status).includes('COMPLETED') ? (
                       <button
                         className="primary-button"
-                        disabled={isUpdating}
+                        disabled={isUpdating || editDirty}
                         onClick={() => {
                           setCloseError(null);
                           setCloseOpen(true);
@@ -1138,6 +1168,7 @@ export function IterationsPage() {
                       </button>
                     ) : null}
                   </div>
+                  {editDirty ? <p>请先保存或放弃迭代修改，再更改迭代状态。</p> : null}
 
                   {editOpen ? (
                     <form
@@ -1217,6 +1248,18 @@ export function IterationsPage() {
                         >
                           {isUpdating ? '正在保存...' : '保存迭代'}
                         </button>
+                        <button
+                          className="secondary-button"
+                          disabled={isUpdating || !editDirty}
+                          onClick={() => {
+                            setEditForm(editInitialForm);
+                            setEditErrors({});
+                            setEditOpen(false);
+                          }}
+                          type="button"
+                        >
+                          放弃修改
+                        </button>
                       </div>
                     </form>
                   ) : null}
@@ -1231,7 +1274,7 @@ export function IterationsPage() {
                   </div>
                 </div>
 
-                {canManage ? (
+                {canManage && !selectedIsTerminal ? (
                   <div className="iteration-add-task">
                     <label className="form-field">
                       <span>加入任务</span>
@@ -1286,7 +1329,7 @@ export function IterationsPage() {
                           </div>
                           <div className="iteration-task-row__actions">
                             {overdue ? <span className="overdue-badge">已逾期</span> : null}
-                            {canManage && selected.status !== 'COMPLETED' ? (
+                            {canManage && (!selectedIsTerminal || task.status !== 'COMPLETED') ? (
                               <button
                                 className="danger-text-button"
                                 disabled={isRemovingTaskId !== null}

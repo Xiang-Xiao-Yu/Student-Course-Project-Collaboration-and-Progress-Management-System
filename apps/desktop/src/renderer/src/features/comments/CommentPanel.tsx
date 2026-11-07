@@ -18,6 +18,7 @@ interface CommentPanelProps {
   readonly canComment: boolean;
   readonly currentUserId: string | null | undefined;
   readonly initialComments: readonly CommentDto[];
+  readonly onDirtyChange?: (dirty: boolean) => void;
   readonly projectId: string;
   readonly targetId: string;
   readonly targetType: CommentTargetType;
@@ -44,6 +45,7 @@ export function CommentPanel({
   canComment,
   currentUserId,
   initialComments,
+  onDirtyChange,
   projectId,
   targetId,
   targetType,
@@ -59,6 +61,18 @@ export function CommentPanel({
   const [editingContent, setEditingContent] = useState('');
   const [newContent, setNewContent] = useState('');
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const originalEditingContent = comments.find(
+    (comment) => comment.id === editingCommentId,
+  )?.content;
+  const hasDraft =
+    newContent.trim().length > 0 ||
+    (editingCommentId !== null && editingContent !== originalEditingContent);
+
+  useEffect(() => {
+    onDirtyChange?.(hasDraft);
+  }, [hasDraft, onDirtyChange]);
+
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   useEffect(() => {
     setComments(initialComments);

@@ -5,6 +5,7 @@ import { buildProjectPath, buildRequirementPath } from '../app/navigation';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { ErrorState } from '../components/feedback/ErrorState';
 import { LoadingState } from '../components/feedback/LoadingState';
+import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import { useSession } from '../features/auth/session';
 import type { CommentDto } from '../features/comments/comment-api';
@@ -106,6 +107,7 @@ export function TaskDetailPage() {
   }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [commentDirty, setCommentDirty] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
@@ -474,6 +476,7 @@ export function TaskDetailPage() {
 
   return (
     <div className="page-stack p3-page">
+      <UnsavedChangesGuard message="评论尚未保存，离开后更改将丢失。" when={commentDirty} />
       <div className="page-heading-with-action">
         <PageHeader title="任务详情" description="查看任务属性、完成信息和状态流转。" />
         <Link className="secondary-link" to={buildProjectPath(project.id, 'board')}>
@@ -622,6 +625,7 @@ export function TaskDetailPage() {
           canComment={canEdit}
           currentUserId={session?.user.id}
           initialComments={comments}
+          onDirtyChange={setCommentDirty}
           projectId={project.id}
           targetId={task.id}
           targetType="TASK"

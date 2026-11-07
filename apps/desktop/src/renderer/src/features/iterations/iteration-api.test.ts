@@ -46,7 +46,7 @@ describe('P4 iteration API', () => {
       post: vi.fn(async () => ({ tasks: [] })),
     };
 
-    await addIterationTask(api as never, 'project-1', 'iteration-1', 'task/1');
+    await addIterationTask(api as never, 'project-1', 'iteration-1', 'task/1', 'iteration-2');
     await removeIterationTask(api as never, 'project-1', 'iteration-1', 'task/1');
     await updateIteration(api as never, 'project-1', 'iteration-1', {
       status: 'IN_PROGRESS',
@@ -58,7 +58,7 @@ describe('P4 iteration API', () => {
     expect(api.post).toHaveBeenNthCalledWith(
       1,
       '/projects/project-1/iterations/iteration-1/tasks',
-      { taskId: 'task/1' },
+      { expectedIterationId: 'iteration-2', taskId: 'task/1' },
     );
     expect(api.delete).toHaveBeenCalledWith(
       '/projects/project-1/iterations/iteration-1/tasks/task%2F1',

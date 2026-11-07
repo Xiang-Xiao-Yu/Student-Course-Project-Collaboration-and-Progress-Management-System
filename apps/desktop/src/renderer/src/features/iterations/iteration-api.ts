@@ -112,10 +112,11 @@ export function addIterationTask(
   projectId: string,
   iterationId: string,
   taskId: string,
+  expectedIterationId: string | null,
 ): Promise<IterationDetailDto> {
-  return api.post<IterationDetailDto, { taskId: string }>(
+  return api.post<IterationDetailDto, { expectedIterationId: string | null; taskId: string }>(
     `${iterationPath(projectId, iterationId)}/tasks`,
-    { taskId },
+    { expectedIterationId, taskId },
   );
 }
 

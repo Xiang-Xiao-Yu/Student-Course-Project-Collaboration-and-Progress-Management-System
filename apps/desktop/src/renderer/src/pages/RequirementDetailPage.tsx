@@ -83,6 +83,7 @@ export function RequirementDetailPage() {
   }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [commentDirty, setCommentDirty] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletedRequest, setDeletedRequest] = useState<RequirementPageRequest | null>(null);
   const [form, setForm] = useState<RequirementFormValues>({
@@ -282,8 +283,8 @@ export function RequirementDetailPage() {
   return (
     <div className="page-stack p3-page">
       <UnsavedChangesGuard
-        message="需求修改尚未保存，离开后更改将丢失。"
-        when={!deletedRequest && (hasUnsavedChanges || isSaving)}
+        message="需求或评论尚未保存，离开后更改将丢失。"
+        when={!deletedRequest && (hasUnsavedChanges || isSaving || commentDirty)}
       />
       <div className="page-heading-with-action">
         <PageHeader title="需求详情" description="维护需求内容、状态和关联任务。" />
@@ -452,6 +453,7 @@ export function RequirementDetailPage() {
         canComment={canEdit}
         currentUserId={session?.user.id}
         initialComments={state.comments}
+        onDirtyChange={setCommentDirty}
         projectId={state.project.id}
         targetId={state.requirement.id}
         targetType="REQUIREMENT"

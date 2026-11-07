@@ -9,11 +9,10 @@ export function isIterationResponseCurrent(
 }
 
 export function requiresIterationSwitchConfirmation(
-  editOpen: boolean,
   initial: IterationFormValues,
   current: IterationFormValues,
 ): boolean {
-  return editOpen && hasUnsavedIterationChanges(initial, current);
+  return hasUnsavedIterationChanges(initial, current);
 }
 
 export type IterationStatsRefreshResult<T> =

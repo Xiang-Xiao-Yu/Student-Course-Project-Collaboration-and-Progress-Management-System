@@ -69,7 +69,7 @@ export function isIterationTaskOverdue(
     return false;
   }
 
-  const dueDate = /^(\d{4}-\d{2}-\d{2})/.exec(task.dueDate)?.[1] ?? null;
+  const dueDate = toCalendarDate(new Date(task.dueDate), timeZone);
   const today = toCalendarDate(now, timeZone);
 
   return Boolean(dueDate && today && dueDate < today);
