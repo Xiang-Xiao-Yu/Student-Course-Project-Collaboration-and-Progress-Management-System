@@ -5,6 +5,9 @@ export const PROJECT_STATUSES = ['PLANNING', 'ACTIVE', 'PAUSED', 'COMPLETED', 'A
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
 export type ProjectPermission =
+  | 'COMMENT_CREATE'
+  | 'COMMENT_DELETE_OWN'
+  | 'COMMENT_UPDATE_OWN'
   | 'MEMBER_INVITE'
   | 'MEMBER_REMOVE'
   | 'MEMBER_UPDATE_ROLE'
@@ -47,6 +50,9 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'TASK_DELETE',
       'TASK_ASSIGN',
       'TASK_STATUS_UPDATE',
+      'COMMENT_CREATE',
+      'COMMENT_UPDATE_OWN',
+      'COMMENT_DELETE_OWN',
     ],
     MEMBER: [
       'PROJECT_VIEW',
@@ -59,6 +65,9 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'TASK_UPDATE',
       'TASK_ASSIGN',
       'TASK_STATUS_UPDATE',
+      'COMMENT_CREATE',
+      'COMMENT_UPDATE_OWN',
+      'COMMENT_DELETE_OWN',
     ],
     OBSERVER: ['PROJECT_VIEW', 'MEMBER_VIEW', 'REQUIREMENT_VIEW', 'TASK_VIEW'],
   };
