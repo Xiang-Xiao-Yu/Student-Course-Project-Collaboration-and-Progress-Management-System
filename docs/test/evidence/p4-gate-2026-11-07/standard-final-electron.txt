@@ -1,0 +1,12 @@
+<playwright-core>:45527
+  const failError = new Error("Process failed to launch!");
+                    ^
+
+Error: Process failed to launch!
+    at waitForLine (<playwright-core>:45527:21)
+    at Electron.launch (<playwright-core>:45737:36)
+    at async ElectronDispatcher.launch (<playwright-core>:57017:37)
+    at async _ProgressController.run (<playwright-core>:13018:27)
+    at async DispatcherConnection.dispatch (<playwright-core>:20191:27)
+
+Node.js v24.18.0

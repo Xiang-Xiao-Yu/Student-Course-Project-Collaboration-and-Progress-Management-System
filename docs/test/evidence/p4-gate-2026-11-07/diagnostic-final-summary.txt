@@ -1,0 +1,85 @@
+{
+  "commands": [
+    {
+      "exitCode": 0,
+      "name": "electron-version",
+      "timedOut": false
+    },
+    {
+      "exitCode": 0,
+      "name": "migration",
+      "timedOut": false
+    },
+    {
+      "exitCode": 0,
+      "name": "electron",
+      "timedOut": false
+    }
+  ],
+  "passed": false,
+  "sandboxOverride": true,
+  "electron": "44.4.3",
+  "cases": [
+    {
+      "name": "task source display and migration confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "keyboard cannot switch while a task removal is pending",
+      "status": "PASS"
+    },
+    {
+      "name": "unsaved iteration switch confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "creation and collapsed editor preserve unsaved changes",
+      "status": "PASS"
+    },
+    {
+      "name": "default task matches the visible candidate",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration creation and task membership",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration statistics and task removal",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration close and incomplete task migration",
+      "status": "PASS"
+    },
+    {
+      "name": "unfinished tasks can move out of canceled iterations",
+      "status": "PASS"
+    },
+    {
+      "name": "stale task ownership is rejected without moving the task",
+      "status": "PASS"
+    },
+    {
+      "name": "task deadline stays consistent across pages and editor",
+      "status": "PASS"
+    },
+    {
+      "name": "task comment create edit delete",
+      "status": "PASS"
+    },
+    {
+      "name": "requirement deletion warns about comment draft",
+      "status": "PASS"
+    },
+    {
+      "name": "comment drafts block navigation on task and requirement pages",
+      "status": "PASS"
+    },
+    {
+      "name": "requirement comments and observer read-only access",
+      "status": "PASS"
+    }
+  ],
+  "functionalPassed": true
+}
