@@ -296,6 +296,17 @@ try {
   await page.locator('.iteration-task-row').filter({ hasText: overdueTask.title }).waitFor();
   await page.locator('.iteration-task-row').filter({ hasText: blockedTask.title }).waitFor();
   await capture('iteration-overview.png');
+  const displayedTaskId = await page.locator('.iteration-add-task select').inputValue();
+  const displayedTask = [removableTask, staleTask].find((task) => task.id === displayedTaskId);
+  check(displayedTask, 'The default candidate is not an available unfinished task');
+  await page.getByRole('button', { name: '加入迭代', exact: true }).click();
+  const defaultAddedRow = page
+    .locator('.iteration-task-row')
+    .filter({ hasText: displayedTask.title });
+  await defaultAddedRow.waitFor();
+  await defaultAddedRow.getByRole('button', { name: '移出迭代', exact: true }).click();
+  await page.getByText('任务已移出迭代。', { exact: true }).waitFor();
+  results.push({ name: 'default task matches the visible candidate', status: 'PASS' });
 
   results.push({ name: 'iteration creation and task membership', status: 'PASS' });
   results.push({ name: 'iteration statistics and task removal', status: 'PASS' });
@@ -361,23 +372,42 @@ try {
   );
   await taskCommentPanel.getByRole('button', { name: '发表评论', exact: true }).click();
   await page.getByText('评论已发布。', { exact: true }).waitFor();
+  await taskCommentPanel.locator('.comment-compose textarea').fill('第二条任务评论');
+  await taskCommentPanel.getByRole('button', { name: '发表评论', exact: true }).click();
+  await taskCommentPanel.getByText('第二条任务评论', { exact: true }).waitFor();
   const taskComment = taskCommentPanel
     .locator('.comment-row')
     .filter({ hasText: '第一轮任务评论' });
+  const secondTaskComment = taskCommentPanel
+    .locator('.comment-row')
+    .filter({ hasText: '第二条任务评论' });
   const editingTaskComment = taskCommentPanel.locator('.comment-row').first();
   await taskComment.getByRole('button', { name: '编辑', exact: true }).click();
   await editingTaskComment.locator('textarea').fill('修改后的任务评论');
+  check(
+    await secondTaskComment.getByRole('button', { name: '编辑', exact: true }).isDisabled(),
+    'Another comment can replace an unsaved edit',
+  );
   await page.getByRole('link', { name: '需求管理', exact: true }).click();
   await unsavedDialog.getByRole('button', { name: '继续编辑', exact: true }).click();
   await editingTaskComment.getByRole('button', { name: '保存评论', exact: true }).click();
   await page.getByText('评论已更新。', { exact: true }).waitFor();
   await capture('task-comment-edited.png');
-  await taskCommentPanel.getByRole('button', { name: '删除', exact: true }).click();
-  await page
-    .locator('.confirm-dialog')
-    .getByRole('button', { name: '确认删除', exact: true })
-    .click();
-  await page.getByText('评论已删除。', { exact: true }).waitFor();
+  for (const content of ['修改后的任务评论', '第二条任务评论']) {
+    await taskCommentPanel
+      .locator('.comment-row')
+      .filter({ hasText: content })
+      .getByRole('button', { name: '删除', exact: true })
+      .click();
+    await page
+      .locator('.confirm-dialog')
+      .getByRole('button', { name: '确认删除', exact: true })
+      .click();
+    await taskCommentPanel
+      .locator('.comment-row')
+      .filter({ hasText: content })
+      .waitFor({ state: 'detached' });
+  }
   check(
     (await taskCommentPanel.locator('.comment-row').count()) === 0,
     'Task comment was not deleted',
@@ -390,8 +420,22 @@ try {
   await requirementLink.click();
   await page.getByRole('heading', { name: '需求详情', exact: true }).waitFor();
   const requirementCommentPanel = page.locator('.comment-panel');
+  await requirementCommentPanel.locator('.comment-compose textarea').fill('尚未保存的需求评论');
+  await page.getByRole('button', { name: '删除需求', exact: true }).click();
+  const deleteRequirementDialog = page.locator('.confirm-dialog').filter({ hasText: '删除需求' });
+  check(
+    (await deleteRequirementDialog.innerText()).includes('未保存的评论也会丢失'),
+    'Requirement deletion did not warn about the comment draft',
+  );
+  await deleteRequirementDialog.getByRole('button', { name: '取消', exact: true }).click();
+  check(
+    (await requirementCommentPanel.locator('.comment-compose textarea').inputValue()) ===
+      '尚未保存的需求评论',
+    'Canceling requirement deletion lost the comment draft',
+  );
+  results.push({ name: 'requirement deletion warns about comment draft', status: 'PASS' });
   await requirementCommentPanel
-    .getByLabel('发布评论', { exact: true })
+    .locator('.comment-compose textarea')
     .fill('观察员只能查看的需求评论');
   await page.getByRole('link', { name: '任务看板', exact: true }).click();
   await unsavedDialog.getByRole('button', { name: '继续编辑', exact: true }).click();

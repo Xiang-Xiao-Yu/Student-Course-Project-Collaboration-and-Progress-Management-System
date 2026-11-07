@@ -290,7 +290,7 @@ export function CommentPanel({
                         <div className="button-row">
                           <button
                             className="secondary-button"
-                            disabled={pendingAction !== null}
+                            disabled={pendingAction !== null || editingCommentId !== null}
                             onClick={() => startEditing(comment)}
                             type="button"
                           >

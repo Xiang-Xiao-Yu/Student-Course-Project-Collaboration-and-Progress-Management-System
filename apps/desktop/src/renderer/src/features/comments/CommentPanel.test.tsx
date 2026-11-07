@@ -129,6 +129,14 @@ describe('P4 comment drafts', () => {
           targetType: 'TASK',
           updatedAt: '2026-11-07T00:00:00.000Z',
         },
+        {
+          author: { avatarUrl: null, id: 'user-1', nickname: '作者', username: 'author' },
+          content: '第二条评论',
+          createdAt: '2026-11-07T00:00:00.000Z',
+          id: 'comment-2',
+          targetType: 'TASK',
+          updatedAt: '2026-11-07T00:00:00.000Z',
+        },
       ],
       onDirtyChange,
       projectId: 'project-1',
@@ -144,6 +152,8 @@ describe('P4 comment drafts', () => {
     panel.click('编辑');
     panel.change(1, '修改后的评论');
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    const otherEdit = panel.find('button').find((button) => button.props.children === '编辑');
+    expect(otherEdit?.props.disabled).toBe(true);
     panel.click('取消');
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });

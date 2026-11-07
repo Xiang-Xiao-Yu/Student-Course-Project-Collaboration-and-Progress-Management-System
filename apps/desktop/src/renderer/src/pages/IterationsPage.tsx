@@ -28,6 +28,7 @@ import {
 } from '../features/iterations/iteration-api';
 import {
   formatCompletionRate,
+  formatIterationTaskDueDate,
   getIterationStatusActionLabel,
   getIterationStatusLabel,
   getIterationStatusTransitions,
@@ -101,6 +102,21 @@ interface TaskIterationOwnership {
 interface IterationDataSnapshot {
   readonly iterations: IterationSummaryDto[];
   readonly taskIterations: Readonly<Record<string, TaskIterationOwnership>>;
+}
+
+function getAvailableTasks(data: IterationsData): TaskDto[] {
+  const selected = data.selected;
+  if (!selected) return [];
+
+  return data.tasks.filter((task) => {
+    const source = data.taskIterations[task.id];
+    const sourceIsTerminal =
+      source?.iterationStatus === 'COMPLETED' || source?.iterationStatus === 'CANCELED';
+    return (
+      !selected.tasks.some((item) => item.id === task.id) &&
+      !(sourceIsTerminal && task.status === 'COMPLETED')
+    );
+  });
 }
 
 function toSummary(iteration: IterationDetailDto): IterationSummaryDto {
@@ -333,6 +349,7 @@ export function IterationsPage() {
 
     const requestVersion = ++selectionVersionRef.current;
     setIsLoadingSelection(true);
+    setIsRefreshingStats(false);
     setAddTaskError(null);
     setCreateMessage(null);
     setPendingIterationId(null);
@@ -382,6 +399,7 @@ export function IterationsPage() {
     if (
       state.status !== 'ready' ||
       isCreating ||
+      isLoadingSelection ||
       !canManageProject(state.data.project.accessRole)
     ) {
       return;
@@ -564,12 +582,9 @@ export function IterationsPage() {
       return;
     }
 
+    const candidates = getAvailableTasks(state.data);
     const selectedTaskId =
-      addTaskId ||
-      state.data.tasks.find(
-        (task) => !state.data.selected?.tasks.some((item) => item.id === task.id),
-      )?.id ||
-      '';
+      candidates.find((task) => task.id === addTaskId)?.id ?? candidates[0]?.id ?? '';
 
     if (!selectedTaskId) {
       setAddTaskError('没有可加入当前迭代的任务。');
@@ -596,12 +611,11 @@ export function IterationsPage() {
 
     const projectId = state.data.project.id;
     const targetIterationId = state.data.selected.id;
+    const candidates = getAvailableTasks(state.data);
     const selectedTaskId =
       taskIdOverride ||
-      addTaskId ||
-      state.data.tasks.find(
-        (task) => !state.data.selected?.tasks.some((item) => item.id === task.id),
-      )?.id ||
+      candidates.find((task) => task.id === addTaskId)?.id ||
+      candidates[0]?.id ||
       '';
 
     if (!selectedTaskId) {
@@ -848,25 +862,49 @@ export function IterationsPage() {
 
     const iterationId = state.data.selected.id;
     const projectId = state.data.project.id;
+    const requestVersion = selectionVersionRef.current;
     setIsRefreshingStats(true);
 
     try {
-      const stats = await getIterationStats(api, projectId, iterationId);
+      const [selected, stats] = await Promise.all([
+        getIteration(api, projectId, iterationId),
+        getIterationStats(api, projectId, iterationId),
+      ]);
 
-      if (isIterationResponseCurrent(iterationId, selectedIterationIdRef.current)) {
+      if (
+        requestVersion === selectionVersionRef.current &&
+        isIterationResponseCurrent(iterationId, selectedIterationIdRef.current)
+      ) {
         setState((current) =>
           current.status === 'ready' && current.data.selected?.id === iterationId
-            ? { data: { ...current.data, stats }, status: 'ready' }
+            ? {
+                data: {
+                  ...current.data,
+                  iterations: replaceSummary(current.data.iterations, selected),
+                  selected,
+                  stats,
+                  taskIterations: applySelectedIterationOwnership(
+                    current.data.taskIterations,
+                    selected,
+                  ),
+                },
+                status: 'ready',
+              }
             : current,
         );
         setStatsError(null);
       }
     } catch (error) {
-      if (isIterationResponseCurrent(iterationId, selectedIterationIdRef.current)) {
+      if (
+        requestVersion === selectionVersionRef.current &&
+        isIterationResponseCurrent(iterationId, selectedIterationIdRef.current)
+      ) {
         setStatsError(getUserFacingError(error));
       }
     } finally {
-      setIsRefreshingStats(false);
+      if (requestVersion === selectionVersionRef.current) {
+        setIsRefreshingStats(false);
+      }
     }
   }
 
@@ -893,27 +931,17 @@ export function IterationsPage() {
     );
   }
 
-  const { iterations, project, selected, stats, taskIterations, tasks } = state.data;
+  const { iterations, project, selected, stats, taskIterations } = state.data;
   const canManage = canManageProject(project.accessRole) && project.status !== 'ARCHIVED';
   const statsUnavailable = statsError !== null;
-  const localOverdueCount = selected
-    ? selected.tasks.filter((task) => isIterationTaskOverdue(task)).length
-    : stats.overdue;
+  const overdueCount = stats.overdue;
   const pendingTaskMigrationSource = pendingTaskMigrationId
     ? taskIterations[pendingTaskMigrationId]
     : null;
   const selectedIsTerminal = selected?.status === 'COMPLETED' || selected?.status === 'CANCELED';
-  const availableTasks = selected
-    ? tasks.filter((task) => {
-        const source = taskIterations[task.id];
-        const sourceIsTerminal =
-          source?.iterationStatus === 'COMPLETED' || source?.iterationStatus === 'CANCELED';
-        return (
-          !selected.tasks.some((item) => item.id === task.id) &&
-          !(sourceIsTerminal && task.status === 'COMPLETED')
-        );
-      })
-    : [];
+  const availableTasks = getAvailableTasks(state.data);
+  const selectedAvailableTaskId =
+    availableTasks.find((task) => task.id === addTaskId)?.id ?? availableTasks[0]?.id ?? '';
   const nextIterationOptions = selected
     ? iterations.filter(
         (iteration) =>
@@ -959,7 +987,7 @@ export function IterationsPage() {
             <label className="form-field">
               <span>迭代名称</span>
               <input
-                disabled={isCreating}
+                disabled={isCreating || isLoadingSelection}
                 maxLength={100}
                 onChange={(event) =>
                   setCreateForm((current) => ({ ...current, name: event.target.value }))
@@ -972,7 +1000,7 @@ export function IterationsPage() {
             <label className="form-field">
               <span>迭代目标</span>
               <textarea
-                disabled={isCreating}
+                disabled={isCreating || isLoadingSelection}
                 maxLength={1000}
                 onChange={(event) =>
                   setCreateForm((current) => ({ ...current, goal: event.target.value }))
@@ -986,7 +1014,7 @@ export function IterationsPage() {
               <label className="form-field">
                 <span>开始日期</span>
                 <input
-                  disabled={isCreating}
+                  disabled={isCreating || isLoadingSelection}
                   onChange={(event) =>
                     setCreateForm((current) => ({
                       ...current,
@@ -1001,7 +1029,7 @@ export function IterationsPage() {
               <label className="form-field">
                 <span>结束日期</span>
                 <input
-                  disabled={isCreating}
+                  disabled={isCreating || isLoadingSelection}
                   onChange={(event) =>
                     setCreateForm((current) => ({ ...current, endDate: event.target.value }))
                   }
@@ -1012,7 +1040,11 @@ export function IterationsPage() {
               </label>
             </div>
             <div className="form-actions">
-              <button className="primary-button" disabled={isCreating} type="submit">
+              <button
+                className="primary-button"
+                disabled={isCreating || isLoadingSelection}
+                type="submit"
+              >
                 {isCreating ? '正在创建...' : '创建迭代'}
               </button>
             </div>
@@ -1042,7 +1074,9 @@ export function IterationsPage() {
                   className={`iteration-list-row${
                     selected?.id === iteration.id ? ' is-active' : ''
                   }`}
-                  disabled={isLoadingSelection || isAddingTask || isClosing}
+                  disabled={
+                    isLoadingSelection || isAddingTask || isClosing || isUpdating || isCreating
+                  }
                   key={iteration.id}
                   onClick={() => requestIterationSelection(iteration.id)}
                   type="button"
@@ -1118,9 +1152,9 @@ export function IterationsPage() {
                   <span>阻塞</span>
                   <strong>{statsUnavailable ? '-' : stats.blocked}</strong>
                 </article>
-                <article className={!statsUnavailable && localOverdueCount > 0 ? 'is-warning' : ''}>
+                <article className={!statsUnavailable && overdueCount > 0 ? 'is-warning' : ''}>
                   <span>逾期</span>
-                  <strong>{statsUnavailable ? '-' : localOverdueCount}</strong>
+                  <strong>{statsUnavailable ? '-' : overdueCount}</strong>
                 </article>
                 <article>
                   <span>完成率</span>
@@ -1135,7 +1169,7 @@ export function IterationsPage() {
                   <div className="button-row">
                     <button
                       className="secondary-button"
-                      disabled={isUpdating}
+                      disabled={isUpdating || isLoadingSelection}
                       onClick={() => setEditOpen((open) => !open)}
                       type="button"
                     >
@@ -1146,7 +1180,7 @@ export function IterationsPage() {
                       .map((status) => (
                         <button
                           className="secondary-button"
-                          disabled={isUpdating || editDirty}
+                          disabled={isUpdating || isLoadingSelection || editDirty}
                           key={status}
                           onClick={() => setStatusAction(status)}
                           type="button"
@@ -1157,7 +1191,7 @@ export function IterationsPage() {
                     {getIterationStatusTransitions(selected.status).includes('COMPLETED') ? (
                       <button
                         className="primary-button"
-                        disabled={isUpdating || editDirty}
+                        disabled={isUpdating || isLoadingSelection || editDirty}
                         onClick={() => {
                           setCloseError(null);
                           setCloseOpen(true);
@@ -1178,7 +1212,7 @@ export function IterationsPage() {
                       <label className="form-field">
                         <span>迭代名称</span>
                         <input
-                          disabled={isUpdating}
+                          disabled={isUpdating || isLoadingSelection}
                           maxLength={100}
                           onChange={(event) =>
                             setEditForm((current) => ({
@@ -1193,7 +1227,7 @@ export function IterationsPage() {
                       <label className="form-field">
                         <span>迭代目标</span>
                         <textarea
-                          disabled={isUpdating}
+                          disabled={isUpdating || isLoadingSelection}
                           maxLength={1000}
                           onChange={(event) =>
                             setEditForm((current) => ({
@@ -1210,7 +1244,7 @@ export function IterationsPage() {
                         <label className="form-field">
                           <span>开始日期</span>
                           <input
-                            disabled={isUpdating}
+                            disabled={isUpdating || isLoadingSelection}
                             onChange={(event) =>
                               setEditForm((current) => ({
                                 ...current,
@@ -1225,7 +1259,7 @@ export function IterationsPage() {
                         <label className="form-field">
                           <span>结束日期</span>
                           <input
-                            disabled={isUpdating}
+                            disabled={isUpdating || isLoadingSelection}
                             onChange={(event) =>
                               setEditForm((current) => ({
                                 ...current,
@@ -1242,7 +1276,9 @@ export function IterationsPage() {
                         <button
                           className="primary-button"
                           disabled={
-                            isUpdating || !hasUnsavedIterationChanges(editInitialForm, editForm)
+                            isUpdating ||
+                            isLoadingSelection ||
+                            !hasUnsavedIterationChanges(editInitialForm, editForm)
                           }
                           type="submit"
                         >
@@ -1250,7 +1286,7 @@ export function IterationsPage() {
                         </button>
                         <button
                           className="secondary-button"
-                          disabled={isUpdating || !editDirty}
+                          disabled={isUpdating || isLoadingSelection || !editDirty}
                           onClick={() => {
                             setEditForm(editInitialForm);
                             setEditErrors({});
@@ -1279,9 +1315,9 @@ export function IterationsPage() {
                     <label className="form-field">
                       <span>加入任务</span>
                       <select
-                        disabled={isAddingTask || availableTasks.length === 0}
+                        disabled={isLoadingSelection || isAddingTask || availableTasks.length === 0}
                         onChange={(event) => setAddTaskId(event.target.value)}
-                        value={addTaskId || availableTasks[0]?.id || ''}
+                        value={selectedAvailableTaskId}
                       >
                         {availableTasks.length === 0 ? (
                           <option value="">没有可加入的任务</option>
@@ -1299,7 +1335,7 @@ export function IterationsPage() {
                     </label>
                     <button
                       className="secondary-button"
-                      disabled={isAddingTask || availableTasks.length === 0}
+                      disabled={isLoadingSelection || isAddingTask || availableTasks.length === 0}
                       onClick={requestAddTask}
                       type="button"
                     >
@@ -1323,7 +1359,7 @@ export function IterationsPage() {
                             <span>
                               {getTaskStatusLabel(task.status)}
                               {task.dueDate
-                                ? ` · 截止 ${formatProjectDate(task.dueDate)}`
+                                ? ` · 截止 ${formatIterationTaskDueDate(task.dueDate)}`
                                 : ' · 未设置截止日期'}
                             </span>
                           </div>
@@ -1332,7 +1368,7 @@ export function IterationsPage() {
                             {canManage && (!selectedIsTerminal || task.status !== 'COMPLETED') ? (
                               <button
                                 className="danger-text-button"
-                                disabled={isRemovingTaskId !== null}
+                                disabled={isLoadingSelection || isRemovingTaskId !== null}
                                 onClick={() => void handleRemoveTask(task.id)}
                                 type="button"
                               >
