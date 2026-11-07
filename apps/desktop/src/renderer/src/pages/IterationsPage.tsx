@@ -419,7 +419,19 @@ export function IterationsPage() {
       setStatsError(statsRefresh.error);
       setState((current) =>
         current.status === 'ready'
-          ? { data: { ...current.data, selected, stats: statsRefresh.stats }, status: 'ready' }
+          ? {
+              data: {
+                ...current.data,
+                iterations: replaceSummary(current.data.iterations, selected),
+                selected,
+                stats: statsRefresh.stats,
+                taskIterations: applySelectedIterationOwnership(
+                  current.data.taskIterations,
+                  selected,
+                ),
+              },
+              status: 'ready',
+            }
           : current,
       );
     } finally {
@@ -739,6 +751,7 @@ export function IterationsPage() {
 
     const projectId = state.data.project.id;
     const targetIterationId = state.data.selected.id;
+    const requestVersion = selectionVersionRef.current;
     setIsRemovingTaskId(taskId);
     setAddTaskError(null);
     setCreateMessage(null);
@@ -749,10 +762,9 @@ export function IterationsPage() {
         getIterationStats(api, projectId, selected.id),
         loadIterationData(projectId),
       ]);
-      const shouldActivate = isIterationResponseCurrent(
-        targetIterationId,
-        selectedIterationIdRef.current,
-      );
+      const shouldActivate =
+        requestVersion === selectionVersionRef.current &&
+        isIterationResponseCurrent(targetIterationId, selectedIterationIdRef.current);
       const statsFailure = getStatsFailure(selected, statsResult);
 
       if (shouldActivate) {
@@ -760,7 +772,7 @@ export function IterationsPage() {
       }
 
       setState((current) =>
-        current.status === 'ready'
+        current.status === 'ready' && shouldActivate
           ? {
               data: {
                 ...current.data,
@@ -787,7 +799,10 @@ export function IterationsPage() {
         setCreateMessage({ text: '任务已移出迭代。', type: 'success' });
       }
     } catch (error) {
-      if (isIterationResponseCurrent(targetIterationId, selectedIterationIdRef.current)) {
+      if (
+        requestVersion === selectionVersionRef.current &&
+        isIterationResponseCurrent(targetIterationId, selectedIterationIdRef.current)
+      ) {
         setAddTaskError(getUserFacingError(error));
       }
     } finally {

@@ -408,6 +408,37 @@ describe('P4 iteration page regressions', () => {
     await page.settle();
   });
 
+  it('移出任务后切换往返时不使用旧响应覆盖新迭代详情', async () => {
+    const pending = deferred<unknown>();
+    boundary.api.delete.mockReturnValue(pending.promise);
+    let aRequests = 0;
+    boundary.api.get.mockImplementation(async (path) => {
+      if (path === '/projects/project-1') return project;
+      if (path === '/projects/project-1/tasks') return [task];
+      if (path === '/projects/project-1/iterations') return [iteration('a'), iteration('b', [])];
+      if (path === '/projects/project-1/iterations/a') {
+        aRequests += 1;
+        return aRequests === 1 ? iteration('a') : { ...iteration('a'), name: '其他客户端的新名称' };
+      }
+      if (path === '/projects/project-1/iterations/b') return iteration('b', []);
+      if (path === '/projects/project-1/iterations/b/stats') return { ...stats, total: 0 };
+      if (path.endsWith('/stats')) return stats;
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    const page = new PageReplay();
+    await page.settle();
+    page.clickButton('移出迭代');
+    page.select('b');
+    await page.settle();
+    page.select('a');
+    await page.settle();
+    expect(page.find('h2').some((item) => item.props.children === '其他客户端的新名称')).toBe(true);
+
+    pending.resolve(iteration('a', []));
+    await page.settle();
+    expect(page.find('h2').some((item) => item.props.children === '其他客户端的新名称')).toBe(true);
+  });
+
   it('客户端时钟偏差不会使服务器统计失效', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {
