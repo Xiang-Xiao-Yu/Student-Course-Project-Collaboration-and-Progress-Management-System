@@ -1,0 +1,389 @@
+{
+  "cases": [
+    {
+      "name": "task source display and migration confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "unsaved iteration switch confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration creation and task membership",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration statistics and task removal",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration close and incomplete task migration",
+      "status": "PASS"
+    },
+    {
+      "name": "task comment create edit delete",
+      "status": "PASS"
+    },
+    {
+      "name": "requirement comments and observer read-only access",
+      "status": "PASS"
+    }
+  ],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/tasks",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/tasks/cmw4jqyqr000t4hu8xq09r34h",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/stats",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/close",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jr0eh001p4hu83ofmnwgr",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jqzsw00194hu83g4qbki2",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jr0eh001p4hu83ofmnwgr",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/iterations/cmw4jr0eh001p4hu83ofmnwgr/stats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/tasks",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/tasks/cmw4jqyqi000p4hu8oadpb93h",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/activity?targetId=cmw4jqyqi000p4hu8oadpb93h&targetType=TASK&limit=100",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/comments?targetId=cmw4jqyqi000p4hu8oadpb93h&targetType=TASK",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/comments",
+      "status": 201
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/comments/cmw4jr0to001v4hu872ch243c",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/comments/cmw4jr0to001v4hu872ch243c",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/requirements/cmw4jqypm000d4hu89mwpx5iq",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/comments?targetId=cmw4jqypm000d4hu89mwpx5iq&targetType=REQUIREMENT",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/comments",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/requirements/cmw4jqypm000d4hu89mwpx5iq",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw4jqyov00034hu8nesv8rmj/comments?targetId=cmw4jqypm000d4hu89mwpx5iq&targetType=REQUIREMENT",
+      "status": 200
+    }
+  ]
+}

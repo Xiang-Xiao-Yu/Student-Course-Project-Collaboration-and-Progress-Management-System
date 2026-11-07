@@ -1,0 +1,23 @@
+{
+  "commands": [
+    {
+      "exitCode": 0,
+      "name": "electron-version",
+      "timedOut": false
+    },
+    {
+      "exitCode": 0,
+      "name": "migration",
+      "timedOut": false
+    },
+    {
+      "exitCode": 1,
+      "name": "electron",
+      "timedOut": false
+    }
+  ],
+  "passed": false,
+  "sandboxOverride": false,
+  "electron": "44.4.3",
+  "error": "Electron test exited 1; see electron-output.txt"
+}

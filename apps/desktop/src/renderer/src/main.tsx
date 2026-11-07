@@ -6,6 +6,7 @@ import './styles/auth.css';
 import './styles/global.css';
 import './styles/projects.css';
 import './styles/p3.css';
+import './styles/p4.css';
 
 const container = document.getElementById('root');
 

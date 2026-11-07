@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
+import { CommentPanel } from '../features/comments/CommentPanel';
 import type { ProjectDto } from '../features/projects/project-api';
 import type { RequirementDto } from '../features/requirements/requirement-api';
 import { RequirementDetailPage } from './RequirementDetailPage';
@@ -45,7 +46,10 @@ vi.mock('react-router-dom', async (importOriginal) => ({
 }));
 
 vi.mock('../features/auth/session', () => ({
-  useSession: () => ({ api: boundary.api }),
+  useSession: () => ({
+    api: boundary.api,
+    session: { user: { id: 'owner-1' } },
+  }),
 }));
 
 interface EffectSlot {
@@ -223,6 +227,7 @@ beforeEach(() => {
   boundary.api.get.mockImplementation(async (path) => {
     if (path === '/projects/project-1') return project;
     if (path === '/projects/project-1/requirements') return [];
+    if (path.startsWith('/projects/project-1/comments?')) return [];
     const id = path.match(/^\/projects\/project-1\/requirements\/(.+)$/)?.[1];
     if (id) return requirement(id);
     throw new Error(`Unexpected request: ${path}`);
@@ -241,6 +246,37 @@ async function createDraft(): Promise<PageReplay> {
 }
 
 describe('FR-04 需求页面异步操作回归', () => {
+  it('评论草稿与需求表单共用离开提醒', async () => {
+    const page = new PageReplay(RequirementDetailPage);
+    await page.settle();
+    const panel = page.props<
+      ComponentProps<typeof CommentPanel> & {
+        onDirtyChange?: (dirty: boolean) => void;
+      }
+    >(CommentPanel);
+
+    panel.onDirtyChange?.(true);
+    page.render();
+    expect(page.guardsUnsavedChanges()).toBe(true);
+    panel.onDirtyChange?.(false);
+    page.render();
+    expect(page.guardsUnsavedChanges()).toBe(false);
+  });
+
+  it('删除需求前提示未保存的评论草稿也会丢失', async () => {
+    const page = new PageReplay(RequirementDetailPage);
+    await page.settle();
+    page.props<ComponentProps<typeof CommentPanel>>(CommentPanel).onDirtyChange?.(true);
+    page.render();
+    const button = page.find('button').find((element) => element.props.children === '删除需求');
+    (button?.props.onClick as () => void)();
+    page.render();
+
+    expect(page.props<ComponentProps<typeof ConfirmDialog>>(ConfirmDialog).message).toContain(
+      '未保存的评论',
+    );
+  });
+
   it('创建请求尚未完成时继续提示未保存内容', async () => {
     const pending = deferred<RequirementDto>();
     boundary.api.post.mockReturnValue(pending.promise);

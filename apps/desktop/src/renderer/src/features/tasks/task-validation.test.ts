@@ -76,4 +76,35 @@ describe('P3 task validation', () => {
     expect(form.tagNames).toEqual(['api,v2']);
     expect(input.tagNames).toEqual(['api,v2']);
   });
+
+  it('含时区的截止时间编辑回填保持上海日历日', () => {
+    const task = {
+      assigneeId: null,
+      completedAt: null,
+      completionNote: null,
+      createdAt: '2026-11-03T00:00:00.000Z',
+      createdById: 'owner-1',
+      description: null,
+      dueDate: '2026-11-06T20:00:00.000Z',
+      estimatedHours: null,
+      id: 'task-1',
+      priority: 'MEDIUM' as const,
+      projectId: 'project-1',
+      rejectionReason: null,
+      requirementId: null,
+      status: 'BACKLOG' as const,
+      tagNames: [],
+      title: '截止时间测试',
+      updatedAt: '2026-11-03T00:00:00.000Z',
+    };
+    const form = taskToForm(task);
+
+    expect(form.dueDate).toBe('2026-11-07');
+    expect(formToUpdateTaskInput({ ...form, title: '更新标题' }, form)).not.toHaveProperty(
+      'dueDate',
+    );
+    expect(formToUpdateTaskInput({ ...form, dueDate: '2026-11-08' }, form).dueDate).toBe(
+      '2026-11-08',
+    );
+  });
 });

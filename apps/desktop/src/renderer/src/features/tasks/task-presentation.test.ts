@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   canTransitionTaskStatus,
+  formatTaskDueDate,
   getTaskPriorityLabel,
   getTaskStatusActionLabel,
   getTaskStatusLabel,
@@ -31,5 +32,16 @@ describe('task presentation', () => {
     expect(canTransitionTaskStatus('PENDING_REVIEW', 'COMPLETED')).toBe(true);
     expect(canTransitionTaskStatus('PENDING_REVIEW', 'IN_PROGRESS')).toBe(false);
     expect(getTaskStatusActionLabel('COMPLETED', 'IN_PROGRESS')).toBe('重新打开任务');
+  });
+
+  it('任务截止日期在非上海系统时区仍按上海日历日显示', () => {
+    vi.stubEnv('TZ', 'UTC');
+    try {
+      expect(formatTaskDueDate('2026-11-06T20:00:00.000Z')).toBe('2026年11月7日');
+      expect(formatTaskDueDate(null)).toBe('未设置');
+      expect(formatTaskDueDate('invalid')).toBe('日期无效');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

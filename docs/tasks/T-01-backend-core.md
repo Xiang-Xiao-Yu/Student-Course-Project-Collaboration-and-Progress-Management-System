@@ -99,7 +99,7 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P4 迭代、评论与操作记录（P3 完整门禁已通过，项目组长授权后 root 于 2026-11-03 解锁 P4；P4.1～P4.4 已实现并进入待测试，P5 及以后锁定）
+- 当前阶段：P5 会议与阶段验收（本条仅在 PR #43 合并进入 main 时生效；合并前保持 P4 冻结，P6 及以后锁定）
 - P3 解锁（2026-10-26）：T-03 P2-R1 门禁通过后，项目组长在本轮明确确认，root 已解锁 T-01 P3。范围依现有任务清单，限 P3.1～P3.4（FR-04、FR-05、FR-07；AC-03、AC-04）；PR #28 仍待常规评审与合并。
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
@@ -128,6 +128,7 @@
 - P3 完整门禁通过 / P4 解锁（2026-11-03）：基线 `7f789e0`，4份迁移成功，全仓326/326、真实HTTP137/137、Electron17/17及lint/typecheck/build通过，独立证据复核通过。项目组长已明确“通过后解锁P4”，root正式开放本任务P4.1～P4.4（FR-06/FR-07、AC-05及权限/异常），不更换负责人或扩大范围；P3已完成，P5以后锁定。报告：[P3完整Electron门禁](../test/p3-electron-gate-2026-11-03.md)。
 - P4.1～P4.4 完成（2026-11-04）：新增迭代 CRUD、日期校验、任务加入/移出、状态流转、关闭并将未完成任务移入下一迭代，以及迭代统计（总数、已完成、进行中、阻塞、逾期、完成率）；新增任务/需求/会议评论的创建、修改本人评论和删除本人评论；评论与迭代变更均写入 ActivityLog，活动记录查询沿用已有项目隔离与分页。迭代写操作限 OWNER/平台管理员，评论写操作限 OWNER/MEMBER 且只能修改删除本人评论，观察者只读。全仓 lint、typecheck、test、build 通过；API 209 项、Desktop 120 项、Shared 6 项，共 335 项通过；新增真实 SQLite/HTTP P4 回归覆盖迭代生命周期、统计、关闭迁移、评论越权与权限隔离。
 - P4 评审修复（2026-11-05，PR #42）：按 T-03 意见修复三处并补回归：迭代创建增加 `creating` 状态检查，暂停项目返回 `PROJECT_PAUSED`；迭代更新日期拒绝 `null`/空串并防御非字符串转换，避免写入 1970 年；评论创建的目标存在性检查移入同一事务，并将外键冲突转换为 `COMMENT_TARGET_NOT_FOUND`，避免并发删除目标时返回 500。全仓 lint、typecheck、test 通过，API 209 项。
+- P4 门禁通过 / P5 条件解锁（2026-11-07）：PR #42 已合并；组合代码 `694b194` 的 384 项测试、lint/typecheck/build 和标准沙箱 Electron 15/15 通过。项目组长授权 PR #43 合并后开放本任务 P5.1～P5.4（FR-08/FR-09、AC-06/AC-07）；P6 及以后锁定。详见 [P4 阶段验收](../test/p4-gate-2026-11-07.md)。
 
 ## GitHub Issue（由其他智能体提交给 `root`，不得直接改任务范围）
 

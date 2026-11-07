@@ -10,6 +10,9 @@ import { LoadingState } from '../components/feedback/LoadingState';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import { useSession } from '../features/auth/session';
+import type { CommentDto } from '../features/comments/comment-api';
+import { listComments } from '../features/comments/comment-api';
+import { CommentPanel } from '../features/comments/CommentPanel';
 import type { ProjectDto } from '../features/projects/project-api';
 import { getProject } from '../features/projects/project-api';
 import {
@@ -48,6 +51,7 @@ import { getUserFacingError } from '../lib/api/errors';
 type RequirementDetailState =
   | { readonly status: 'loading' }
   | {
+      readonly comments: CommentDto[];
       readonly project: ProjectDto;
       readonly requirement: RequirementDto;
       readonly status: 'ready';
@@ -71,7 +75,7 @@ function toForm(requirement: RequirementDto): RequirementFormValues {
 }
 
 export function RequirementDetailPage() {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const navigate = useNavigate();
   const { projectId = '', requirementId = '' } = useParams<{
     projectId: string;
@@ -79,6 +83,7 @@ export function RequirementDetailPage() {
   }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [commentDirty, setCommentDirty] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletedRequest, setDeletedRequest] = useState<RequirementPageRequest | null>(null);
   const [form, setForm] = useState<RequirementFormValues>({
@@ -125,12 +130,16 @@ export function RequirementDetailPage() {
     let isCancelled = false;
 
     setState({ status: 'loading' });
-    void Promise.all([getProject(api, projectId), getRequirement(api, projectId, requirementId)])
-      .then(([project, requirement]) => {
+    void Promise.all([
+      getProject(api, projectId),
+      getRequirement(api, projectId, requirementId),
+      listComments(api, projectId, 'REQUIREMENT', requirementId),
+    ])
+      .then(([project, requirement, comments]) => {
         if (!isCancelled) {
           const nextForm = toForm(requirement);
 
-          setState({ project, requirement, status: 'ready' });
+          setState({ comments, project, requirement, status: 'ready' });
           setForm(nextForm);
           setInitialForm(nextForm);
         }
@@ -274,8 +283,8 @@ export function RequirementDetailPage() {
   return (
     <div className="page-stack p3-page">
       <UnsavedChangesGuard
-        message="需求修改尚未保存，离开后更改将丢失。"
-        when={!deletedRequest && (hasUnsavedChanges || isSaving)}
+        message="需求或评论尚未保存，离开后更改将丢失。"
+        when={!deletedRequest && (hasUnsavedChanges || isSaving || commentDirty)}
       />
       <div className="page-heading-with-action">
         <PageHeader title="需求详情" description="维护需求内容、状态和关联任务。" />
@@ -439,6 +448,18 @@ export function RequirementDetailPage() {
         </section>
       </div>
 
+      <CommentPanel
+        api={api}
+        canComment={canEdit}
+        currentUserId={session?.user.id}
+        initialComments={state.comments}
+        onDirtyChange={setCommentDirty}
+        projectId={state.project.id}
+        targetId={state.requirement.id}
+        targetType="REQUIREMENT"
+        title="需求评论"
+      />
+
       {canDelete ? (
         <section className="panel danger-zone">
           <div className="panel__header">
@@ -462,7 +483,7 @@ export function RequirementDetailPage() {
         <ConfirmDialog
           confirmLabel="确认删除"
           isPending={isDeleting}
-          message={`删除需求 ${state.requirement.number} 后不可恢复。`}
+          message={`删除需求 ${state.requirement.number} 后不可恢复。${commentDirty ? '未保存的评论也会丢失。' : ''}`}
           onCancel={() => setDeleteDialogOpen(false)}
           onConfirm={() => void handleDelete()}
           title="删除需求"

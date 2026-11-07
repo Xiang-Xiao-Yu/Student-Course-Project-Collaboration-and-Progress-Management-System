@@ -1,0 +1,8 @@
+$ pnpm -r --if-present typecheck
+Scope: 3 of 4 workspace projects
+apps/api typecheck$ tsc -p tsconfig.json --noEmit
+apps/desktop typecheck$ tsc -p tsconfig.json --noEmit
+packages/shared typecheck$ tsc -p tsconfig.json --noEmit
+packages/shared typecheck: Done
+apps/api typecheck: Done
+apps/desktop typecheck: Done

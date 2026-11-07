@@ -5,24 +5,26 @@ import { buildProjectPath, buildRequirementPath } from '../app/navigation';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { ErrorState } from '../components/feedback/ErrorState';
 import { LoadingState } from '../components/feedback/LoadingState';
+import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import { useSession } from '../features/auth/session';
+import type { CommentDto } from '../features/comments/comment-api';
+import { listComments } from '../features/comments/comment-api';
+import { CommentPanel } from '../features/comments/CommentPanel';
 import type { ProjectDto, ProjectMemberDto } from '../features/projects/project-api';
 import { getProject, listProjectMembers } from '../features/projects/project-api';
 import {
   canEditProjectContent,
   canReviewProjectTasks,
-  formatProjectDate,
   getProjectRoleLabel,
 } from '../features/projects/project-presentation';
 import type { RequirementDto } from '../features/requirements/requirement-api';
 import { listRequirements } from '../features/requirements/requirement-api';
 import type { TaskDto } from '../features/tasks/task-api';
 import { getTask, updateTaskStatus } from '../features/tasks/task-api';
-import type { TaskActivityDto, TaskCommentDto } from '../features/tasks/task-history-api';
+import type { TaskActivityDto } from '../features/tasks/task-history-api';
 import {
   listTaskActivity,
-  listTaskComments,
   resolveTaskActivityPage,
   TASK_ACTIVITY_PAGE_SIZE,
 } from '../features/tasks/task-history-api';
@@ -47,6 +49,7 @@ import {
 import { TaskStatusTransitionDialog } from '../features/tasks/TaskStatusTransitionDialog';
 import {
   getTaskPriorityLabel,
+  formatTaskDueDate,
   getTaskStatusActionLabel,
   getTaskStatusLabel,
   getTaskStatusTransitions,
@@ -56,7 +59,7 @@ import { getUserFacingError } from '../lib/api/errors';
 interface TaskDetailData {
   readonly activities: TaskActivityDto[];
   readonly activityHasMore: boolean;
-  readonly comments: TaskCommentDto[];
+  readonly comments: CommentDto[];
   readonly members: ProjectMemberDto[];
   readonly project: ProjectDto;
   readonly requirements: RequirementDto[];
@@ -104,6 +107,7 @@ export function TaskDetailPage() {
   }>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [commentDirty, setCommentDirty] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
@@ -156,7 +160,7 @@ export function TaskDetailPage() {
       listProjectMembers(api, projectId),
       listRequirements(api, projectId),
       getTask(api, projectId, taskId),
-      listTaskComments(api, projectId, taskId),
+      listComments(api, projectId, 'TASK', taskId),
       listTaskActivity(api, projectId, taskId, {
         limit: TASK_ACTIVITY_PAGE_SIZE,
       }),
@@ -472,6 +476,7 @@ export function TaskDetailPage() {
 
   return (
     <div className="page-stack p3-page">
+      <UnsavedChangesGuard message="评论尚未保存，离开后更改将丢失。" when={commentDirty} />
       <div className="page-heading-with-action">
         <PageHeader title="任务详情" description="查看任务属性、完成信息和状态流转。" />
         <Link className="secondary-link" to={buildProjectPath(project.id, 'board')}>
@@ -517,7 +522,7 @@ export function TaskDetailPage() {
             </div>
             <div>
               <dt>截止日期</dt>
-              <dd>{formatProjectDate(task.dueDate)}</dd>
+              <dd>{formatTaskDueDate(task.dueDate)}</dd>
             </div>
             <div>
               <dt>预估工时</dt>
@@ -615,30 +620,17 @@ export function TaskDetailPage() {
       </div>
 
       <div className="task-history-grid">
-        <section className="panel">
-          <div className="panel__header">
-            <div>
-              <h2>任务评论</h2>
-              <p>共 {comments.length} 条评论</p>
-            </div>
-          </div>
-          {comments.length === 0 ? (
-            <div className="linked-task-empty">暂无评论</div>
-          ) : (
-            <div className="comment-list">
-              {comments.map((comment) => (
-                <article className="comment-row" key={comment.id}>
-                  <div className="comment-row__header">
-                    <strong>{comment.author.nickname}</strong>
-                    <span>@{comment.author.username}</span>
-                    <time dateTime={comment.createdAt}>{formatDateTime(comment.createdAt)}</time>
-                  </div>
-                  <p>{comment.content}</p>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        <CommentPanel
+          api={api}
+          canComment={canEdit}
+          currentUserId={session?.user.id}
+          initialComments={comments}
+          onDirtyChange={setCommentDirty}
+          projectId={project.id}
+          targetId={task.id}
+          targetType="TASK"
+          title="任务评论"
+        />
 
         <section className="panel">
           <div className="panel__header">

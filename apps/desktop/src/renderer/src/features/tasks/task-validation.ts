@@ -1,4 +1,5 @@
 import type { CreateTaskInput, TaskDto, TaskPriority, UpdateTaskInput } from './task-api';
+import { toTaskDateInput } from './task-presentation';
 
 export interface TaskFormValues {
   readonly assigneeId: string;
@@ -118,7 +119,7 @@ export function taskToForm(task: TaskDto): TaskFormValues {
   return {
     assigneeId: task.assigneeId ?? '',
     description: task.description ?? '',
-    dueDate: task.dueDate?.slice(0, 10) ?? '',
+    dueDate: toTaskDateInput(task.dueDate),
     estimatedHours: task.estimatedHours === null ? '' : String(task.estimatedHours),
     priority: task.priority,
     requirementId: task.requirementId ?? '',
@@ -161,11 +162,16 @@ export function formToCreateTaskInput(values: TaskFormValues): CreateTaskInput {
   };
 }
 
-export function formToUpdateTaskInput(values: TaskFormValues): UpdateTaskInput {
+export function formToUpdateTaskInput(
+  values: TaskFormValues,
+  initial?: TaskFormValues,
+): UpdateTaskInput {
   const createInput = formToCreateTaskInput(values);
+  const { dueDate, ...otherFields } = createInput;
 
   return {
-    ...createInput,
+    ...otherFields,
+    ...(dueDate && (!initial || initial.dueDate !== values.dueDate) ? { dueDate } : {}),
     description: values.description.trim(),
     tagNames: normalizeTaskTags(values.tagNames),
   };
