@@ -4,8 +4,10 @@ import { AppException } from '../../common/errors/app.exception';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { AvatarStorageService } from '../users/avatar-storage.service';
 import type { CommentTargetType } from './comment.constants';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 import type { CommentResponse } from './interfaces/comment-response';
-import { CommentsRepository } from './repositories/comments.repository';
+import { CommentRecord, CommentsRepository } from './repositories/comments.repository';
 
 @Injectable()
 export class CommentsService {
@@ -30,21 +32,65 @@ export class CommentsService {
 
     const comments = await this.commentsRepository.listComments(projectId, targetType, targetId);
 
-    return Promise.all(
-      comments.map(async (comment) => ({
-        author: {
-          ...comment.author,
-          avatarUrl: await this.avatarStorage.toDataUrl(
-            comment.author.id,
-            comment.author.avatarUrl,
-          ),
-        },
-        content: comment.content,
-        createdAt: comment.createdAt.toISOString(),
-        id: comment.id,
-        targetType,
-        updatedAt: comment.updatedAt.toISOString(),
-      })),
+    return Promise.all(comments.map((comment) => this.toResponse(comment)));
+  }
+
+  async createComment(
+    userId: string,
+    projectId: string,
+    dto: CreateCommentDto,
+  ): Promise<CommentResponse> {
+    await this.projectAccessService.requirePermission(projectId, userId, 'COMMENT_CREATE');
+    const comment = await this.commentsRepository.createComment(
+      projectId,
+      userId,
+      dto.targetType,
+      dto.targetId,
+      dto.content,
     );
+
+    return this.toResponse(comment);
+  }
+
+  async updateComment(
+    userId: string,
+    projectId: string,
+    commentId: string,
+    dto: UpdateCommentDto,
+  ): Promise<CommentResponse> {
+    await this.projectAccessService.requirePermission(projectId, userId, 'COMMENT_UPDATE_OWN');
+    const comment = await this.commentsRepository.updateComment(
+      projectId,
+      userId,
+      commentId,
+      dto.content,
+    );
+
+    return this.toResponse(comment);
+  }
+
+  async deleteComment(
+    userId: string,
+    projectId: string,
+    commentId: string,
+  ): Promise<{ deleted: true }> {
+    await this.projectAccessService.requirePermission(projectId, userId, 'COMMENT_DELETE_OWN');
+    await this.commentsRepository.deleteComment(projectId, userId, commentId);
+
+    return { deleted: true };
+  }
+
+  private async toResponse(comment: CommentRecord): Promise<CommentResponse> {
+    return {
+      author: {
+        ...comment.author,
+        avatarUrl: await this.avatarStorage.toDataUrl(comment.author.id, comment.author.avatarUrl),
+      },
+      content: comment.content,
+      createdAt: comment.createdAt.toISOString(),
+      id: comment.id,
+      targetType: comment.targetType as CommentTargetType,
+      updatedAt: comment.updatedAt.toISOString(),
+    };
   }
 }
