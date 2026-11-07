@@ -382,8 +382,22 @@ try {
     (await taskEditDialog.getByLabel('截止日期', { exact: true }).inputValue()) === '2026-11-07',
     'Task editor does not preserve the displayed deadline',
   );
-  await taskEditDialog.getByRole('button', { name: '关闭', exact: true }).click();
-  await timedTaskCard.getByRole('link', { name: staleTask.title, exact: true }).click();
+  const updatedTitle = '并发迁移任务（已编辑）';
+  await taskEditDialog.getByLabel('任务标题', { exact: true }).fill(updatedTitle);
+  await taskEditDialog.getByRole('button', { name: '保存任务', exact: true }).click();
+  await taskEditDialog.waitFor({ state: 'detached' });
+  const updatedTask = await apiRequest(
+    `/projects/${project.id}/tasks/${staleTask.id}`,
+    'GET',
+    owner.token,
+  );
+  check(
+    updatedTask.dueDate === '2026-11-06T20:00:00.000Z',
+    'Editing a title changed the original deadline timestamp',
+  );
+  staleTask.title = updatedTitle;
+  const updatedTaskCard = page.locator('.task-card').filter({ hasText: staleTask.title });
+  await updatedTaskCard.getByRole('link', { name: staleTask.title, exact: true }).click();
   const deadline = page.locator('dt').filter({ hasText: '截止日期' }).locator('..').locator('dd');
   check(
     (await deadline.innerText()) === '2026年11月7日',

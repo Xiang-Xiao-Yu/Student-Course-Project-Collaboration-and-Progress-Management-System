@@ -100,6 +100,11 @@ describe('P3 task validation', () => {
     const form = taskToForm(task);
 
     expect(form.dueDate).toBe('2026-11-07');
-    expect(formToUpdateTaskInput({ ...form, title: '更新标题' }).dueDate).toBe('2026-11-07');
+    expect(formToUpdateTaskInput({ ...form, title: '更新标题' }, form)).not.toHaveProperty(
+      'dueDate',
+    );
+    expect(formToUpdateTaskInput({ ...form, dueDate: '2026-11-08' }, form).dueDate).toBe(
+      '2026-11-08',
+    );
   });
 });

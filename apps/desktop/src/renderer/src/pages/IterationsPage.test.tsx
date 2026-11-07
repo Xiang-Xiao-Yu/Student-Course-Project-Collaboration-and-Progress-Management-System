@@ -184,7 +184,15 @@ const iteration = (id: string, tasks = [task], status = 'IN_PROGRESS') => ({
   tasks,
   updatedAt: '2026-11-01T00:00:00.000Z',
 });
-const stats = { blocked: 0, completed: 0, completionRate: 0, inProgress: 0, overdue: 0, total: 1 };
+const stats = {
+  asOf: '2026-11-07T04:00:00.000Z',
+  blocked: 0,
+  completed: 0,
+  completionRate: 0,
+  inProgress: 0,
+  overdue: 0,
+  total: 1,
+};
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -386,6 +394,42 @@ describe('P4 iteration page regressions', () => {
     expect(retry?.props.disabled).toBe(true);
     pending.resolve(iteration('a', []));
     await page.settle();
+  });
+
+  it('移出任务期间不能保存其他迭代更改', async () => {
+    const pending = deferred<unknown>();
+    boundary.api.delete.mockReturnValue(pending.promise);
+    const page = new PageReplay();
+    await page.settle();
+    page.clickButton('移出迭代');
+    const edit = page.find('button').find((item) => item.props.children === '编辑迭代');
+    expect(edit?.props.disabled).toBe(true);
+    pending.resolve(iteration('a', []));
+    await page.settle();
+  });
+
+  it('客户端时钟偏差不会使服务器统计失效', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-11-08T04:00:00.000Z'));
+      const dueToday = { ...task, dueDate: '2026-11-07T00:00:00.000Z' };
+      const selected = iteration('a', [dueToday]);
+      boundary.api.get.mockImplementation(async (path) => {
+        if (path === '/projects/project-1') return project;
+        if (path === '/projects/project-1/tasks') return [dueToday];
+        if (path === '/projects/project-1/iterations') return [selected];
+        if (path === '/projects/project-1/iterations/a') return selected;
+        if (path.endsWith('/stats')) return { ...stats, asOf: '2026-11-07T04:00:00.000Z' };
+        throw new Error(`Unexpected request: ${path}`);
+      });
+      const page = new PageReplay();
+      await page.settle();
+      expect(page.find(ErrorNotice)).toHaveLength(0);
+      const cards = page.find('div').find((item) => item.props['aria-label'] === '迭代统计');
+      expect(findElements(cards, 'strong')[4]?.props.children).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('任务刷新返回更新的迭代时保留未保存的编辑', async () => {

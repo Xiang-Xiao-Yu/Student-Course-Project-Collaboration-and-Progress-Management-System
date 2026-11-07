@@ -162,11 +162,16 @@ export function formToCreateTaskInput(values: TaskFormValues): CreateTaskInput {
   };
 }
 
-export function formToUpdateTaskInput(values: TaskFormValues): UpdateTaskInput {
+export function formToUpdateTaskInput(
+  values: TaskFormValues,
+  initial?: TaskFormValues,
+): UpdateTaskInput {
   const createInput = formToCreateTaskInput(values);
+  const { dueDate, ...otherFields } = createInput;
 
   return {
-    ...createInput,
+    ...otherFields,
+    ...(dueDate && (!initial || initial.dueDate !== values.dueDate) ? { dueDate } : {}),
     description: values.description.trim(),
     tagNames: normalizeTaskTags(values.tagNames),
   };

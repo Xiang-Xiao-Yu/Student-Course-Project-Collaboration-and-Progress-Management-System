@@ -15,6 +15,7 @@ const form = {
 };
 
 const stats: IterationStatsDto = {
+  asOf: '2026-11-07T04:00:00.000Z',
   blocked: 1,
   completed: 1,
   completionRate: 0.25,

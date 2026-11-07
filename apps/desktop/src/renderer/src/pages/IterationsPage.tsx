@@ -70,6 +70,7 @@ const EMPTY_ITERATION_FORM: IterationFormValues = {
 };
 
 const EMPTY_STATS: IterationStatsDto = {
+  asOf: '',
   blocked: 0,
   completed: 0,
   completionRate: 0,
@@ -127,7 +128,8 @@ function getStatsFailure(
   if (result.status === 'rejected') return getUserFacingError(result.reason);
   const tasks = detail.tasks;
   const completed = tasks.filter((task) => task.status === 'COMPLETED').length;
-  const now = new Date();
+  const now = new Date(result.value.asOf);
+  if (Number.isNaN(now.getTime())) return STATS_CHANGED_MESSAGE;
   const expected = {
     blocked: tasks.filter((task) => task.status === 'BLOCKED').length,
     completed,
@@ -136,7 +138,7 @@ function getStatsFailure(
     overdue: tasks.filter((task) => isIterationTaskOverdue(task, now)).length,
     total: tasks.length,
   };
-  return (Object.keys(expected) as Array<keyof IterationStatsDto>).every(
+  return (Object.keys(expected) as Array<keyof typeof expected>).every(
     (key) => result.value[key] === expected[key],
   )
     ? null
@@ -251,7 +253,6 @@ export function IterationsPage() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [state, setState] = useState<IterationsState>({ status: 'loading' });
   const [statusAction, setStatusAction] = useState<IterationStatus | null>(null);
-  const isEditingLocked = isLoadingSelection || isRefreshingStats;
   const isWritePending =
     isAddingTask ||
     isClosing ||
@@ -259,6 +260,7 @@ export function IterationsPage() {
     isLoadingSelection ||
     isRemovingTaskId !== null ||
     isUpdating;
+  const isEditingLocked = isWritePending || isRefreshingStats;
   const selectionVersionRef = useRef(0);
   const selectedIterationIdRef = useRef<string | null>(null);
   const editDirtyRef = useRef(false);
@@ -432,9 +434,7 @@ export function IterationsPage() {
 
     if (
       state.status !== 'ready' ||
-      isCreating ||
-      isLoadingSelection ||
-      isRefreshingStats ||
+      isEditingLocked ||
       !canManageProject(state.data.project.accessRole)
     ) {
       return;
@@ -491,7 +491,7 @@ export function IterationsPage() {
   async function handleUpdate(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (state.status !== 'ready' || !state.data.selected || isUpdating || isRefreshingStats) {
+    if (state.status !== 'ready' || !state.data.selected || isEditingLocked) {
       return;
     }
 
@@ -553,7 +553,7 @@ export function IterationsPage() {
   }
 
   async function applyStatusAction(): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || !statusAction || isRefreshingStats) {
+    if (state.status !== 'ready' || !state.data.selected || !statusAction || isEditingLocked) {
       return;
     }
 
@@ -613,7 +613,7 @@ export function IterationsPage() {
   }
 
   function requestAddTask(): void {
-    if (state.status !== 'ready' || !state.data.selected || isRefreshingStats) {
+    if (state.status !== 'ready' || !state.data.selected || isEditingLocked) {
       return;
     }
 
@@ -640,7 +640,7 @@ export function IterationsPage() {
     taskIdOverride?: string,
     sourceOverride?: TaskIterationOwnership,
   ): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isAddingTask || isRefreshingStats) {
+    if (state.status !== 'ready' || !state.data.selected || isEditingLocked) {
       return;
     }
 
@@ -733,7 +733,7 @@ export function IterationsPage() {
   }
 
   async function handleRemoveTask(taskId: string): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isRemovingTaskId || isRefreshingStats) {
+    if (state.status !== 'ready' || !state.data.selected || isEditingLocked) {
       return;
     }
 
@@ -796,7 +796,7 @@ export function IterationsPage() {
   }
 
   async function handleCloseIteration(): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isClosing || isRefreshingStats) {
+    if (state.status !== 'ready' || !state.data.selected || isEditingLocked) {
       return;
     }
 
@@ -1388,7 +1388,8 @@ export function IterationsPage() {
                 ) : (
                   <div className="iteration-task-list">
                     {selected.tasks.map((task) => {
-                      const overdue = isIterationTaskOverdue(task);
+                      const overdue =
+                        !statsUnavailable && isIterationTaskOverdue(task, new Date(stats.asOf));
 
                       return (
                         <article className="iteration-task-row" key={task.id}>

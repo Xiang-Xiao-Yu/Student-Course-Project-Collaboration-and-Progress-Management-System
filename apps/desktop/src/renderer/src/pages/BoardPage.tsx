@@ -277,7 +277,7 @@ export function BoardPage() {
         api,
         state.data.project.id,
         editingTask.id,
-        formToUpdateTaskInput(editForm),
+        formToUpdateTaskInput(editForm, editInitialForm),
       );
 
       mutateTasks({ task, type: 'updated' });

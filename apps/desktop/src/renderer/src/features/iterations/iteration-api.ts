@@ -29,6 +29,7 @@ export interface IterationDetailDto extends IterationSummaryDto {
 }
 
 export interface IterationStatsDto {
+  readonly asOf: string;
   readonly blocked: number;
   readonly completed: number;
   readonly completionRate: number;
