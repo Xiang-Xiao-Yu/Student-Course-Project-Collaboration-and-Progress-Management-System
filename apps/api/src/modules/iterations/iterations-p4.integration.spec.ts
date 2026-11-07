@@ -378,6 +378,181 @@ describe('P4 iterations and comments with SQLite', () => {
     });
   });
 
+  it('freezes task membership for terminal iterations', async () => {
+    const projectId = await createProject();
+
+    const canceled = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2026-12-31T00:00:00.000Z',
+        name: '已取消迭代',
+        startDate: '2026-12-01T00:00:00.000Z',
+      },
+    );
+    expect(canceled.status).toBe(201);
+    const canceledIteration = (await canceled.json()) as IterationEnvelope;
+    await request(
+      `/projects/${projectId}/iterations/${canceledIteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      {
+        status: 'CANCELED',
+      },
+    );
+
+    const backlogTask = await prisma.task.create({
+      data: { createdById: accounts.owner.id, projectId, title: '待迁移任务' },
+    });
+
+    const addToCanceled = await request(
+      `/projects/${projectId}/iterations/${canceledIteration.data.id}/tasks`,
+      'POST',
+      accounts.owner.token,
+      { taskId: backlogTask.id },
+    );
+    expect(addToCanceled.status).toBe(422);
+    expect(((await addToCanceled.json()) as { error?: { code?: string } }).error?.code).toBe(
+      'ITERATION_TARGET_TERMINAL',
+    );
+    expect(
+      (await prisma.task.findUniqueOrThrow({ where: { id: backlogTask.id } })).iterationId,
+    ).toBeNull();
+
+    const completed = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2026-12-31T00:00:00.000Z',
+        name: '已完成迭代',
+        startDate: '2026-12-01T00:00:00.000Z',
+      },
+    );
+    const completedIteration = (await completed.json()) as IterationEnvelope;
+    const added = await request(
+      `/projects/${projectId}/iterations/${completedIteration.data.id}/tasks`,
+      'POST',
+      accounts.owner.token,
+      { taskId: backlogTask.id },
+    );
+    expect(added.status).toBe(200);
+    await request(
+      `/projects/${projectId}/iterations/${completedIteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      {
+        status: 'IN_PROGRESS',
+      },
+    );
+    await request(
+      `/projects/${projectId}/iterations/${completedIteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      {
+        status: 'COMPLETED',
+      },
+    );
+
+    const active = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2027-01-31T00:00:00.000Z',
+        name: '进行中迭代',
+        startDate: '2027-01-01T00:00:00.000Z',
+      },
+    );
+    const activeIteration = (await active.json()) as IterationEnvelope;
+
+    const moveOut = await request(
+      `/projects/${projectId}/iterations/${activeIteration.data.id}/tasks`,
+      'POST',
+      accounts.owner.token,
+      { taskId: backlogTask.id },
+    );
+    expect(moveOut.status).toBe(422);
+    expect(((await moveOut.json()) as { error?: { code?: string } }).error?.code).toBe(
+      'ITERATION_SOURCE_TERMINAL',
+    );
+
+    const removeFromCompleted = await request(
+      `/projects/${projectId}/iterations/${completedIteration.data.id}/tasks/${backlogTask.id}`,
+      'DELETE',
+      accounts.owner.token,
+    );
+    expect(removeFromCompleted.status).toBe(422);
+    expect(((await removeFromCompleted.json()) as { error?: { code?: string } }).error?.code).toBe(
+      'ITERATION_SOURCE_TERMINAL',
+    );
+    expect(
+      (await prisma.task.findUniqueOrThrow({ where: { id: backlogTask.id } })).iterationId,
+    ).toBe(completedIteration.data.id);
+  });
+
+  it('rejects closing an iteration into a terminal iteration', async () => {
+    const projectId = await createProject();
+
+    const source = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2026-12-31T00:00:00.000Z',
+        name: '待关闭迭代',
+        startDate: '2026-12-01T00:00:00.000Z',
+      },
+    );
+    const sourceIteration = (await source.json()) as IterationEnvelope;
+    await request(
+      `/projects/${projectId}/iterations/${sourceIteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      {
+        status: 'IN_PROGRESS',
+      },
+    );
+
+    const target = await request(
+      `/projects/${projectId}/iterations`,
+      'POST',
+      accounts.owner.token,
+      {
+        endDate: '2026-12-31T00:00:00.000Z',
+        name: '已取消目标迭代',
+        startDate: '2026-12-01T00:00:00.000Z',
+      },
+    );
+    const targetIteration = (await target.json()) as IterationEnvelope;
+    await request(
+      `/projects/${projectId}/iterations/${targetIteration.data.id}`,
+      'PATCH',
+      accounts.owner.token,
+      {
+        status: 'CANCELED',
+      },
+    );
+
+    const closed = await request(
+      `/projects/${projectId}/iterations/${sourceIteration.data.id}/close`,
+      'POST',
+      accounts.owner.token,
+      { nextIterationId: targetIteration.data.id },
+    );
+    expect(closed.status).toBe(422);
+    expect(((await closed.json()) as { error?: { code?: string } }).error?.code).toBe(
+      'ITERATION_TARGET_TERMINAL',
+    );
+
+    const detail = await request(
+      `/projects/${projectId}/iterations/${sourceIteration.data.id}`,
+      'GET',
+      accounts.owner.token,
+    );
+    expect(((await detail.json()) as IterationEnvelope).data.status).toBe('IN_PROGRESS');
+  });
   it('allows members to create, edit and delete only their own comments', async () => {
     const projectId = await createProject();
     const task = await prisma.task.create({

@@ -151,6 +151,35 @@ describe('IterationsService', () => {
     });
   });
 
+  it('treats a task due today as on-time and due yesterday as overdue', async () => {
+    const { access, repository, service } = createService();
+
+    access.requirePermission.mockResolvedValue(undefined);
+    repository.getStats.mockResolvedValue([
+      {
+        completedAt: null,
+        dueDate: new Date('2026-11-05T00:00:00.000Z'),
+        id: 'task-1',
+        status: 'TODO',
+        title: '今天截止',
+      },
+    ]);
+
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-11-05T15:59:59.000Z'));
+      await expect(service.getStats('user-1', 'project-1', 'iteration-1')).resolves.toMatchObject({
+        overdue: 0,
+      });
+
+      vi.setSystemTime(new Date('2026-11-05T16:00:00.000Z'));
+      await expect(service.getStats('user-1', 'project-1', 'iteration-1')).resolves.toMatchObject({
+        overdue: 1,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('returns a stable not-found error when the iteration does not exist', async () => {
     const { access, repository, service } = createService();
 

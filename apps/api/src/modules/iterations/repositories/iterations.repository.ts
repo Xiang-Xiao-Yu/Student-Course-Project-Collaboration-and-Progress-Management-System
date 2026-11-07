@@ -229,7 +229,11 @@ export class IterationsRepository {
       actorId,
       'PROJECT_UPDATE',
       async (transaction) => {
-        await this.requireIteration(transaction, projectId, iterationId);
+        const iteration = await this.requireIteration(transaction, projectId, iterationId);
+        if (this.isTerminalStatus(iteration.status)) {
+          throw this.iterationTargetTerminal();
+        }
+
         const task = await transaction.task.findFirst({
           select: { id: true, iterationId: true, status: true, title: true },
           where: { id: taskId, projectId },
@@ -237,6 +241,17 @@ export class IterationsRepository {
 
         if (!task) {
           throw this.taskNotFound();
+        }
+
+        if (task.iterationId) {
+          const source = await transaction.iteration.findFirst({
+            select: { id: true, status: true },
+            where: { id: task.iterationId, projectId },
+          });
+
+          if (source && this.isTerminalStatus(source.status)) {
+            throw this.iterationSourceTerminal();
+          }
         }
 
         await transaction.task.update({
@@ -275,7 +290,11 @@ export class IterationsRepository {
       actorId,
       'PROJECT_UPDATE',
       async (transaction) => {
-        await this.requireIteration(transaction, projectId, iterationId);
+        const iteration = await this.requireIteration(transaction, projectId, iterationId);
+        if (this.isTerminalStatus(iteration.status)) {
+          throw this.iterationSourceTerminal();
+        }
+
         const task = await transaction.task.findFirst({
           select: { id: true, iterationId: true, status: true, title: true },
           where: { id: taskId, projectId, iterationId },
@@ -336,11 +355,14 @@ export class IterationsRepository {
             throw this.nextIterationNotFound();
           }
           const nextIteration = await transaction.iteration.findFirst({
-            select: { id: true },
+            select: { id: true, status: true },
             where: { id: nextIterationId, projectId },
           });
           if (!nextIteration) {
             throw this.nextIterationNotFound();
+          }
+          if (this.isTerminalStatus(nextIteration.status)) {
+            throw this.iterationTargetTerminal();
           }
           const moved = await transaction.task.updateMany({
             data: { iterationId: nextIterationId },
@@ -507,6 +529,26 @@ export class IterationsRepository {
         '迭代结束日期不能早于开始日期',
       );
     }
+  }
+
+  private isTerminalStatus(status: string): boolean {
+    return status === 'COMPLETED' || status === 'CANCELED';
+  }
+
+  private iterationTargetTerminal(): AppException {
+    return new AppException(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'ITERATION_TARGET_TERMINAL',
+      '目标迭代已结束，不能变更其任务',
+    );
+  }
+
+  private iterationSourceTerminal(): AppException {
+    return new AppException(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'ITERATION_SOURCE_TERMINAL',
+      '任务所属迭代已结束，不能变更其任务',
+    );
   }
 
   private iterationNotFound(): AppException {

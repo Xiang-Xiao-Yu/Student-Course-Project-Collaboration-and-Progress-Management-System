@@ -18,6 +18,33 @@ import {
   IterationsRepository,
 } from './repositories/iterations.repository';
 
+const ITERATION_OVERDUE_TIME_ZONE = 'Asia/Shanghai';
+
+function calendarDayKey(value: Date): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: ITERATION_OVERDUE_TIME_ZONE,
+    year: 'numeric',
+  }).formatToParts(value);
+
+  let year = '';
+  let month = '';
+  let day = '';
+
+  for (const part of parts) {
+    if (part.type === 'year') {
+      year = part.value;
+    } else if (part.type === 'month') {
+      month = part.value;
+    } else if (part.type === 'day') {
+      day = part.value;
+    }
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 @Injectable()
 export class IterationsService {
   constructor(
@@ -186,14 +213,16 @@ export class IterationsService {
       throw this.iterationNotFound();
     }
 
-    const now = Date.now();
+    const now = new Date();
     const total = tasks.length;
     const completed = tasks.filter((task) => task.status === 'COMPLETED').length;
     const inProgress = tasks.filter((task) => task.status === 'IN_PROGRESS').length;
     const blocked = tasks.filter((task) => task.status === 'BLOCKED').length;
     const overdue = tasks.filter(
       (task) =>
-        task.status !== 'COMPLETED' && task.dueDate !== null && task.dueDate.getTime() < now,
+        task.status !== 'COMPLETED' &&
+        task.dueDate !== null &&
+        calendarDayKey(task.dueDate) < calendarDayKey(now),
     ).length;
 
     return {
