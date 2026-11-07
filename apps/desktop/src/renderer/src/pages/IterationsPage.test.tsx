@@ -271,7 +271,7 @@ describe('P4 iteration page regressions', () => {
     await page.settle();
   });
 
-  it('旧迭代移除请求完成时不清除当前迭代的统计错误', async () => {
+  it('移出期间不能切换迭代，统计失败提示仍保留', async () => {
     const pending = deferred<unknown>();
     boundary.api.delete.mockReturnValue(pending.promise);
     boundary.api.get.mockImplementation(async (path) => {
@@ -280,15 +280,17 @@ describe('P4 iteration page regressions', () => {
       if (path === '/projects/project-1/iterations') return [iteration('a'), iteration('b', [])];
       if (path === '/projects/project-1/iterations/a') return iteration('a');
       if (path === '/projects/project-1/iterations/b') return iteration('b', []);
-      if (path === '/projects/project-1/iterations/b/stats') throw new Error('network');
+      if (path === '/projects/project-1/iterations/a/stats') throw new Error('network');
       if (path.endsWith('/stats')) return stats;
       throw new Error(`Unexpected request: ${path}`);
     });
     const page = new PageReplay();
     await page.settle();
+    expect(page.find(ErrorNotice)).toHaveLength(1);
     page.clickButton('移出迭代');
     page.select('b');
     await page.settle();
+    expect(page.find('h2').some((item) => item.props.children === '迭代 a')).toBe(true);
     expect(page.find(ErrorNotice)).toHaveLength(1);
 
     pending.resolve(iteration('a', []));
@@ -438,7 +440,28 @@ describe('P4 iteration page regressions', () => {
     expect(page.find('button').find((item) => item.key === 'b')?.props.disabled).toBe(false);
   });
 
-  it('移出任务后切换往返时不使用旧响应覆盖新迭代详情', async () => {
+  it('切换确认打开后若开始移出，不能通过确认按钮绕过写入锁', async () => {
+    const pending = deferred<unknown>();
+    boundary.api.delete.mockReturnValue(pending.promise);
+    const page = new PageReplay();
+    await page.settle();
+    page.clickButton('编辑迭代');
+    page.change(page.form('iteration-edit-form'), 'textarea', 0, '未保存目标');
+    page.select('b');
+    page.clickButton('移出迭代');
+    const dialog = page.find(ConfirmDialog)[0];
+    expect(dialog?.props.isPending).toBe(true);
+    (dialog?.props.onConfirm as () => void)();
+    page.render();
+    expect(page.find('h2').some((item) => item.props.children === '迭代 a')).toBe(true);
+    expect(findElements(page.form('iteration-edit-form'), 'textarea')[0]?.props.value).toBe(
+      '未保存目标',
+    );
+    pending.resolve(iteration('a', []));
+    await page.settle();
+  });
+
+  it('移出完成后切换往返读取最新迭代详情', async () => {
     const pending = deferred<unknown>();
     boundary.api.delete.mockReturnValue(pending.promise);
     let aRequests = 0;
@@ -460,11 +483,12 @@ describe('P4 iteration page regressions', () => {
     page.clickButton('移出迭代');
     page.select('b');
     await page.settle();
-    page.select('a');
-    await page.settle();
-    expect(page.find('h2').some((item) => item.props.children === '其他客户端的新名称')).toBe(true);
-
+    expect(page.find('h2').some((item) => item.props.children === '迭代 a')).toBe(true);
     pending.resolve(iteration('a', []));
+    await page.settle();
+    page.select('b');
+    await page.settle();
+    page.select('a');
     await page.settle();
     expect(page.find('h2').some((item) => item.props.children === '其他客户端的新名称')).toBe(true);
   });

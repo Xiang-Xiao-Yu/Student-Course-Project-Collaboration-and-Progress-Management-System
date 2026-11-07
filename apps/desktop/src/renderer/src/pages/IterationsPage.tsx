@@ -378,7 +378,7 @@ export function IterationsPage() {
   }
 
   async function selectIteration(iterationId: string): Promise<void> {
-    if (state.status !== 'ready' || state.data.selected?.id === iterationId) {
+    if (state.status !== 'ready' || state.data.selected?.id === iterationId || isWritePending) {
       return;
     }
 
@@ -1442,9 +1442,11 @@ export function IterationsPage() {
       {pendingIterationId ? (
         <ConfirmDialog
           confirmLabel="放弃并切换"
+          isPending={isWritePending}
           message="当前迭代还有未保存的修改，切换后这些修改将丢失。"
           onCancel={() => setPendingIterationId(null)}
           onConfirm={() => {
+            if (isWritePending) return;
             const iterationId = pendingIterationId;
 
             setPendingIterationId(null);

@@ -257,11 +257,40 @@ try {
   await page.locator('.iteration-list-row').filter({ hasText: 'P4 主迭代' }).click();
   await page.locator('.iteration-detail-panel h2').filter({ hasText: 'P4 主迭代' }).waitFor();
 
+  await addTaskToSelectedIteration(removableTask);
   await page.getByRole('button', { name: '编辑迭代', exact: true }).click();
   await page.locator('.iteration-edit-form textarea').fill('尚未保存的迭代目标');
   await page.locator('.iteration-list-row').filter({ hasText: 'P4 迁移迭代' }).click();
   const switchDialog = page.locator('.confirm-dialog').filter({ hasText: '切换迭代' });
   await switchDialog.waitFor();
+  let releaseRemoval;
+  const removalBarrier = new Promise((resolve) => {
+    releaseRemoval = resolve;
+  });
+  const removalRoute = `**/iterations/*/tasks/${removableTask.id}`;
+  const delayRemoval = async (route) => {
+    if (route.request().method() === 'DELETE') await removalBarrier;
+    await route.continue();
+  };
+  await page.route(removalRoute, delayRemoval);
+  const backgroundRemove = page
+    .locator('.iteration-task-row')
+    .filter({ hasText: removableTask.title })
+    .getByRole('button', { name: '移出迭代', exact: true });
+  await backgroundRemove.focus();
+  await page.keyboard.press('Enter');
+  const pendingConfirmation = switchDialog.getByRole('button', {
+    name: '正在处理...',
+    exact: true,
+  });
+  await pendingConfirmation.waitFor();
+  check(await pendingConfirmation.isDisabled(), 'Switch confirmation bypassed the write lock');
+  releaseRemoval();
+  await page.locator('.iteration-task-row').filter({ hasText: removableTask.title }).waitFor({
+    state: 'detached',
+  });
+  await page.unroute(removalRoute, delayRemoval);
+  results.push({ name: 'keyboard cannot switch while a task removal is pending', status: 'PASS' });
   await switchDialog.getByRole('button', { name: '取消', exact: true }).click();
   check(
     (await page.locator('.iteration-detail-panel').innerText()).includes('P4 主迭代'),
