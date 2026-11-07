@@ -36,6 +36,9 @@ Thumbs.db
 # Temporary visual prototypes
 /tmp/ui-demo/
 
+# Local recoverable backups
+/tmp/backups/
+
 # Electron and tooling caches
 .electron/
 .electron-vite/
