@@ -1,0 +1,69 @@
+{
+  "commands": [
+    {
+      "exitCode": 0,
+      "name": "electron-version",
+      "timedOut": false
+    },
+    {
+      "exitCode": 0,
+      "name": "migration",
+      "timedOut": false
+    },
+    {
+      "exitCode": 0,
+      "name": "electron",
+      "timedOut": false
+    }
+  ],
+  "passed": false,
+  "sandboxOverride": true,
+  "electron": "44.4.3",
+  "cases": [
+    {
+      "name": "task source display and migration confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "unsaved iteration switch confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "creation and collapsed editor preserve unsaved changes",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration creation and task membership",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration statistics and task removal",
+      "status": "PASS"
+    },
+    {
+      "name": "iteration close and incomplete task migration",
+      "status": "PASS"
+    },
+    {
+      "name": "unfinished tasks can move out of canceled iterations",
+      "status": "PASS"
+    },
+    {
+      "name": "stale task ownership is rejected without moving the task",
+      "status": "PASS"
+    },
+    {
+      "name": "task comment create edit delete",
+      "status": "PASS"
+    },
+    {
+      "name": "comment drafts block navigation on task and requirement pages",
+      "status": "PASS"
+    },
+    {
+      "name": "requirement comments and observer read-only access",
+      "status": "PASS"
+    }
+  ],
+  "functionalPassed": true
+}
