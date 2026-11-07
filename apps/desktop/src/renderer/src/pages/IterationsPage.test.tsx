@@ -319,6 +319,75 @@ describe('P4 iteration page regressions', () => {
     expect(page.find('span').some((item) => item.props.children === '已逾期')).toBe(false);
   });
 
+  it('统计与任务详情来自不同快照时保留错误提示', async () => {
+    const overdueTask = { ...task, dueDate: '2026-11-01T00:00:00.000Z' };
+    let statistics = 0;
+    boundary.api.get.mockImplementation(async (path) => {
+      if (path === '/projects/project-1') return project;
+      if (path === '/projects/project-1/tasks') return [overdueTask];
+      if (path === '/projects/project-1/iterations') return [iteration('a', [overdueTask])];
+      if (path === '/projects/project-1/iterations/a') return iteration('a', [overdueTask]);
+      if (path === '/projects/project-1/iterations/a/stats') {
+        statistics += 1;
+        if (statistics === 1) throw new Error('network');
+        return { ...stats, completed: 1, completionRate: 1, overdue: 0 };
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    const page = new PageReplay();
+    await page.settle();
+    page.clickButton('重新加载统计');
+    await page.settle();
+
+    expect(page.find(ErrorNotice)).toHaveLength(1);
+    const cards = page.find('div').find((item) => item.props['aria-label'] === '迭代统计');
+    expect(findElements(cards, 'strong')[4]?.props.children).toBe('-');
+  });
+
+  it('统计重试与迭代任务写入不能同时进行', async () => {
+    const pendingStats = deferred<unknown>();
+    let statistics = 0;
+    boundary.api.get.mockImplementation(async (path) => {
+      if (path === '/projects/project-1') return project;
+      if (path === '/projects/project-1/tasks') return [task];
+      if (path === '/projects/project-1/iterations') return [iteration('a')];
+      if (path === '/projects/project-1/iterations/a') return iteration('a');
+      if (path === '/projects/project-1/iterations/a/stats') {
+        statistics += 1;
+        if (statistics === 1) throw new Error('network');
+        return pendingStats.promise;
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    const page = new PageReplay();
+    await page.settle();
+    page.clickButton('重新加载统计');
+    const remove = page.find('button').find((item) => item.props.children === '移出迭代');
+    expect(remove?.props.disabled).toBe(true);
+    pendingStats.resolve(stats);
+    await page.settle();
+  });
+
+  it('任务写入尚未完成时不能启动统计重试', async () => {
+    const pending = deferred<unknown>();
+    boundary.api.delete.mockReturnValue(pending.promise);
+    boundary.api.get.mockImplementation(async (path) => {
+      if (path === '/projects/project-1') return project;
+      if (path === '/projects/project-1/tasks') return [task];
+      if (path === '/projects/project-1/iterations') return [iteration('a')];
+      if (path === '/projects/project-1/iterations/a') return iteration('a');
+      if (path.endsWith('/stats')) throw new Error('network');
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    const page = new PageReplay();
+    await page.settle();
+    page.clickButton('移出迭代');
+    const retry = page.find('button').find((item) => item.props.children === '重新加载统计');
+    expect(retry?.props.disabled).toBe(true);
+    pending.resolve(iteration('a', []));
+    await page.settle();
+  });
+
   it('任务刷新返回更新的迭代时保留未保存的编辑', async () => {
     boundary.api.delete.mockResolvedValue({
       ...iteration('a', []),

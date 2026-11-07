@@ -28,7 +28,6 @@ import {
 } from '../features/iterations/iteration-api';
 import {
   formatCompletionRate,
-  formatIterationTaskDueDate,
   getIterationStatusActionLabel,
   getIterationStatusLabel,
   getIterationStatusTransitions,
@@ -60,7 +59,7 @@ import {
 } from '../features/projects/project-presentation';
 import type { TaskDto } from '../features/tasks/task-api';
 import { listTasks } from '../features/tasks/task-api';
-import { getTaskStatusLabel } from '../features/tasks/task-presentation';
+import { formatTaskDueDate, getTaskStatusLabel } from '../features/tasks/task-presentation';
 import { getUserFacingError } from '../lib/api/errors';
 
 const EMPTY_ITERATION_FORM: IterationFormValues = {
@@ -117,6 +116,31 @@ function getAvailableTasks(data: IterationsData): TaskDto[] {
       !(sourceIsTerminal && task.status === 'COMPLETED')
     );
   });
+}
+
+const STATS_CHANGED_MESSAGE = '迭代任务或统计已变化，请重新加载。';
+
+function getStatsFailure(
+  detail: IterationDetailDto,
+  result: PromiseSettledResult<IterationStatsDto>,
+): string | null {
+  if (result.status === 'rejected') return getUserFacingError(result.reason);
+  const tasks = detail.tasks;
+  const completed = tasks.filter((task) => task.status === 'COMPLETED').length;
+  const now = new Date();
+  const expected = {
+    blocked: tasks.filter((task) => task.status === 'BLOCKED').length,
+    completed,
+    completionRate: tasks.length === 0 ? 0 : Math.round((completed / tasks.length) * 10000) / 10000,
+    inProgress: tasks.filter((task) => task.status === 'IN_PROGRESS').length,
+    overdue: tasks.filter((task) => isIterationTaskOverdue(task, now)).length,
+    total: tasks.length,
+  };
+  return (Object.keys(expected) as Array<keyof IterationStatsDto>).every(
+    (key) => result.value[key] === expected[key],
+  )
+    ? null
+    : STATS_CHANGED_MESSAGE;
 }
 
 function toSummary(iteration: IterationDetailDto): IterationSummaryDto {
@@ -227,6 +251,14 @@ export function IterationsPage() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [state, setState] = useState<IterationsState>({ status: 'loading' });
   const [statusAction, setStatusAction] = useState<IterationStatus | null>(null);
+  const isEditingLocked = isLoadingSelection || isRefreshingStats;
+  const isWritePending =
+    isAddingTask ||
+    isClosing ||
+    isCreating ||
+    isLoadingSelection ||
+    isRemovingTaskId !== null ||
+    isUpdating;
   const selectionVersionRef = useRef(0);
   const selectedIterationIdRef = useRef<string | null>(null);
   const editDirtyRef = useRef(false);
@@ -280,6 +312,7 @@ export function IterationsPage() {
         if (selected) {
           try {
             stats = await getIterationStats(api, projectId, selected.id);
+            statsFailure = getStatsFailure(selected, { status: 'fulfilled', value: stats });
           } catch (error) {
             statsFailure = getUserFacingError(error);
           }
@@ -373,11 +406,12 @@ export function IterationsPage() {
       }
 
       const selected = selectedResult.value;
+      const statsFailure = getStatsFailure(selected, statsResult);
       const statsRefresh = resolveIterationStatsRefresh(
         EMPTY_STATS,
-        statsResult.status === 'fulfilled'
+        statsResult.status === 'fulfilled' && statsFailure === null
           ? { status: 'fulfilled', value: statsResult.value }
-          : { message: getUserFacingError(statsResult.reason), status: 'rejected' },
+          : { message: statsFailure ?? STATS_CHANGED_MESSAGE, status: 'rejected' },
       );
 
       setStatsError(statsRefresh.error);
@@ -400,6 +434,7 @@ export function IterationsPage() {
       state.status !== 'ready' ||
       isCreating ||
       isLoadingSelection ||
+      isRefreshingStats ||
       !canManageProject(state.data.project.accessRole)
     ) {
       return;
@@ -456,7 +491,7 @@ export function IterationsPage() {
   async function handleUpdate(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (state.status !== 'ready' || !state.data.selected || isUpdating) {
+    if (state.status !== 'ready' || !state.data.selected || isUpdating || isRefreshingStats) {
       return;
     }
 
@@ -518,7 +553,7 @@ export function IterationsPage() {
   }
 
   async function applyStatusAction(): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || !statusAction) {
+    if (state.status !== 'ready' || !state.data.selected || !statusAction || isRefreshingStats) {
       return;
     }
 
@@ -578,7 +613,7 @@ export function IterationsPage() {
   }
 
   function requestAddTask(): void {
-    if (state.status !== 'ready' || !state.data.selected) {
+    if (state.status !== 'ready' || !state.data.selected || isRefreshingStats) {
       return;
     }
 
@@ -605,7 +640,7 @@ export function IterationsPage() {
     taskIdOverride?: string,
     sourceOverride?: TaskIterationOwnership,
   ): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isAddingTask) {
+    if (state.status !== 'ready' || !state.data.selected || isAddingTask || isRefreshingStats) {
       return;
     }
 
@@ -646,10 +681,10 @@ export function IterationsPage() {
         targetIterationId,
         selectedIterationIdRef.current,
       );
-      const statsFailed = shouldActivate && statsResult.status === 'rejected';
+      const statsFailure = getStatsFailure(selected, statsResult);
 
       if (shouldActivate) {
-        setStatsError(statsFailed ? getUserFacingError(statsResult.reason) : null);
+        setStatsError(statsFailure);
       } else if (!shouldActivate && source?.iterationId === selectedIterationIdRef.current) {
         setStatsError('任务归属已变化，请重新加载当前迭代统计。');
       }
@@ -665,7 +700,7 @@ export function IterationsPage() {
                     : replaceSummary(current.data.iterations, selected),
                 selected: shouldActivate ? selected : current.data.selected,
                 stats: shouldActivate
-                  ? statsResult.status === 'fulfilled'
+                  ? statsResult.status === 'fulfilled' && statsFailure === null
                     ? statsResult.value
                     : EMPTY_STATS
                   : current.data.stats,
@@ -698,7 +733,7 @@ export function IterationsPage() {
   }
 
   async function handleRemoveTask(taskId: string): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isRemovingTaskId) {
+    if (state.status !== 'ready' || !state.data.selected || isRemovingTaskId || isRefreshingStats) {
       return;
     }
 
@@ -718,11 +753,10 @@ export function IterationsPage() {
         targetIterationId,
         selectedIterationIdRef.current,
       );
+      const statsFailure = getStatsFailure(selected, statsResult);
 
       if (shouldActivate) {
-        setStatsError(
-          statsResult.status === 'rejected' ? getUserFacingError(statsResult.reason) : null,
-        );
+        setStatsError(statsFailure);
       }
 
       setState((current) =>
@@ -736,7 +770,7 @@ export function IterationsPage() {
                     : replaceSummary(current.data.iterations, selected),
                 selected: shouldActivate ? selected : current.data.selected,
                 stats: shouldActivate
-                  ? statsResult.status === 'fulfilled'
+                  ? statsResult.status === 'fulfilled' && statsFailure === null
                     ? statsResult.value
                     : EMPTY_STATS
                   : current.data.stats,
@@ -762,7 +796,7 @@ export function IterationsPage() {
   }
 
   async function handleCloseIteration(): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isClosing) {
+    if (state.status !== 'ready' || !state.data.selected || isClosing || isRefreshingStats) {
       return;
     }
 
@@ -792,11 +826,10 @@ export function IterationsPage() {
         targetIterationId,
         selectedIterationIdRef.current,
       );
+      const statsFailure = getStatsFailure(selected, statsResult);
 
       if (shouldActivate) {
-        setStatsError(
-          statsResult.status === 'rejected' ? getUserFacingError(statsResult.reason) : null,
-        );
+        setStatsError(statsFailure);
       }
 
       setState((current) =>
@@ -810,7 +843,7 @@ export function IterationsPage() {
                     : replaceSummary(current.data.iterations, selected),
                 selected: shouldActivate ? selected : current.data.selected,
                 stats: shouldActivate
-                  ? statsResult.status === 'fulfilled'
+                  ? statsResult.status === 'fulfilled' && statsFailure === null
                     ? statsResult.value
                     : EMPTY_STATS
                   : current.data.stats,
@@ -856,7 +889,7 @@ export function IterationsPage() {
   }
 
   async function retrySelectedIterationStats(): Promise<void> {
-    if (state.status !== 'ready' || !state.data.selected || isRefreshingStats) {
+    if (state.status !== 'ready' || !state.data.selected || isRefreshingStats || isWritePending) {
       return;
     }
 
@@ -875,6 +908,11 @@ export function IterationsPage() {
         requestVersion === selectionVersionRef.current &&
         isIterationResponseCurrent(iterationId, selectedIterationIdRef.current)
       ) {
+        const statsFailure = getStatsFailure(selected, { status: 'fulfilled', value: stats });
+        if (statsFailure) {
+          setStatsError(statsFailure);
+          return;
+        }
         setState((current) =>
           current.status === 'ready' && current.data.selected?.id === iterationId
             ? {
@@ -987,7 +1025,7 @@ export function IterationsPage() {
             <label className="form-field">
               <span>迭代名称</span>
               <input
-                disabled={isCreating || isLoadingSelection}
+                disabled={isCreating || isEditingLocked}
                 maxLength={100}
                 onChange={(event) =>
                   setCreateForm((current) => ({ ...current, name: event.target.value }))
@@ -1000,7 +1038,7 @@ export function IterationsPage() {
             <label className="form-field">
               <span>迭代目标</span>
               <textarea
-                disabled={isCreating || isLoadingSelection}
+                disabled={isCreating || isEditingLocked}
                 maxLength={1000}
                 onChange={(event) =>
                   setCreateForm((current) => ({ ...current, goal: event.target.value }))
@@ -1014,7 +1052,7 @@ export function IterationsPage() {
               <label className="form-field">
                 <span>开始日期</span>
                 <input
-                  disabled={isCreating || isLoadingSelection}
+                  disabled={isCreating || isEditingLocked}
                   onChange={(event) =>
                     setCreateForm((current) => ({
                       ...current,
@@ -1029,7 +1067,7 @@ export function IterationsPage() {
               <label className="form-field">
                 <span>结束日期</span>
                 <input
-                  disabled={isCreating || isLoadingSelection}
+                  disabled={isCreating || isEditingLocked}
                   onChange={(event) =>
                     setCreateForm((current) => ({ ...current, endDate: event.target.value }))
                   }
@@ -1042,7 +1080,7 @@ export function IterationsPage() {
             <div className="form-actions">
               <button
                 className="primary-button"
-                disabled={isCreating || isLoadingSelection}
+                disabled={isCreating || isEditingLocked}
                 type="submit"
               >
                 {isCreating ? '正在创建...' : '创建迭代'}
@@ -1126,7 +1164,7 @@ export function IterationsPage() {
                   <ErrorNotice message={`迭代统计刷新失败：${statsError}`} />
                   <button
                     className="secondary-button"
-                    disabled={isRefreshingStats}
+                    disabled={isRefreshingStats || isWritePending}
                     onClick={() => void retrySelectedIterationStats()}
                     type="button"
                   >
@@ -1169,7 +1207,7 @@ export function IterationsPage() {
                   <div className="button-row">
                     <button
                       className="secondary-button"
-                      disabled={isUpdating || isLoadingSelection}
+                      disabled={isUpdating || isEditingLocked}
                       onClick={() => setEditOpen((open) => !open)}
                       type="button"
                     >
@@ -1180,7 +1218,7 @@ export function IterationsPage() {
                       .map((status) => (
                         <button
                           className="secondary-button"
-                          disabled={isUpdating || isLoadingSelection || editDirty}
+                          disabled={isUpdating || isEditingLocked || editDirty}
                           key={status}
                           onClick={() => setStatusAction(status)}
                           type="button"
@@ -1191,7 +1229,7 @@ export function IterationsPage() {
                     {getIterationStatusTransitions(selected.status).includes('COMPLETED') ? (
                       <button
                         className="primary-button"
-                        disabled={isUpdating || isLoadingSelection || editDirty}
+                        disabled={isUpdating || isEditingLocked || editDirty}
                         onClick={() => {
                           setCloseError(null);
                           setCloseOpen(true);
@@ -1212,7 +1250,7 @@ export function IterationsPage() {
                       <label className="form-field">
                         <span>迭代名称</span>
                         <input
-                          disabled={isUpdating || isLoadingSelection}
+                          disabled={isUpdating || isEditingLocked}
                           maxLength={100}
                           onChange={(event) =>
                             setEditForm((current) => ({
@@ -1227,7 +1265,7 @@ export function IterationsPage() {
                       <label className="form-field">
                         <span>迭代目标</span>
                         <textarea
-                          disabled={isUpdating || isLoadingSelection}
+                          disabled={isUpdating || isEditingLocked}
                           maxLength={1000}
                           onChange={(event) =>
                             setEditForm((current) => ({
@@ -1244,7 +1282,7 @@ export function IterationsPage() {
                         <label className="form-field">
                           <span>开始日期</span>
                           <input
-                            disabled={isUpdating || isLoadingSelection}
+                            disabled={isUpdating || isEditingLocked}
                             onChange={(event) =>
                               setEditForm((current) => ({
                                 ...current,
@@ -1259,7 +1297,7 @@ export function IterationsPage() {
                         <label className="form-field">
                           <span>结束日期</span>
                           <input
-                            disabled={isUpdating || isLoadingSelection}
+                            disabled={isUpdating || isEditingLocked}
                             onChange={(event) =>
                               setEditForm((current) => ({
                                 ...current,
@@ -1277,7 +1315,7 @@ export function IterationsPage() {
                           className="primary-button"
                           disabled={
                             isUpdating ||
-                            isLoadingSelection ||
+                            isEditingLocked ||
                             !hasUnsavedIterationChanges(editInitialForm, editForm)
                           }
                           type="submit"
@@ -1286,7 +1324,7 @@ export function IterationsPage() {
                         </button>
                         <button
                           className="secondary-button"
-                          disabled={isUpdating || isLoadingSelection || !editDirty}
+                          disabled={isUpdating || isEditingLocked || !editDirty}
                           onClick={() => {
                             setEditForm(editInitialForm);
                             setEditErrors({});
@@ -1315,7 +1353,7 @@ export function IterationsPage() {
                     <label className="form-field">
                       <span>加入任务</span>
                       <select
-                        disabled={isLoadingSelection || isAddingTask || availableTasks.length === 0}
+                        disabled={isEditingLocked || isAddingTask || availableTasks.length === 0}
                         onChange={(event) => setAddTaskId(event.target.value)}
                         value={selectedAvailableTaskId}
                       >
@@ -1335,7 +1373,7 @@ export function IterationsPage() {
                     </label>
                     <button
                       className="secondary-button"
-                      disabled={isLoadingSelection || isAddingTask || availableTasks.length === 0}
+                      disabled={isEditingLocked || isAddingTask || availableTasks.length === 0}
                       onClick={requestAddTask}
                       type="button"
                     >
@@ -1359,7 +1397,7 @@ export function IterationsPage() {
                             <span>
                               {getTaskStatusLabel(task.status)}
                               {task.dueDate
-                                ? ` · 截止 ${formatIterationTaskDueDate(task.dueDate)}`
+                                ? ` · 截止 ${formatTaskDueDate(task.dueDate)}`
                                 : ' · 未设置截止日期'}
                             </span>
                           </div>
@@ -1368,7 +1406,7 @@ export function IterationsPage() {
                             {canManage && (!selectedIsTerminal || task.status !== 'COMPLETED') ? (
                               <button
                                 className="danger-text-button"
-                                disabled={isLoadingSelection || isRemovingTaskId !== null}
+                                disabled={isEditingLocked || isRemovingTaskId !== null}
                                 onClick={() => void handleRemoveTask(task.id)}
                                 type="button"
                               >

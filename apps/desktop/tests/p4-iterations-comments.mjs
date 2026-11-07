@@ -165,7 +165,12 @@ try {
     requirementId: requirement.id,
   });
   const removableTask = await createTask(owner.token, project.id, '临时移出任务', '2026-12-15');
-  const staleTask = await createTask(owner.token, project.id, '并发迁移任务', '2026-12-16');
+  const staleTask = await createTask(
+    owner.token,
+    project.id,
+    '并发迁移任务',
+    '2026-11-06T20:00:00.000Z',
+  );
 
   await setTaskStatus(owner.token, project.id, blockedTask.id, 'TODO');
   await setTaskStatus(owner.token, project.id, blockedTask.id, 'BLOCKED');
@@ -188,6 +193,8 @@ try {
     timeout: 20000,
   });
   page = await electronApp.firstWindow();
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setTimezoneOverride', { timezoneId: 'UTC' });
   page.setDefaultTimeout(12000);
   page.on('response', (response) => {
     if (response.url().startsWith(apiBaseUrl)) {
@@ -353,7 +360,37 @@ try {
     status: 'PASS',
   });
 
+  await page.locator('.iteration-list-row').filter({ hasText: 'P4 草稿验证迭代' }).click();
+  const timedIterationRow = page
+    .locator('.iteration-task-row')
+    .filter({ hasText: staleTask.title });
+  await timedIterationRow.waitFor();
+  check(
+    (await timedIterationRow.innerText()).includes('截止 2026年11月7日'),
+    'Iteration task deadline does not use the Shanghai calendar date',
+  );
   await page.getByRole('link', { name: '任务看板', exact: true }).click();
+  const timedTaskCard = page.locator('.task-card').filter({ hasText: staleTask.title });
+  await timedTaskCard.waitFor();
+  check(
+    (await timedTaskCard.innerText()).includes('2026年11月7日'),
+    'Board task deadline differs from the iteration deadline',
+  );
+  await timedTaskCard.getByRole('button', { name: '编辑任务', exact: true }).click();
+  const taskEditDialog = page.locator('.task-edit-dialog');
+  check(
+    (await taskEditDialog.getByLabel('截止日期', { exact: true }).inputValue()) === '2026-11-07',
+    'Task editor does not preserve the displayed deadline',
+  );
+  await taskEditDialog.getByRole('button', { name: '关闭', exact: true }).click();
+  await timedTaskCard.getByRole('link', { name: staleTask.title, exact: true }).click();
+  const deadline = page.locator('dt').filter({ hasText: '截止日期' }).locator('..').locator('dd');
+  check(
+    (await deadline.innerText()) === '2026年11月7日',
+    'Task detail deadline differs from the iteration deadline',
+  );
+  results.push({ name: 'task deadline stays consistent across pages and editor', status: 'PASS' });
+  await page.getByRole('link', { name: '返回任务看板', exact: true }).click();
   await page
     .locator('.board-column--completed .task-card')
     .filter({ hasText: completedTask.title })

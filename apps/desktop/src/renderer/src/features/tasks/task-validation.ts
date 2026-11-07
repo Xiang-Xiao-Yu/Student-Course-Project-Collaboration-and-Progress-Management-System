@@ -1,4 +1,5 @@
 import type { CreateTaskInput, TaskDto, TaskPriority, UpdateTaskInput } from './task-api';
+import { toTaskDateInput } from './task-presentation';
 
 export interface TaskFormValues {
   readonly assigneeId: string;
@@ -118,7 +119,7 @@ export function taskToForm(task: TaskDto): TaskFormValues {
   return {
     assigneeId: task.assigneeId ?? '',
     description: task.description ?? '',
-    dueDate: task.dueDate?.slice(0, 10) ?? '',
+    dueDate: toTaskDateInput(task.dueDate),
     estimatedHours: task.estimatedHours === null ? '' : String(task.estimatedHours),
     priority: task.priority,
     requirementId: task.requirementId ?? '',

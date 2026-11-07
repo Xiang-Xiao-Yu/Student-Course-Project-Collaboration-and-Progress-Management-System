@@ -16,7 +16,6 @@ import { getProject, listProjectMembers } from '../features/projects/project-api
 import {
   canEditProjectContent,
   canReviewProjectTasks,
-  formatProjectDate,
   getProjectRoleLabel,
 } from '../features/projects/project-presentation';
 import type { RequirementDto } from '../features/requirements/requirement-api';
@@ -50,6 +49,7 @@ import {
 import { TaskStatusTransitionDialog } from '../features/tasks/TaskStatusTransitionDialog';
 import {
   getTaskPriorityLabel,
+  formatTaskDueDate,
   getTaskStatusActionLabel,
   getTaskStatusLabel,
   getTaskStatusTransitions,
@@ -522,7 +522,7 @@ export function TaskDetailPage() {
             </div>
             <div>
               <dt>截止日期</dt>
-              <dd>{formatProjectDate(task.dueDate)}</dd>
+              <dd>{formatTaskDueDate(task.dueDate)}</dd>
             </div>
             <div>
               <dt>预估工时</dt>

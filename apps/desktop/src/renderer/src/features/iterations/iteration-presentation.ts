@@ -42,17 +42,6 @@ export function formatCompletionRate(rate: number): string {
   return `${Number.isInteger(percentage) ? percentage : percentage.toFixed(1)}%`;
 }
 
-export function formatIterationTaskDueDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '日期无效';
-  }
-  return new Intl.DateTimeFormat('zh-CN', {
-    dateStyle: 'medium',
-    timeZone: 'Asia/Shanghai',
-  }).format(date);
-}
-
 function toCalendarDate(value: Date, timeZone: string): string | null {
   if (Number.isNaN(value.getTime())) {
     return null;

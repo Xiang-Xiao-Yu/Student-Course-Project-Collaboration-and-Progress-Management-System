@@ -19,7 +19,6 @@ import {
   canDeleteProjectContent,
   canEditProjectContent,
   canReviewProjectTasks,
-  formatProjectDate,
   getProjectRoleLabel,
 } from '../features/projects/project-presentation';
 import type { RequirementDto } from '../features/requirements/requirement-api';
@@ -47,6 +46,7 @@ import { TaskReassignDialog } from '../features/tasks/TaskReassignDialog';
 import { TaskStatusTransitionDialog } from '../features/tasks/TaskStatusTransitionDialog';
 import {
   getTaskPriorityLabel,
+  formatTaskDueDate,
   getTaskStatusActionLabel,
   getTaskStatusLabel,
   getTaskStatusTransitions,
@@ -649,7 +649,7 @@ export function BoardPage() {
                         </div>
                         <div>
                           <dt>截止日期</dt>
-                          <dd>{formatProjectDate(task.dueDate)}</dd>
+                          <dd>{formatTaskDueDate(task.dueDate)}</dd>
                         </div>
                       </dl>
                       {task.tagNames.length > 0 ? (
