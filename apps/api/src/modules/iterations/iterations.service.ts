@@ -227,6 +227,7 @@ export class IterationsService {
     ).length;
 
     return {
+      asOf: now.toISOString(),
       blocked,
       completed,
       completionRate: total === 0 ? 0 : Math.round((completed / total) * 10000) / 10000,

@@ -142,6 +142,7 @@ describe('IterationsService', () => {
     ]);
 
     await expect(service.getStats('user-1', 'project-1', 'iteration-1')).resolves.toEqual({
+      asOf: expect.any(String),
       blocked: 1,
       completed: 1,
       completionRate: 0.25,
@@ -169,11 +170,13 @@ describe('IterationsService', () => {
     try {
       vi.setSystemTime(new Date('2026-11-05T15:59:59.000Z'));
       await expect(service.getStats('user-1', 'project-1', 'iteration-1')).resolves.toMatchObject({
+        asOf: '2026-11-05T15:59:59.000Z',
         overdue: 0,
       });
 
       vi.setSystemTime(new Date('2026-11-05T16:00:00.000Z'));
       await expect(service.getStats('user-1', 'project-1', 'iteration-1')).resolves.toMatchObject({
+        asOf: '2026-11-05T16:00:00.000Z',
         overdue: 1,
       });
     } finally {

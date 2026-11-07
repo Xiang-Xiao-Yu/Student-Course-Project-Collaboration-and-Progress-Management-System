@@ -27,6 +27,7 @@ export interface IterationDetailResponse extends IterationResponse {
 }
 
 export interface IterationStatsResponse {
+  asOf: string;
   blocked: number;
   completed: number;
   completionRate: number;

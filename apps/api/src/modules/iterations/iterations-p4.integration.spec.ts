@@ -50,6 +50,7 @@ interface IterationEnvelope {
 
 interface IterationStatsEnvelope {
   data: {
+    asOf: string;
     blocked: number;
     completed: number;
     completionRate: number;
@@ -276,6 +277,7 @@ describe('P4 iterations and comments with SQLite', () => {
     );
     expect(statsResponse.status).toBe(200);
     expect(((await statsResponse.json()) as IterationStatsEnvelope).data).toEqual({
+      asOf: expect.any(String),
       blocked: 0,
       completed: 1,
       completionRate: 0.5,
