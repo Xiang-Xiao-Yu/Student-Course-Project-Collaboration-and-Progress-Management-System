@@ -378,7 +378,132 @@ describe('P4 iterations and comments with SQLite', () => {
     });
   });
 
-  it('freezes task membership for terminal iterations', async () => {
+  it.each(['COMPLETED', 'CANCELED'])(
+    'allows unfinished tasks to leave a %s iteration',
+    async (status) => {
+      const projectId = await createProject();
+      const source = await prisma.iteration.create({
+        data: {
+          endDate: new Date('2026-11-30T00:00:00.000Z'),
+          name: '已结束迭代',
+          projectId,
+          startDate: new Date('2026-11-01T00:00:00.000Z'),
+          status,
+        },
+      });
+      const target = await prisma.iteration.create({
+        data: {
+          endDate: new Date('2026-12-31T00:00:00.000Z'),
+          name: '下一迭代',
+          projectId,
+          startDate: new Date('2026-12-01T00:00:00.000Z'),
+        },
+      });
+      const moving = await prisma.task.create({
+        data: {
+          createdById: accounts.owner.id,
+          iterationId: source.id,
+          projectId,
+          status: 'BACKLOG',
+          title: '迁移未完成任务',
+        },
+      });
+      const removing = await prisma.task.create({
+        data: {
+          createdById: accounts.owner.id,
+          iterationId: source.id,
+          projectId,
+          status: 'BLOCKED',
+          title: '移出未完成任务',
+        },
+      });
+
+      const removed = await request(
+        `/projects/${projectId}/iterations/${source.id}/tasks/${removing.id}`,
+        'DELETE',
+        accounts.owner.token,
+      );
+      expect(removed.status).toBe(200);
+      const moved = await request(
+        `/projects/${projectId}/iterations/${target.id}/tasks`,
+        'POST',
+        accounts.owner.token,
+        { expectedIterationId: source.id, taskId: moving.id },
+      );
+      expect(moved.status).toBe(200);
+      expect((await prisma.task.findUniqueOrThrow({ where: { id: moving.id } })).iterationId).toBe(
+        target.id,
+      );
+      expect(
+        (await prisma.task.findUniqueOrThrow({ where: { id: removing.id } })).iterationId,
+      ).toBeNull();
+    },
+  );
+
+  it('rejects stale task ownership instead of overwriting another iteration', async () => {
+    const projectId = await createProject();
+    const source = await prisma.iteration.create({
+      data: {
+        endDate: new Date('2026-11-30T00:00:00.000Z'),
+        name: '实际来源',
+        projectId,
+        startDate: new Date('2026-11-01T00:00:00.000Z'),
+      },
+    });
+    const target = await prisma.iteration.create({
+      data: {
+        endDate: new Date('2026-12-31T00:00:00.000Z'),
+        name: '目标迭代',
+        projectId,
+        startDate: new Date('2026-12-01T00:00:00.000Z'),
+      },
+    });
+    const task = await prisma.task.create({
+      data: {
+        createdById: accounts.owner.id,
+        iterationId: source.id,
+        projectId,
+        title: '已经安排的任务',
+      },
+    });
+    const endpoint = `/projects/${projectId}/iterations/${target.id}/tasks`;
+
+    for (const body of [{ taskId: task.id }, { expectedIterationId: null, taskId: task.id }]) {
+      const stale = await request(endpoint, 'POST', accounts.owner.token, body);
+      expect(stale.status).toBe(409);
+      expect(((await stale.json()) as { error?: { code?: string } }).error?.code).toBe(
+        'ITERATION_TASK_MOVED',
+      );
+      expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).iterationId).toBe(
+        source.id,
+      );
+    }
+    expect(
+      await prisma.activityLog.count({
+        where: { action: 'ITERATION_TASK_ADDED', projectId, targetId: target.id },
+      }),
+    ).toBe(0);
+
+    const unauthorized = await request(endpoint, 'POST', accounts.member.token, {
+      expectedIterationId: source.id,
+      taskId: task.id,
+    });
+    expect(unauthorized.status).toBe(403);
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).iterationId).toBe(
+      source.id,
+    );
+
+    const confirmed = await request(endpoint, 'POST', accounts.owner.token, {
+      expectedIterationId: source.id,
+      taskId: task.id,
+    });
+    expect(confirmed.status).toBe(200);
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).iterationId).toBe(
+      target.id,
+    );
+  });
+
+  it('freezes completed task membership for terminal iterations', async () => {
     const projectId = await createProject();
 
     const canceled = await request(
@@ -402,22 +527,27 @@ describe('P4 iterations and comments with SQLite', () => {
       },
     );
 
-    const backlogTask = await prisma.task.create({
-      data: { createdById: accounts.owner.id, projectId, title: '待迁移任务' },
+    const completedTask = await prisma.task.create({
+      data: {
+        createdById: accounts.owner.id,
+        projectId,
+        status: 'COMPLETED',
+        title: '已完成任务',
+      },
     });
 
     const addToCanceled = await request(
       `/projects/${projectId}/iterations/${canceledIteration.data.id}/tasks`,
       'POST',
       accounts.owner.token,
-      { taskId: backlogTask.id },
+      { taskId: completedTask.id },
     );
     expect(addToCanceled.status).toBe(422);
     expect(((await addToCanceled.json()) as { error?: { code?: string } }).error?.code).toBe(
       'ITERATION_TARGET_TERMINAL',
     );
     expect(
-      (await prisma.task.findUniqueOrThrow({ where: { id: backlogTask.id } })).iterationId,
+      (await prisma.task.findUniqueOrThrow({ where: { id: completedTask.id } })).iterationId,
     ).toBeNull();
 
     const completed = await request(
@@ -435,7 +565,7 @@ describe('P4 iterations and comments with SQLite', () => {
       `/projects/${projectId}/iterations/${completedIteration.data.id}/tasks`,
       'POST',
       accounts.owner.token,
-      { taskId: backlogTask.id },
+      { taskId: completedTask.id },
     );
     expect(added.status).toBe(200);
     await request(
@@ -471,7 +601,7 @@ describe('P4 iterations and comments with SQLite', () => {
       `/projects/${projectId}/iterations/${activeIteration.data.id}/tasks`,
       'POST',
       accounts.owner.token,
-      { taskId: backlogTask.id },
+      { expectedIterationId: completedIteration.data.id, taskId: completedTask.id },
     );
     expect(moveOut.status).toBe(422);
     expect(((await moveOut.json()) as { error?: { code?: string } }).error?.code).toBe(
@@ -479,7 +609,7 @@ describe('P4 iterations and comments with SQLite', () => {
     );
 
     const removeFromCompleted = await request(
-      `/projects/${projectId}/iterations/${completedIteration.data.id}/tasks/${backlogTask.id}`,
+      `/projects/${projectId}/iterations/${completedIteration.data.id}/tasks/${completedTask.id}`,
       'DELETE',
       accounts.owner.token,
     );
@@ -488,7 +618,7 @@ describe('P4 iterations and comments with SQLite', () => {
       'ITERATION_SOURCE_TERMINAL',
     );
     expect(
-      (await prisma.task.findUniqueOrThrow({ where: { id: backlogTask.id } })).iterationId,
+      (await prisma.task.findUniqueOrThrow({ where: { id: completedTask.id } })).iterationId,
     ).toBe(completedIteration.data.id);
   });
 

@@ -222,6 +222,7 @@ export class IterationsRepository {
     actorId: string,
     iterationId: string,
     taskId: string,
+    expectedIterationId: string | null,
   ): Promise<IterationDetailRecord> {
     return withProjectWrite(
       this.prisma,
@@ -243,22 +244,28 @@ export class IterationsRepository {
           throw this.taskNotFound();
         }
 
+        if (task.iterationId !== expectedIterationId) {
+          throw this.iterationTaskMoved();
+        }
+
         if (task.iterationId) {
           const source = await transaction.iteration.findFirst({
             select: { id: true, status: true },
             where: { id: task.iterationId, projectId },
           });
 
-          if (source && this.isTerminalStatus(source.status)) {
+          if (source && this.isTerminalStatus(source.status) && task.status === 'COMPLETED') {
             throw this.iterationSourceTerminal();
           }
         }
 
-        await transaction.task.update({
+        const updated = await transaction.task.updateMany({
           data: { iterationId },
-          select: { id: true },
-          where: { id: task.id },
+          where: { id: task.id, iterationId: expectedIterationId, projectId },
         });
+        if (updated.count !== 1) {
+          throw this.iterationTaskMoved();
+        }
 
         await transaction.activityLog.create({
           data: {
@@ -291,10 +298,6 @@ export class IterationsRepository {
       'PROJECT_UPDATE',
       async (transaction) => {
         const iteration = await this.requireIteration(transaction, projectId, iterationId);
-        if (this.isTerminalStatus(iteration.status)) {
-          throw this.iterationSourceTerminal();
-        }
-
         const task = await transaction.task.findFirst({
           select: { id: true, iterationId: true, status: true, title: true },
           where: { id: taskId, projectId, iterationId },
@@ -302,6 +305,9 @@ export class IterationsRepository {
 
         if (!task) {
           throw this.taskNotFound();
+        }
+        if (this.isTerminalStatus(iteration.status) && task.status === 'COMPLETED') {
+          throw this.iterationSourceTerminal();
         }
 
         await transaction.task.update({
@@ -547,7 +553,15 @@ export class IterationsRepository {
     return new AppException(
       HttpStatus.UNPROCESSABLE_ENTITY,
       'ITERATION_SOURCE_TERMINAL',
-      '任务所属迭代已结束，不能变更其任务',
+      '已结束迭代中的已完成任务不能变更归属',
+    );
+  }
+
+  private iterationTaskMoved(): AppException {
+    return new AppException(
+      HttpStatus.CONFLICT,
+      'ITERATION_TASK_MOVED',
+      '任务归属已变化，请刷新后重试',
     );
   }
 

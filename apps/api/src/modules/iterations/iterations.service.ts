@@ -151,6 +151,7 @@ export class IterationsService {
       userId,
       iterationId,
       dto.taskId,
+      dto.expectedIterationId ?? null,
     );
 
     return this.toDetail(iteration);
