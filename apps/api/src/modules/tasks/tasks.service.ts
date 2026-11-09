@@ -45,6 +45,7 @@ export class TasksService {
       projectId,
       userId,
       {
+        acceptanceId: dto.acceptanceId,
         assigneeId: dto.assigneeId,
         description: dto.description,
         dueDate,
@@ -78,6 +79,7 @@ export class TasksService {
       dto.title === undefined &&
       dto.description === undefined &&
       dto.assigneeId === undefined &&
+      dto.acceptanceId === undefined &&
       dto.requirementId === undefined &&
       dto.priority === undefined &&
       dto.dueDate === undefined &&
@@ -98,6 +100,7 @@ export class TasksService {
       userId,
       task,
       {
+        acceptanceId: dto.acceptanceId,
         assigneeId: dto.assigneeId,
         description: dto.description,
         dueDate,
@@ -275,6 +278,7 @@ export class TasksService {
 
   private toResponse(task: TaskRecord): TaskResponse {
     return {
+      acceptanceId: task.acceptanceId,
       assigneeId: task.assigneeId,
       completedAt: task.completedAt?.toISOString() ?? null,
       completionNote: task.completionNote,
