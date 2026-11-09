@@ -25,6 +25,7 @@ export interface TaskDto {
 }
 
 export interface CreateTaskInput {
+  readonly acceptanceId?: string;
   readonly assigneeId?: string;
   readonly description?: string;
   readonly dueDate?: string;
