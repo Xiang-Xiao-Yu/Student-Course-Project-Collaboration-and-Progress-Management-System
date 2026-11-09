@@ -1,0 +1,210 @@
+{
+  "cases": [
+    {
+      "name": "meeting summary, creator fallback and participant edit",
+      "status": "PASS"
+    },
+    {
+      "name": "action due-date guard and conversion response",
+      "status": "PASS"
+    },
+    {
+      "name": "acceptance summary without participants",
+      "status": "PASS"
+    },
+    {
+      "name": "acceptance participant edit and failure reason",
+      "status": "PASS"
+    },
+    {
+      "name": "acceptance remediation task",
+      "status": "PASS"
+    },
+    {
+      "name": "observer meeting read-only",
+      "status": "PASS"
+    }
+  ],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/comments?targetId=cmw95ytjv001p4hzgolo5u4ff&targetType=MEETING",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings/cmw95ytjv001p4hzgolo5u4ff",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings/cmw95ytjv001p4hzgolo5u4ff/actions",
+      "status": 201
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings/cmw95ytjv001p4hzgolo5u4ff/actions/cmw95ytre001v4hzglbh79nof",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings/cmw95ytjv001p4hzgolo5u4ff/actions/cmw95ytre001v4hzglbh79nof/convert",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/iterations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/requirements",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/acceptances",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/acceptances",
+      "status": 201
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/acceptances/cmw95yu0l00274hzgi4xd6wx1",
+      "status": 200
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/acceptances/cmw95yu0l00274hzgi4xd6wx1",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/tasks",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/acceptances/cmw95yu0l00274hzgi4xd6wx1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/users/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/members",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/comments?targetId=cmw95ytjv001p4hzgolo5u4ff&targetType=MEETING",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/projects/cmw95ysrr001b4hzgt5vxv7s7/meetings/cmw95ytjv001p4hzgolo5u4ff",
+      "status": 200
+    }
+  ]
+}

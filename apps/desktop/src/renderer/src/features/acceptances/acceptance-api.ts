@@ -10,33 +10,33 @@ export interface AcceptanceUserDto {
   readonly username: string;
 }
 
-export interface AcceptanceParticipantDto extends AcceptanceUserDto {
-  readonly userId: string;
-}
+export type AcceptanceParticipantDto = AcceptanceUserDto;
 
 export interface AcceptanceRemediationTaskDto {
   readonly assigneeId: string | null;
-  readonly dueDate: string | null;
   readonly id: string;
   readonly status: TaskStatus;
   readonly title: string;
 }
 
-export interface AcceptanceDto {
+export interface AcceptanceSummaryDto {
   readonly acceptanceDate: string | null;
   readonly createdAt: string;
-  readonly createdBy: AcceptanceUserDto;
   readonly createdById: string;
   readonly failureReason: string | null;
   readonly goal: string | null;
   readonly id: string;
-  readonly participants: AcceptanceParticipantDto[];
   readonly projectId: string;
-  readonly remediationTasks: AcceptanceRemediationTaskDto[];
+  readonly remediationTaskCount: number;
   readonly result: AcceptanceResult;
   readonly stageName: string;
   readonly standards: string;
   readonly updatedAt: string;
+}
+
+export interface AcceptanceDto extends AcceptanceSummaryDto {
+  readonly participants: AcceptanceParticipantDto[];
+  readonly remediationTasks: AcceptanceRemediationTaskDto[];
 }
 
 export interface CreateAcceptanceInput {
@@ -70,8 +70,8 @@ function acceptancePath(projectId: string, acceptanceId: string): string {
 export function listAcceptances(
   api: Pick<ApiClient, 'get'>,
   projectId: string,
-): Promise<AcceptanceDto[]> {
-  return api.get<AcceptanceDto[]>(acceptancesPath(projectId));
+): Promise<AcceptanceSummaryDto[]> {
+  return api.get<AcceptanceSummaryDto[]>(acceptancesPath(projectId));
 }
 
 export function getAcceptance(

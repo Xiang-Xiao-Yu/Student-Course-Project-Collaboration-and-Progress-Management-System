@@ -9,12 +9,9 @@ export interface MeetingUserDto {
   readonly username: string;
 }
 
-export interface MeetingParticipantDto extends MeetingUserDto {
-  readonly userId: string;
-}
+export type MeetingParticipantDto = MeetingUserDto;
 
 export interface MeetingActionDto {
-  readonly assignee: MeetingUserDto | null;
   readonly assigneeId: string | null;
   readonly convertedTaskId: string | null;
   readonly createdAt: string;
@@ -27,9 +24,14 @@ export interface MeetingActionDto {
 }
 
 export interface MeetingSummaryDto {
+  readonly actionCount: number;
+  readonly agenda: string | null;
   readonly createdAt: string;
   readonly createdById: string;
+  readonly decisions: string | null;
   readonly id: string;
+  readonly minutes: string | null;
+  readonly participantCount: number;
   readonly projectId: string;
   readonly scheduledAt: string;
   readonly title: string;
@@ -38,11 +40,23 @@ export interface MeetingSummaryDto {
 
 export interface MeetingDto extends MeetingSummaryDto {
   readonly actions: MeetingActionDto[];
-  readonly agenda: string | null;
-  readonly createdBy: MeetingUserDto;
-  readonly decisions: string | null;
-  readonly minutes: string | null;
   readonly participants: MeetingParticipantDto[];
+}
+
+export interface ConvertedTaskDto {
+  readonly assigneeId: string | null;
+  readonly dueDate: string | null;
+  readonly id: string;
+  readonly priority: 'HIGH' | 'LOW' | 'MEDIUM';
+  readonly projectId: string;
+  readonly requirementId: string | null;
+  readonly status: string;
+  readonly title: string;
+}
+
+export interface MeetingActionConversionDto {
+  readonly action: MeetingActionDto;
+  readonly task: ConvertedTaskDto;
 }
 
 export interface CreateMeetingInput {
@@ -148,6 +162,8 @@ export function convertMeetingAction(
   projectId: string,
   meetingId: string,
   actionId: string,
-): Promise<MeetingActionDto> {
-  return api.post<MeetingActionDto>(`${actionPath(projectId, meetingId, actionId)}/convert`);
+): Promise<MeetingActionConversionDto> {
+  return api.post<MeetingActionConversionDto>(
+    `${actionPath(projectId, meetingId, actionId)}/convert`,
+  );
 }

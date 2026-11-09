@@ -10,7 +10,11 @@ import { ErrorState } from '../components/feedback/ErrorState';
 import { LoadingState } from '../components/feedback/LoadingState';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
-import type { AcceptanceDto, AcceptanceResult } from '../features/acceptances/acceptance-api';
+import type {
+  AcceptanceDto,
+  AcceptanceResult,
+  AcceptanceSummaryDto,
+} from '../features/acceptances/acceptance-api';
 import {
   createAcceptance,
   getAcceptance,
@@ -66,7 +70,7 @@ const EMPTY_REMEDIATION_FORM = {
 
 interface AcceptanceData {
   readonly acceptance: AcceptanceDto | null;
-  readonly acceptances: AcceptanceDto[];
+  readonly acceptances: AcceptanceSummaryDto[];
   readonly iterations: IterationSummaryDto[];
   readonly members: ProjectMemberDto[];
   readonly project: ProjectDto;
@@ -111,6 +115,23 @@ export function AcceptancesPage() {
     state.status === 'ready' ? (state.data.acceptance?.updatedAt ?? null) : null;
 
   activeAcceptanceIdRef.current = selectedAcceptanceId;
+
+  function toAcceptanceSummary(acceptance: AcceptanceDto): AcceptanceSummaryDto {
+    return {
+      acceptanceDate: acceptance.acceptanceDate,
+      createdAt: acceptance.createdAt,
+      createdById: acceptance.createdById,
+      failureReason: acceptance.failureReason,
+      goal: acceptance.goal,
+      id: acceptance.id,
+      projectId: acceptance.projectId,
+      remediationTaskCount: acceptance.remediationTasks.length,
+      result: acceptance.result,
+      stageName: acceptance.stageName,
+      standards: acceptance.standards,
+      updatedAt: acceptance.updatedAt,
+    };
+  }
 
   useEffect(() => {
     selectionVersionRef.current += 1;
@@ -220,7 +241,7 @@ export function AcceptancesPage() {
                 ...current.data,
                 acceptance,
                 acceptances: current.data.acceptances.map((item) =>
-                  item.id === acceptance.id ? acceptance : item,
+                  item.id === acceptance.id ? toAcceptanceSummary(acceptance) : item,
                 ),
               },
               status: 'ready',
@@ -271,7 +292,7 @@ export function AcceptancesPage() {
               data: {
                 ...current.data,
                 acceptance: shouldActivate ? acceptance : current.data.acceptance,
-                acceptances: [acceptance, ...current.data.acceptances],
+                acceptances: [toAcceptanceSummary(acceptance), ...current.data.acceptances],
               },
               status: 'ready',
             }
@@ -322,7 +343,7 @@ export function AcceptancesPage() {
                 ...current.data,
                 acceptance: shouldActivate ? acceptance : current.data.acceptance,
                 acceptances: current.data.acceptances.map((item) =>
-                  item.id === acceptance.id ? acceptance : item,
+                  item.id === acceptance.id ? toAcceptanceSummary(acceptance) : item,
                 ),
               },
               status: 'ready',
@@ -391,7 +412,7 @@ export function AcceptancesPage() {
                     ? acceptance
                     : current.data.acceptance,
                 acceptances: current.data.acceptances.map((item) =>
-                  item.id === acceptance.id ? acceptance : item,
+                  item.id === acceptance.id ? toAcceptanceSummary(acceptance) : item,
                 ),
               },
               status: 'ready',

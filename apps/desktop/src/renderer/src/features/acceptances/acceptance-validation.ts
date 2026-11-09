@@ -47,7 +47,7 @@ export function acceptanceToForm(acceptance: AcceptanceDto): AcceptanceFormValue
     acceptanceDate: acceptance.acceptanceDate?.slice(0, 10) ?? '',
     failureReason: acceptance.failureReason ?? '',
     goal: acceptance.goal ?? '',
-    participantIds: acceptance.participants.map((participant) => participant.userId),
+    participantIds: acceptance.participants.map((participant) => participant.id),
     result: acceptance.result,
     stageName: acceptance.stageName,
     standards: acceptance.standards,

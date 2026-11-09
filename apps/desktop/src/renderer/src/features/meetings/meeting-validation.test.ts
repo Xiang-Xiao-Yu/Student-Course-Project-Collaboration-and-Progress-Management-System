@@ -49,25 +49,36 @@ describe('P5 meeting validation', () => {
         title: '',
       }).title,
     ).toBe('请输入行动项标题。');
+    expect(
+      validateMeetingActionForm(
+        {
+          assigneeId: '',
+          dueDate: '2026-11-04',
+          status: 'PENDING',
+          title: '整改',
+        },
+        '2026-11-05T00:00:00.000Z',
+      ).dueDate,
+    ).toBe('行动项截止日期不能早于项目开始日期。');
     expect(hasUnsavedMeetingChanges(form, { ...form, agenda: '新议程' })).toBe(true);
   });
 
   it('边界场景将会议详情转换回表单', () => {
     const meeting = {
       actions: [],
+      actionCount: 0,
       agenda: null,
       createdAt: '2026-11-09T00:00:00.000Z',
-      createdBy: { avatarUrl: null, id: 'user-1', nickname: '负责人', username: 'owner' },
       createdById: 'user-1',
       decisions: null,
       id: 'meeting-1',
       minutes: null,
+      participantCount: 1,
       participants: [
         {
           avatarUrl: null,
           id: 'user-1',
           nickname: '负责人',
-          userId: 'user-1',
           username: 'owner',
         },
       ],

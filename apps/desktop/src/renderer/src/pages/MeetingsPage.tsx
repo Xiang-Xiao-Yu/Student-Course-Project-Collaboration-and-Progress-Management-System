@@ -33,6 +33,7 @@ import {
   formatMeetingDateTime,
   getMeetingActionStatusLabel,
   getMeetingActionStatusTransitions,
+  isMeetingActionDueDateBeforeProjectStart,
   isMeetingActionOverdue,
 } from '../features/meetings/meeting-presentation';
 import type {
@@ -126,7 +127,12 @@ export function MeetingsPage() {
     return {
       createdAt: meeting.createdAt,
       createdById: meeting.createdById,
+      actionCount: meeting.actions.length,
+      agenda: meeting.agenda,
+      decisions: meeting.decisions,
       id: meeting.id,
+      minutes: meeting.minutes,
+      participantCount: meeting.participants.length,
       projectId: meeting.projectId,
       scheduledAt: meeting.scheduledAt,
       title: meeting.title,
@@ -380,7 +386,7 @@ export function MeetingsPage() {
       return;
     }
 
-    const errors = validateMeetingActionForm(actionForm);
+    const errors = validateMeetingActionForm(actionForm, state.data.project.startDate);
 
     setActionErrors(errors);
     setActionError(null);
@@ -475,25 +481,31 @@ export function MeetingsPage() {
 
     const meetingId = state.data.meeting.id;
     const project = state.data.project;
+
+    if (isMeetingActionDueDateBeforeProjectStart(action.dueDate, project.startDate)) {
+      setActionError('行动项截止日期早于项目开始日期，暂不能转换为任务。');
+      return;
+    }
+
     setUpdatingActionId(action.id);
     setActionError(null);
     setActionMessage(null);
 
     try {
-      const converted = await convertMeetingAction(api, project.id, meetingId, action.id);
+      const conversion = await convertMeetingAction(api, project.id, meetingId, action.id);
 
       setState((current) =>
         current.status === 'ready' && current.data.meeting?.id === meetingId
           ? {
               data: {
                 ...current.data,
-                meeting: replaceAction(current.data.meeting, converted),
+                meeting: replaceAction(current.data.meeting, conversion.action),
               },
               status: 'ready',
             }
           : current,
       );
-      setActionMessage('行动项已转换为普通任务。');
+      setActionMessage(`行动项已转换为任务“${conversion.task.title}”。`);
     } catch (error) {
       setActionError(getUserFacingError(error));
     } finally {
@@ -526,6 +538,9 @@ export function MeetingsPage() {
 
   const { comments, meeting, meetings, members, project } = state.data;
   const canEdit = canEditProjectContent(project.accessRole, project.status);
+  const creator = meeting
+    ? (members.find((member) => member.userId === meeting.createdById) ?? null)
+    : null;
   const createDraft =
     createForm.title.length > 0 ||
     createForm.agenda.length > 0 ||
@@ -646,7 +661,9 @@ export function MeetingsPage() {
                 >
                   <strong>{item.title}</strong>
                   <span>{formatMeetingDateTime(item.scheduledAt)}</span>
-                  <span>查看会议详情</span>
+                  <span>
+                    {item.participantCount} 人 · {item.actionCount} 个行动项
+                  </span>
                 </button>
               ))}
             </div>
@@ -672,7 +689,7 @@ export function MeetingsPage() {
               </div>
 
               <div className="meeting-meta">
-                <span>创建人：{meeting.createdBy.nickname}</span>
+                <span>创建人：{creator?.nickname ?? '项目成员'}</span>
                 <span>参会 {meeting.participants.length} 人</span>
               </div>
 
@@ -860,15 +877,21 @@ export function MeetingsPage() {
                         <div>
                           <strong>{action.title}</strong>
                           <span>
-                            {action.assignee
-                              ? `${action.assignee.nickname} (@${action.assignee.username})`
-                              : '未分配'}
+                            {getMeetingMemberLabel(members, action.assigneeId)}
                             {action.dueDate
                               ? ` · 截止 ${formatMeetingDateTime(action.dueDate)}`
                               : ' · 未设置截止日期'}
                           </span>
                           {isMeetingActionOverdue(action.dueDate, action.status) ? (
                             <span className="overdue-badge">已逾期</span>
+                          ) : null}
+                          {isMeetingActionDueDateBeforeProjectStart(
+                            action.dueDate,
+                            project.startDate,
+                          ) ? (
+                            <span className="action-date-error">
+                              截止日期早于项目开始日期，需先调整
+                            </span>
                           ) : null}
                         </div>
                         <div className="meeting-action-row__status">
@@ -882,7 +905,13 @@ export function MeetingsPage() {
                               {getMeetingActionStatusTransitions(action.status).map((status) => (
                                 <button
                                   className="secondary-button"
-                                  disabled={updatingActionId !== null}
+                                  disabled={
+                                    updatingActionId !== null ||
+                                    isMeetingActionDueDateBeforeProjectStart(
+                                      action.dueDate,
+                                      project.startDate,
+                                    )
+                                  }
                                   key={status}
                                   onClick={() => void handleActionStatus(action, status)}
                                   type="button"
@@ -1009,4 +1038,17 @@ function MeetingNote({ label, value }: { readonly label: string; readonly value:
       <p>{value || '暂未填写。'}</p>
     </article>
   );
+}
+
+function getMeetingMemberLabel(
+  members: readonly ProjectMemberDto[],
+  userId: string | null,
+): string {
+  if (!userId) {
+    return '未分配';
+  }
+
+  const member = members.find((item) => item.userId === userId);
+
+  return member ? `${member.nickname} (@${member.username})` : userId;
 }

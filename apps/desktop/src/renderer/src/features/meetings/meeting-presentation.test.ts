@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getMeetingActionStatusLabel,
   getMeetingActionStatusTransitions,
+  isMeetingActionDueDateBeforeProjectStart,
   isMeetingActionOverdue,
 } from './meeting-presentation';
 
@@ -37,6 +38,21 @@ describe('P5 meeting presentation', () => {
         '2026-11-01T00:00:00.000Z',
         'COMPLETED',
         new Date('2026-11-10T00:00:00.000Z'),
+      ),
+    ).toBe(false);
+  });
+
+  it('边界场景拒绝早于项目开始日期的行动项转换', () => {
+    expect(
+      isMeetingActionDueDateBeforeProjectStart(
+        '2026-11-01T00:00:00.000Z',
+        '2026-11-05T00:00:00.000Z',
+      ),
+    ).toBe(true);
+    expect(
+      isMeetingActionDueDateBeforeProjectStart(
+        '2026-11-05T00:00:00.000Z',
+        '2026-11-05T00:00:00.000Z',
       ),
     ).toBe(false);
   });

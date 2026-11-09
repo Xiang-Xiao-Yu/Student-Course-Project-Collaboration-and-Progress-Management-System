@@ -62,3 +62,17 @@ export function isMeetingActionOverdue(
 
   return Boolean(dueDay && today && dueDay < today);
 }
+
+export function isMeetingActionDueDateBeforeProjectStart(
+  dueDate: string | null,
+  projectStartDate: string | null,
+): boolean {
+  if (!dueDate || !projectStartDate) {
+    return false;
+  }
+
+  const dueDay = /^(\d{4}-\d{2}-\d{2})/.exec(dueDate)?.[1];
+  const startDay = /^(\d{4}-\d{2}-\d{2})/.exec(projectStartDate)?.[1];
+
+  return Boolean(dueDay && startDay && dueDay < startDay);
+}

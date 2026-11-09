@@ -74,7 +74,7 @@ export function meetingToForm(meeting: MeetingDto): MeetingFormValues {
     agenda: meeting.agenda ?? '',
     decisions: meeting.decisions ?? '',
     minutes: meeting.minutes ?? '',
-    participantIds: meeting.participants.map((participant) => participant.userId),
+    participantIds: meeting.participants.map((participant) => participant.id),
     scheduledAt: toMeetingDateTimeInput(meeting.scheduledAt),
     title: meeting.title,
   };
@@ -139,6 +139,7 @@ export function validateMeetingForm(
 
 export function validateMeetingActionForm(
   values: MeetingActionFormValues,
+  projectStartDate?: string | null,
 ): MeetingActionFormErrors {
   const errors: {
     assigneeId?: string;
@@ -156,6 +157,8 @@ export function validateMeetingActionForm(
 
   if (values.dueDate && !isValidDateInput(values.dueDate)) {
     errors.dueDate = '请输入有效的截止日期。';
+  } else if (values.dueDate && projectStartDate && values.dueDate < projectStartDate.slice(0, 10)) {
+    errors.dueDate = '行动项截止日期不能早于项目开始日期。';
   }
 
   if (!['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELED'].includes(values.status)) {
