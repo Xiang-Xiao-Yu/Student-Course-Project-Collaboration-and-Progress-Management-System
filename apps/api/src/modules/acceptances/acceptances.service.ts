@@ -28,7 +28,7 @@ export class AcceptancesService {
     await this.projectAccessService.requirePermission(projectId, userId, 'ACCEPTANCE_VIEW');
     const acceptances = await this.acceptancesRepository.listByProject(projectId);
 
-    return acceptances.map((acceptance) => this.toSummary(acceptance));
+    return Promise.all(acceptances.map((acceptance) => this.toSummary(acceptance)));
   }
 
   async getAcceptance(
@@ -133,7 +133,7 @@ export class AcceptancesService {
     return trimmed.length === 0 ? null : trimmed;
   }
 
-  private toSummary(acceptance: AcceptanceSummaryRecord): AcceptanceSummaryResponse {
+  private async toSummary(acceptance: AcceptanceSummaryRecord): Promise<AcceptanceSummaryResponse> {
     return {
       acceptanceDate: acceptance.acceptanceDate?.toISOString() ?? null,
       createdAt: acceptance.createdAt.toISOString(),
@@ -141,6 +141,16 @@ export class AcceptancesService {
       failureReason: acceptance.failureReason,
       goal: acceptance.goal,
       id: acceptance.id,
+      participants: await Promise.all(
+        acceptance.participants.map(async (participant) => ({
+          ...participant.user,
+          avatarUrl: await this.avatarStorage.toDataUrl(
+            participant.user.id,
+            participant.user.avatarUrl,
+          ),
+          userId: participant.user.id,
+        })),
+      ),
       projectId: acceptance.projectId,
       remediationTaskCount: acceptance.remediationTaskCount,
       result: acceptance.result as AcceptanceResult,
@@ -151,17 +161,10 @@ export class AcceptancesService {
   }
 
   private async toDetail(acceptance: AcceptanceDetailRecord): Promise<AcceptanceDetailResponse> {
+    const summary = await this.toSummary(acceptance);
+
     return {
-      ...this.toSummary(acceptance),
-      participants: await Promise.all(
-        acceptance.participants.map(async (participant) => ({
-          ...participant.user,
-          avatarUrl: await this.avatarStorage.toDataUrl(
-            participant.user.id,
-            participant.user.avatarUrl,
-          ),
-        })),
-      ),
+      ...summary,
       remediationTasks: acceptance.remediationTasks.map((task) => ({
         assigneeId: task.assigneeId,
         id: task.id,

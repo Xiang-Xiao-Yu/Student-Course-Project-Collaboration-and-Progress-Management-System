@@ -51,10 +51,16 @@ interface MeetingEnvelope {
     }>;
     agenda: string | null;
     decisions: string | null;
+    createdBy: {
+      id: string;
+      nickname: string;
+      userId: string;
+      username: string;
+    };
     id: string;
     minutes: string | null;
     participantCount: number;
-    participants: Array<{ id: string }>;
+    participants: Array<{ id: string; nickname: string; userId: string; username: string }>;
     scheduledAt: string;
     title: string;
   };
@@ -78,6 +84,8 @@ interface MeetingActionEnvelope {
 interface ConversionEnvelope {
   data: {
     action: MeetingActionEnvelope['data'];
+    convertedTaskId: string | null;
+    id: string;
     task: {
       assigneeId: string | null;
       dueDate: string | null;
@@ -88,6 +96,7 @@ interface ConversionEnvelope {
       status: string;
       title: string;
     };
+    title: string;
   };
 }
 
@@ -97,7 +106,7 @@ interface AcceptanceEnvelope {
     failureReason: string | null;
     goal: string | null;
     id: string;
-    participants: Array<{ id: string }>;
+    participants: Array<{ id: string; nickname: string; userId: string; username: string }>;
     remediationTaskCount: number;
     remediationTasks: Array<{ id: string; status: string; title: string }>;
     result: string;
@@ -272,6 +281,12 @@ describe('P5 meetings and acceptances with SQLite', () => {
     expect(meeting.data).toMatchObject({
       actionCount: 0,
       agenda: '确认阶段目标和风险',
+      createdBy: {
+        id: accounts.member.id,
+        nickname: 'member',
+        userId: accounts.member.id,
+        username: accounts.member.username,
+      },
       decisions: '先完成核心流程',
       minutes: '成员负责实现，负责人验收',
       participantCount: 2,
@@ -280,6 +295,24 @@ describe('P5 meetings and acceptances with SQLite', () => {
     expect(meeting.data.participants.map((participant) => participant.id).sort()).toEqual(
       [accounts.owner.id, accounts.member.id].sort(),
     );
+    expect(meeting.data.participants.map((participant) => participant.userId).sort()).toEqual(
+      [accounts.owner.id, accounts.member.id].sort(),
+    );
+
+    const meetingEdit = await request(
+      meetingsPath + '/' + meeting.data.id,
+      'PATCH',
+      accounts.member.token,
+      {
+        participantIds: meeting.data.participants.map((participant) => participant.userId),
+      },
+    );
+    expect(meetingEdit.status).toBe(200);
+    expect(
+      ((await meetingEdit.json()) as MeetingEnvelope).data.participants
+        .map((participant) => participant.userId)
+        .sort(),
+    ).toEqual([accounts.owner.id, accounts.member.id].sort());
 
     const observerDetail = await request(
       meetingsPath + '/' + meeting.data.id,
@@ -342,6 +375,11 @@ describe('P5 meetings and acceptances with SQLite', () => {
     expect(conversion.status).toBe(200);
     const converted = (await conversion.json()) as ConversionEnvelope;
     expect(converted.data.action.convertedTaskId).toBe(converted.data.task.id);
+    expect(converted.data).toMatchObject({
+      convertedTaskId: converted.data.task.id,
+      id: converted.data.action.id,
+      title: '补齐阶段验收',
+    });
     expect(converted.data.task).toMatchObject({
       assigneeId: accounts.member.id,
       dueDate: '2026-11-20T00:00:00.000Z',
@@ -383,9 +421,14 @@ describe('P5 meetings and acceptances with SQLite', () => {
     });
     const list = await request(meetingsPath, 'GET', accounts.observer.token);
     expect(list.status).toBe(200);
-    expect(((await list.json()) as MeetingListEnvelope).data).toHaveLength(1);
+    const meetingList = ((await list.json()) as MeetingListEnvelope).data;
+    expect(meetingList).toHaveLength(1);
+    expect(meetingList[0]?.createdBy).toMatchObject({
+      id: accounts.member.id,
+      userId: accounts.member.id,
+    });
 
-    expect(await prisma.activityLog.count({ where: { projectId, targetType: 'MEETING' } })).toBe(1);
+    expect(await prisma.activityLog.count({ where: { projectId, targetType: 'MEETING' } })).toBe(2);
     expect(
       await prisma.activityLog.count({ where: { projectId, targetType: 'MEETING_ACTION' } }),
     ).toBe(3);
@@ -493,7 +536,7 @@ describe('P5 meetings and acceptances with SQLite', () => {
       standards: '核心流程可运行',
     });
     expect(acceptance.data.participants).toEqual([
-      expect.objectContaining({ id: accounts.member.id }),
+      expect.objectContaining({ id: accounts.member.id, userId: accounts.member.id }),
     ]);
 
     const memberDetail = await request(
@@ -504,7 +547,11 @@ describe('P5 meetings and acceptances with SQLite', () => {
     expect(memberDetail.status).toBe(200);
     const observerList = await request(acceptancesPath, 'GET', accounts.observer.token);
     expect(observerList.status).toBe(200);
-    expect(((await observerList.json()) as AcceptanceListEnvelope).data).toHaveLength(1);
+    const acceptanceList = ((await observerList.json()) as AcceptanceListEnvelope).data;
+    expect(acceptanceList).toHaveLength(1);
+    expect(acceptanceList[0]?.participants).toEqual([
+      expect.objectContaining({ id: accounts.member.id, userId: accounts.member.id }),
+    ]);
     const outsiderDetail = await request(
       acceptancesPath + '/' + acceptance.data.id,
       'GET',
@@ -551,6 +598,7 @@ describe('P5 meetings and acceptances with SQLite', () => {
       'PATCH',
       accounts.owner.token,
       {
+        participantIds: acceptance.data.participants.map((participant) => participant.userId),
         result: 'PASSED',
       },
     );
@@ -584,5 +632,65 @@ describe('P5 meetings and acceptances with SQLite', () => {
       'ACCEPTANCE_CREATED',
       'ACCEPTANCE_RESULT_RECORDED',
     ]);
+  });
+
+  it('revalidates action due dates against the current project start before conversion', async () => {
+    const projectId = await createProject();
+    const meetingsPath = '/projects/' + projectId + '/meetings';
+    const createdMeeting = await request(meetingsPath, 'POST', accounts.owner.token, {
+      participantIds: [accounts.member.id],
+      scheduledAt: '2026-11-20T02:00:00.000Z',
+      title: '截止日期规则回归会议',
+    });
+    expect(createdMeeting.status).toBe(201);
+    const meeting = (await createdMeeting.json()) as MeetingEnvelope;
+    const actionsPath = meetingsPath + '/' + meeting.data.id + '/actions';
+    const createdAction = await request(actionsPath, 'POST', accounts.owner.token, {
+      assigneeId: accounts.member.id,
+      dueDate: '2026-11-10T00:00:00.000Z',
+      title: '项目开始日期后移后转换',
+    });
+    expect(createdAction.status).toBe(201);
+    const action = (await createdAction.json()) as MeetingActionEnvelope;
+
+    const movedProject = await request('/projects/' + projectId, 'PATCH', accounts.owner.token, {
+      startDate: '2026-11-15T00:00:00.000Z',
+    });
+    expect(movedProject.status).toBe(200);
+
+    const regularTask = await request(
+      '/projects/' + projectId + '/tasks',
+      'POST',
+      accounts.member.token,
+      {
+        dueDate: '2026-11-10T00:00:00.000Z',
+        priority: 'MEDIUM',
+        title: '普通任务同样拒绝过早日期',
+      },
+    );
+    expect(regularTask.status).toBe(422);
+    expect(((await regularTask.json()) as ErrorEnvelope).error?.code).toBe('TASK_DUE_DATE_INVALID');
+
+    const conversion = await request(
+      actionsPath + '/' + action.data.id + '/convert',
+      'POST',
+      accounts.owner.token,
+      { priority: 'MEDIUM' },
+    );
+    expect(conversion.status).toBe(422);
+    expect(((await conversion.json()) as ErrorEnvelope).error?.code).toBe(
+      'MEETING_ACTION_DUE_DATE_INVALID',
+    );
+    expect(
+      await prisma.task.count({
+        where: { projectId, title: '项目开始日期后移后转换' },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.meetingAction.findUnique({
+        select: { convertedTaskId: true },
+        where: { id: action.data.id },
+      }),
+    ).toEqual({ convertedTaskId: null });
   });
 });

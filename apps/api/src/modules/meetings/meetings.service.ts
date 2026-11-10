@@ -35,7 +35,7 @@ export class MeetingsService {
     await this.projectAccessService.requirePermission(projectId, userId, 'MEETING_VIEW');
     const meetings = await this.meetingsRepository.listByProject(projectId);
 
-    return meetings.map((meeting) => this.toSummary(meeting));
+    return Promise.all(meetings.map((meeting) => this.toSummary(meeting)));
   }
 
   async getMeeting(
@@ -215,11 +215,19 @@ export class MeetingsService {
     return trimmed.length === 0 ? null : trimmed;
   }
 
-  private toSummary(meeting: MeetingSummaryRecord): MeetingSummaryResponse {
+  private async toSummary(meeting: MeetingSummaryRecord): Promise<MeetingSummaryResponse> {
     return {
       actionCount: meeting.actionCount,
       agenda: meeting.agenda,
       createdAt: meeting.createdAt.toISOString(),
+      createdBy: {
+        ...meeting.createdBy,
+        avatarUrl: await this.avatarStorage.toDataUrl(
+          meeting.createdBy.id,
+          meeting.createdBy.avatarUrl,
+        ),
+        userId: meeting.createdBy.id,
+      },
       createdById: meeting.createdById,
       decisions: meeting.decisions,
       id: meeting.id,
@@ -234,7 +242,7 @@ export class MeetingsService {
 
   private async toDetail(meeting: MeetingDetailRecord): Promise<MeetingDetailResponse> {
     return {
-      ...this.toSummary(meeting),
+      ...(await this.toSummary(meeting)),
       actions: meeting.actions.map((action) => this.toAction(action)),
       participants: await Promise.all(
         meeting.participants.map(async (participant) => ({
@@ -243,6 +251,7 @@ export class MeetingsService {
             participant.user.id,
             participant.user.avatarUrl,
           ),
+          userId: participant.user.id,
         })),
       ),
     };
@@ -263,8 +272,11 @@ export class MeetingsService {
   }
 
   private toConversion(conversion: MeetingActionConversionRecord): MeetingActionConversionResponse {
+    const action = this.toAction(conversion.action);
+
     return {
-      action: this.toAction(conversion.action),
+      ...action,
+      action,
       task: {
         assigneeId: conversion.task.assigneeId,
         dueDate: conversion.task.dueDate?.toISOString() ?? null,

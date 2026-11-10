@@ -4,6 +4,7 @@ export interface AcceptanceParticipantResponse {
   avatarUrl: string | null;
   id: string;
   nickname: string;
+  userId: string;
   username: string;
 }
 
@@ -21,6 +22,7 @@ export interface AcceptanceSummaryResponse {
   failureReason: string | null;
   goal: string | null;
   id: string;
+  participants: AcceptanceParticipantResponse[];
   projectId: string;
   remediationTaskCount: number;
   result: AcceptanceResult;
@@ -30,6 +32,5 @@ export interface AcceptanceSummaryResponse {
 }
 
 export interface AcceptanceDetailResponse extends AcceptanceSummaryResponse {
-  participants: AcceptanceParticipantResponse[];
   remediationTasks: AcceptanceRemediationTaskResponse[];
 }

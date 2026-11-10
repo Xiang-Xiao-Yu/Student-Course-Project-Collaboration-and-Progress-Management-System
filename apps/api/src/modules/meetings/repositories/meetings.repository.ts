@@ -22,6 +22,14 @@ const meetingActionSelect = {
 const meetingSelect = {
   agenda: true,
   createdAt: true,
+  createdBy: {
+    select: {
+      avatarUrl: true,
+      id: true,
+      nickname: true,
+      username: true,
+    },
+  },
   createdById: true,
   decisions: true,
   id: true,
@@ -94,6 +102,7 @@ export interface MeetingActionRecord {
 export interface MeetingRecord {
   agenda: string | null;
   createdAt: Date;
+  createdBy: MeetingParticipantUserRecord;
   createdById: string;
   decisions: string | null;
   id: string;
@@ -379,12 +388,13 @@ export class MeetingsRepository {
       projectId,
       actorId,
       'MEETING_ACTION_MANAGE',
-      async (transaction) => {
+      async (transaction, project) => {
         await this.requireMeeting(transaction, projectId, meetingId);
         const action = await this.requireAction(transaction, meetingId, actionId);
         if (action.convertedTaskId) {
           throw this.actionAlreadyConverted();
         }
+        this.assertDueDateValid(action.dueDate ?? undefined, project.startDate);
         await this.validateAssignee(transaction, projectId, action.assigneeId ?? undefined);
         if (input.requirementId !== undefined) {
           await this.validateRequirement(transaction, projectId, input.requirementId);
@@ -560,6 +570,7 @@ export class MeetingsRepository {
       actionCount: meeting._count.actions,
       agenda: meeting.agenda,
       createdAt: meeting.createdAt,
+      createdBy: meeting.createdBy,
       createdById: meeting.createdById,
       decisions: meeting.decisions,
       id: meeting.id,

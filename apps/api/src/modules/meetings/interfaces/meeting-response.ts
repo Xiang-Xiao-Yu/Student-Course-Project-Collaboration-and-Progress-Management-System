@@ -5,6 +5,15 @@ export interface MeetingParticipantResponse {
   avatarUrl: string | null;
   id: string;
   nickname: string;
+  userId: string;
+  username: string;
+}
+
+export interface MeetingUserResponse {
+  avatarUrl: string | null;
+  id: string;
+  nickname: string;
+  userId: string;
   username: string;
 }
 
@@ -24,6 +33,7 @@ export interface MeetingSummaryResponse {
   actionCount: number;
   agenda: string | null;
   createdAt: string;
+  createdBy: MeetingUserResponse;
   createdById: string;
   decisions: string | null;
   id: string;
@@ -51,7 +61,7 @@ export interface ConvertedTaskResponse {
   title: string;
 }
 
-export interface MeetingActionConversionResponse {
+export interface MeetingActionConversionResponse extends MeetingActionResponse {
   action: MeetingActionResponse;
   task: ConvertedTaskResponse;
 }

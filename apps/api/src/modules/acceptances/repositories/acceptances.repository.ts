@@ -20,11 +20,6 @@ const acceptanceSelect = {
   updatedAt: true,
 } satisfies Prisma.AcceptanceSelect;
 
-const acceptanceSummarySelect = {
-  ...acceptanceSelect,
-  _count: { select: { remediationTasks: true } },
-} satisfies Prisma.AcceptanceSelect;
-
 const acceptanceParticipantSelect = {
   user: {
     select: {
@@ -36,6 +31,12 @@ const acceptanceParticipantSelect = {
   },
 } satisfies Prisma.AcceptanceParticipantSelect;
 
+const acceptanceSummarySelect = {
+  ...acceptanceSelect,
+  _count: { select: { remediationTasks: true } },
+  participants: { orderBy: { userId: 'asc' }, select: acceptanceParticipantSelect },
+} satisfies Prisma.AcceptanceSelect;
+
 const remediationTaskSelect = {
   assigneeId: true,
   id: true,
@@ -45,7 +46,6 @@ const remediationTaskSelect = {
 
 const acceptanceDetailSelect = {
   ...acceptanceSummarySelect,
-  participants: { orderBy: { userId: 'asc' }, select: acceptanceParticipantSelect },
   remediationTasks: { orderBy: { createdAt: 'asc' }, select: remediationTaskSelect },
 } satisfies Prisma.AcceptanceSelect;
 
@@ -87,11 +87,11 @@ export interface AcceptanceRecord {
 }
 
 export interface AcceptanceSummaryRecord extends AcceptanceRecord {
+  participants: AcceptanceParticipantRecord[];
   remediationTaskCount: number;
 }
 
 export interface AcceptanceDetailRecord extends AcceptanceSummaryRecord {
-  participants: AcceptanceParticipantRecord[];
   remediationTasks: AcceptanceRemediationTaskRecord[];
 }
 
@@ -312,6 +312,7 @@ export class AcceptancesRepository {
       failureReason: acceptance.failureReason,
       goal: acceptance.goal,
       id: acceptance.id,
+      participants: acceptance.participants,
       projectId: acceptance.projectId,
       remediationTaskCount: acceptance._count.remediationTasks,
       result: acceptance.result,
@@ -324,7 +325,6 @@ export class AcceptancesRepository {
   private toDetail(acceptance: AcceptanceDetailRow): AcceptanceDetailRecord {
     return {
       ...this.toSummary(acceptance),
-      participants: acceptance.participants,
       remediationTasks: acceptance.remediationTasks,
     };
   }
