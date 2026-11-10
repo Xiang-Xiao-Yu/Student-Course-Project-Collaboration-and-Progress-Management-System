@@ -34,13 +34,15 @@ import {
   acceptanceToForm,
   formToCreateAcceptanceInput,
   formToUpdateAcceptanceInput,
+  getAcceptanceDateClearError,
   hasAcceptanceFormErrors,
   hasUnsavedAcceptanceChanges,
   validateAcceptanceForm,
 } from '../features/acceptances/acceptance-validation';
 import { useSession } from '../features/auth/session';
 import type { IterationSummaryDto } from '../features/iterations/iteration-api';
-import { addIterationTask, listIterations } from '../features/iterations/iteration-api';
+import { listIterations } from '../features/iterations/iteration-api';
+import { ensureIterationTaskAssigned } from '../features/iterations/iteration-recovery';
 import type { ProjectDto, ProjectMemberDto } from '../features/projects/project-api';
 import { getProject, listProjectMembers } from '../features/projects/project-api';
 import { canManageProject, getProjectRoleLabel } from '../features/projects/project-presentation';
@@ -220,6 +222,16 @@ export function AcceptancesPage() {
   }, [selectedAcceptanceId, selectedAcceptanceUpdatedAt, state.status]);
 
   function requestAcceptanceSelection(acceptanceId: string): void {
+    if (
+      isCreating ||
+      isSaving ||
+      isCreatingRemediation ||
+      isLoadingSelection ||
+      pendingRemediationTask !== null
+    ) {
+      return;
+    }
+
     if (editOpen && hasUnsavedAcceptanceChanges(editInitialForm, acceptanceForm)) {
       setPendingAcceptanceId(acceptanceId);
       return;
@@ -229,7 +241,15 @@ export function AcceptancesPage() {
   }
 
   async function selectAcceptance(acceptanceId: string): Promise<void> {
-    if (state.status !== 'ready' || state.data.acceptance?.id === acceptanceId) {
+    if (
+      state.status !== 'ready' ||
+      state.data.acceptance?.id === acceptanceId ||
+      isCreating ||
+      isSaving ||
+      isCreatingRemediation ||
+      isLoadingSelection ||
+      pendingRemediationTask !== null
+    ) {
       return;
     }
 
@@ -311,11 +331,15 @@ export function AcceptancesPage() {
             }
           : current,
       );
-      setCreateForm(EMPTY_ACCEPTANCE_FORM);
-      setCreateErrors({});
-      setCreateMessage({ text: '阶段验收已创建。', type: 'success' });
+      if (shouldActivate) {
+        setCreateForm(EMPTY_ACCEPTANCE_FORM);
+        setCreateErrors({});
+        setCreateMessage({ text: '阶段验收已创建。', type: 'success' });
+      }
     } catch (error) {
-      setCreateMessage({ text: getUserFacingError(error), type: 'error' });
+      if (activeAcceptanceIdRef.current === selectedAtStart) {
+        setCreateMessage({ text: getUserFacingError(error), type: 'error' });
+      }
     } finally {
       setIsCreating(false);
     }
@@ -328,7 +352,15 @@ export function AcceptancesPage() {
       return;
     }
 
-    const errors = validateAcceptanceForm(acceptanceForm);
+    const formErrors = validateAcceptanceForm(acceptanceForm);
+    const dateClearError = getAcceptanceDateClearError(
+      editInitialForm.acceptanceDate,
+      acceptanceForm.acceptanceDate,
+    );
+    const errors: AcceptanceFormErrors = {
+      ...formErrors,
+      ...(dateClearError ? { acceptanceDate: dateClearError } : {}),
+    };
 
     setAcceptanceErrors(errors);
     setCreateMessage(null);
@@ -383,7 +415,7 @@ export function AcceptancesPage() {
 
     try {
       if (current.iterationId && !current.iterationApplied) {
-        await addIterationTask(api, projectId, current.iterationId, current.taskId, null);
+        await ensureIterationTaskAssigned(api, projectId, current.iterationId, current.taskId);
         current = { ...current, iterationApplied: true };
         setPendingRemediationTask(current);
       }
@@ -414,7 +446,9 @@ export function AcceptancesPage() {
       );
       setPendingRemediationTask(null);
       setRemediationForm(EMPTY_REMEDIATION_FORM);
-      setActionMessage('整改任务已创建。');
+      if (activeAcceptanceIdRef.current === current.acceptanceId) {
+        setActionMessage('整改任务已创建。');
+      }
     } catch (error) {
       setActionError(
         `整改任务已创建，但刷新验收失败：${getUserFacingError(error)}。重试不会再次创建任务。`,
@@ -510,6 +544,12 @@ export function AcceptancesPage() {
 
   const { acceptance, acceptances, iterations, members, project, requirements } = state.data;
   const canManage = canManageProject(project.accessRole) && project.status !== 'ARCHIVED';
+  const selectionLocked =
+    isLoadingSelection ||
+    isCreating ||
+    isSaving ||
+    isCreatingRemediation ||
+    pendingRemediationTask !== null;
   const createDraft =
     createForm.stageName.length > 0 ||
     createForm.standards.length > 0 ||
@@ -640,7 +680,7 @@ export function AcceptancesPage() {
               {acceptances.map((item) => (
                 <button
                   className={`acceptance-list-row${acceptance?.id === item.id ? ' is-active' : ''}`}
-                  disabled={isLoadingSelection || pendingRemediationTask !== null}
+                  disabled={selectionLocked}
                   key={item.id}
                   onClick={() => requestAcceptanceSelection(item.id)}
                   type="button"
@@ -783,6 +823,9 @@ export function AcceptancesPage() {
                         type="date"
                         value={acceptanceForm.acceptanceDate}
                       />
+                      {acceptanceErrors.acceptanceDate ? (
+                        <small>{acceptanceErrors.acceptanceDate}</small>
+                      ) : null}
                     </label>
                     <label className="form-field">
                       <span>验收结果</span>

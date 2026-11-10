@@ -148,3 +148,12 @@ export function formToUpdateAcceptanceInput(values: AcceptanceFormValues): Updat
     goal: values.goal.trim(),
   };
 }
+
+export function getAcceptanceDateClearError(
+  originalDate: string,
+  currentDate: string,
+): string | undefined {
+  return originalDate && !currentDate
+    ? '当前后端暂不支持清除验收日期，请重新选择日期或保留原日期。'
+    : undefined;
+}

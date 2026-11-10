@@ -126,6 +126,12 @@ try {
       startDate: '2026-11-01',
     },
   );
+  await apiRequest(`/projects/${project.id}/acceptances`, 'POST', owner.token, {
+    acceptanceDate: '2026-11-15',
+    participantIds: [],
+    stageName: 'P5 已有验收',
+    standards: '用于验证创建期间的记录切换保护。',
+  });
 
   electronApp = await _electron.launch({
     executablePath: electronExe,
@@ -152,6 +158,7 @@ try {
   await page.route('**/iterations/*/tasks', async (route) => {
     if (failNextIterationAssignment && route.request().method() === 'POST') {
       failNextIterationAssignment = false;
+      await route.fetch();
       await route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
@@ -168,6 +175,15 @@ try {
         status: 500,
       });
       return;
+    }
+
+    await route.continue();
+  });
+  let delayNextAcceptanceCreate = true;
+  await page.route('**/acceptances', async (route) => {
+    if (delayNextAcceptanceCreate && route.request().method() === 'POST') {
+      delayNextAcceptanceCreate = false;
+      await delay(1500);
     }
 
     await route.continue();
@@ -250,9 +266,35 @@ try {
     .getByRole('checkbox')
     .check();
   await acceptanceForm.getByRole('button', { name: '创建阶段验收', exact: true }).click();
+  await page.getByRole('button', { name: '正在创建...', exact: true }).waitFor();
+  const existingAcceptanceRow = page
+    .locator('.acceptance-list-row')
+    .filter({ hasText: 'P5 已有验收' });
+  await existingAcceptanceRow.scrollIntoViewIfNeeded();
+  check(
+    await existingAcceptanceRow.isDisabled(),
+    'Acceptance selection is not locked during create',
+  );
+  await capture('acceptance-create-lock.png');
   await page.getByText('阶段验收已创建。', { exact: true }).waitFor();
   await page.getByRole('heading', { name: 'P5 阶段验收', exact: true }).waitFor();
-  results.push({ name: 'acceptance summary without participants', status: 'PASS' });
+  results.push({ name: 'acceptance create locks record switch', status: 'PASS' });
+
+  await page.getByRole('button', { name: '编辑验收', exact: true }).click();
+  const dateInput = page.locator('.acceptance-edit-form input[type="date"]');
+  await dateInput.fill('');
+  await page
+    .locator('.acceptance-edit-form')
+    .getByRole('button', { name: '保存验收', exact: true })
+    .click();
+  await page
+    .getByText('当前后端暂不支持清除验收日期，请重新选择日期或保留原日期。', {
+      exact: true,
+    })
+    .waitFor();
+  await capture('acceptance-date-clear-guard.png');
+  await dateInput.fill('2026-11-20');
+  results.push({ name: 'acceptance date clear does not report false success', status: 'PASS' });
 
   await page.getByRole('button', { name: /进入“验收中”/ }).click();
   await page
