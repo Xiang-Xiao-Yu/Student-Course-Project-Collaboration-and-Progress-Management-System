@@ -26,7 +26,13 @@ export type ProjectPermission =
   | 'TASK_DELETE'
   | 'TASK_STATUS_UPDATE'
   | 'TASK_UPDATE'
-  | 'TASK_VIEW';
+  | 'TASK_VIEW'
+  | 'MEETING_VIEW'
+  | 'MEETING_CREATE'
+  | 'MEETING_UPDATE'
+  | 'MEETING_ACTION_MANAGE'
+  | 'ACCEPTANCE_VIEW'
+  | 'ACCEPTANCE_MANAGE';
 
 export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly ProjectPermission[]>> =
   {
@@ -53,6 +59,12 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'COMMENT_CREATE',
       'COMMENT_UPDATE_OWN',
       'COMMENT_DELETE_OWN',
+      'MEETING_VIEW',
+      'MEETING_CREATE',
+      'MEETING_UPDATE',
+      'MEETING_ACTION_MANAGE',
+      'ACCEPTANCE_VIEW',
+      'ACCEPTANCE_MANAGE',
     ],
     MEMBER: [
       'PROJECT_VIEW',
@@ -68,8 +80,20 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'COMMENT_CREATE',
       'COMMENT_UPDATE_OWN',
       'COMMENT_DELETE_OWN',
+      'MEETING_VIEW',
+      'MEETING_CREATE',
+      'MEETING_UPDATE',
+      'MEETING_ACTION_MANAGE',
+      'ACCEPTANCE_VIEW',
     ],
-    OBSERVER: ['PROJECT_VIEW', 'MEMBER_VIEW', 'REQUIREMENT_VIEW', 'TASK_VIEW'],
+    OBSERVER: [
+      'PROJECT_VIEW',
+      'MEMBER_VIEW',
+      'REQUIREMENT_VIEW',
+      'TASK_VIEW',
+      'MEETING_VIEW',
+      'ACCEPTANCE_VIEW',
+    ],
   };
 
 export const PROJECT_STATUS_TRANSITIONS: Readonly<Record<ProjectStatus, readonly ProjectStatus[]>> =

@@ -47,6 +47,12 @@ export class CreateTaskDto {
   @Length(1, 100)
   requirementId?: string;
 
+  @ValidateIf((_object, value) => value !== undefined)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @Length(1, 100)
+  acceptanceId?: string;
+
   @IsIn(TASK_PRIORITIES)
   priority!: TaskPriority;
 

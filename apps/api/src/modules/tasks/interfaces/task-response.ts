@@ -1,6 +1,7 @@
 import type { TaskPriority, TaskStatus } from '../task.constants';
 
 export interface TaskResponse {
+  acceptanceId: string | null;
   assigneeId: string | null;
   completedAt: string | null;
   completionNote: string | null;
