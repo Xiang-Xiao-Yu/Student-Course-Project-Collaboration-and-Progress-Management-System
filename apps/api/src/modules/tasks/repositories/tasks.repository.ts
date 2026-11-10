@@ -7,6 +7,7 @@ import { withProjectWrite } from '../../projects/project-write-access';
 import type { TaskPriority, TaskStatus } from '../task.constants';
 
 const taskSelect = {
+  acceptanceId: true,
   assigneeId: true,
   completedAt: true,
   completionNote: true,
@@ -32,6 +33,7 @@ const taskSelect = {
 } satisfies Prisma.TaskSelect;
 
 export interface TaskRecord {
+  acceptanceId: string | null;
   assigneeId: string | null;
   completedAt: Date | null;
   completionNote: string | null;
@@ -52,6 +54,7 @@ export interface TaskRecord {
 }
 
 export interface TaskWriteInput {
+  acceptanceId?: string;
   assigneeId?: string;
   description?: string;
   dueDate?: Date;
@@ -96,9 +99,16 @@ export class TasksRepository {
       'TASK_CREATE',
       async (transaction, project) => {
         this.assertDueDateValid(input.dueDate, project.startDate);
-        await this.validateRelations(transaction, projectId, input.assigneeId, input.requirementId);
+        await this.validateRelations(
+          transaction,
+          projectId,
+          input.assigneeId,
+          input.requirementId,
+          input.acceptanceId,
+        );
         const created = await transaction.task.create({
           data: {
+            acceptanceId: input.acceptanceId,
             assigneeId: input.assigneeId,
             createdById: creatorId,
             description: input.description,
@@ -161,9 +171,16 @@ export class TasksRepository {
           );
         }
         this.assertDueDateValid(input.dueDate ?? current.dueDate ?? undefined, project.startDate);
-        await this.validateRelations(transaction, projectId, input.assigneeId, input.requirementId);
+        await this.validateRelations(
+          transaction,
+          projectId,
+          input.assigneeId,
+          input.requirementId,
+          input.acceptanceId,
+        );
         await transaction.task.update({
           data: {
+            acceptanceId: input.acceptanceId,
             assigneeId: input.assigneeId,
             description: input.description,
             dueDate: input.dueDate,
@@ -423,6 +440,7 @@ export class TasksRepository {
     projectId: string,
     assigneeId: string | undefined,
     requirementId: string | undefined,
+    acceptanceId: string | undefined,
   ): Promise<void> {
     if (assigneeId !== undefined) {
       const membership = await transaction.projectMember.findUnique({
@@ -458,6 +476,21 @@ export class TasksRepository {
           HttpStatus.UNPROCESSABLE_ENTITY,
           'TASK_REQUIREMENT_INVALID',
           '关联需求不属于当前项目',
+        );
+      }
+    }
+
+    if (acceptanceId !== undefined) {
+      const acceptance = await transaction.acceptance.findFirst({
+        select: { result: true },
+        where: { id: acceptanceId, projectId },
+      });
+
+      if (!acceptance || acceptance.result !== 'FAILED') {
+        throw new AppException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'ACCEPTANCE_REMEDIATION_INVALID',
+          '只有未通过的阶段验收才能创建整改任务',
         );
       }
     }
