@@ -74,7 +74,7 @@ export function meetingToForm(meeting: MeetingDto): MeetingFormValues {
     agenda: meeting.agenda ?? '',
     decisions: meeting.decisions ?? '',
     minutes: meeting.minutes ?? '',
-    participantIds: meeting.participants.map((participant) => participant.id),
+    participantIds: meeting.participants.map((participant) => participant.userId),
     scheduledAt: toMeetingDateTimeInput(meeting.scheduledAt),
     title: meeting.title,
   };

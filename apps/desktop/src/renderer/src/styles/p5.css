@@ -285,6 +285,23 @@
   gap: 12px;
 }
 
+.remediation-pending {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #f1c78a;
+  border-radius: 8px;
+  background: var(--amber-soft);
+}
+
+.remediation-pending p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
 @media (max-width: 1100px) {
   .meeting-workspace,
   .acceptance-workspace {

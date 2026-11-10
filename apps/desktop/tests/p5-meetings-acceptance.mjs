@@ -116,6 +116,16 @@ try {
     role: 'OBSERVER',
     username: observer.username,
   });
+  const remediationIteration = await apiRequest(
+    `/projects/${project.id}/iterations`,
+    'POST',
+    owner.token,
+    {
+      endDate: '2026-12-31',
+      name: 'P5 整改迭代',
+      startDate: '2026-11-01',
+    },
+  );
 
   electronApp = await _electron.launch({
     executablePath: electronExe,
@@ -138,10 +148,35 @@ try {
     }
   });
 
+  let failNextIterationAssignment = true;
+  await page.route('**/iterations/*/tasks', async (route) => {
+    if (failNextIterationAssignment && route.request().method() === 'POST') {
+      failNextIterationAssignment = false;
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: '模拟加入迭代失败',
+          },
+          meta: {
+            requestId: 'p5-remediation-failure',
+            timestamp: new Date().toISOString(),
+          },
+          success: false,
+        }),
+        status: 500,
+      });
+      return;
+    }
+
+    await route.continue();
+  });
+
   await login(owner.username);
   await enterProject();
   await page.getByRole('link', { name: '会议纪要', exact: true }).click();
-  await page.getByRole('heading', { name: '会议纪要', exact: true }).waitFor();
+  await page.locator('h1').filter({ hasText: '会议纪要' }).waitFor();
 
   const meetingForm = page.locator('.meeting-create-panel');
   await meetingForm.getByLabel('会议主题', { exact: true }).fill('P5 真实联调会议');
@@ -240,17 +275,31 @@ try {
     .locator('select')
     .selectOption(member.id);
   await remediationForm.locator('input[type="date"]').fill('2026-11-25');
+  await remediationForm
+    .locator('.form-field')
+    .filter({ hasText: '关联迭代' })
+    .locator('select')
+    .selectOption(remediationIteration.id);
   await remediationForm.getByRole('button', { name: '创建整改任务', exact: true }).click();
+  await page.getByText(/整改任务已创建，但加入迭代失败/).waitFor();
+  await page.getByRole('link', { name: '查看已创建任务', exact: true }).waitFor();
+  await capture('remediation-partial-success.png');
+  await page.getByRole('button', { name: '重试加入迭代并刷新', exact: true }).click();
   await page.getByText('整改任务已创建。', { exact: true }).waitFor();
   await page.getByRole('link', { name: 'P5 整改任务', exact: true }).waitFor();
+  const projectTasks = await apiRequest(`/projects/${project.id}/tasks`, 'GET', owner.token);
+  check(
+    projectTasks.filter((task) => task.title === 'P5 整改任务').length === 1,
+    'Remediation retry created a duplicate task',
+  );
   await capture('acceptance-remediation.png');
-  results.push({ name: 'acceptance remediation task', status: 'PASS' });
+  results.push({ name: 'acceptance remediation partial failure and retry', status: 'PASS' });
 
   await logout();
   await login(observer.username);
   await enterProject();
   await page.getByRole('link', { name: '会议纪要', exact: true }).click();
-  await page.getByRole('heading', { name: '会议纪要', exact: true }).waitFor();
+  await page.locator('h1').filter({ hasText: '会议纪要' }).waitFor();
   check(
     (await page.getByRole('heading', { name: '创建会议', exact: true }).count()) === 0,
     'Observer can see meeting creation',

@@ -129,6 +129,7 @@ export function MeetingsPage() {
       createdById: meeting.createdById,
       actionCount: meeting.actions.length,
       agenda: meeting.agenda,
+      createdBy: meeting.createdBy,
       decisions: meeting.decisions,
       id: meeting.id,
       minutes: meeting.minutes,
@@ -538,9 +539,9 @@ export function MeetingsPage() {
 
   const { comments, meeting, meetings, members, project } = state.data;
   const canEdit = canEditProjectContent(project.accessRole, project.status);
-  const creator = meeting
-    ? (members.find((member) => member.userId === meeting.createdById) ?? null)
-    : null;
+  const creator =
+    meeting?.createdBy ??
+    (meeting ? members.find((member) => member.userId === meeting.createdById) : null);
   const createDraft =
     createForm.title.length > 0 ||
     createForm.agenda.length > 0 ||

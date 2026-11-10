@@ -7,6 +7,7 @@ export interface AcceptanceUserDto {
   readonly avatarUrl: string | null;
   readonly id: string;
   readonly nickname: string;
+  readonly userId: string;
   readonly username: string;
 }
 
@@ -26,6 +27,7 @@ export interface AcceptanceSummaryDto {
   readonly failureReason: string | null;
   readonly goal: string | null;
   readonly id: string;
+  readonly participants: AcceptanceParticipantDto[];
   readonly projectId: string;
   readonly remediationTaskCount: number;
   readonly result: AcceptanceResult;
@@ -35,7 +37,6 @@ export interface AcceptanceSummaryDto {
 }
 
 export interface AcceptanceDto extends AcceptanceSummaryDto {
-  readonly participants: AcceptanceParticipantDto[];
   readonly remediationTasks: AcceptanceRemediationTaskDto[];
 }
 

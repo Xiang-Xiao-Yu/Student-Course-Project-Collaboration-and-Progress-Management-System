@@ -64,6 +64,7 @@ describe('P5 acceptance validation', () => {
           avatarUrl: null,
           id: 'user-1',
           nickname: '负责人',
+          userId: 'user-1',
           username: 'owner',
         },
       ],

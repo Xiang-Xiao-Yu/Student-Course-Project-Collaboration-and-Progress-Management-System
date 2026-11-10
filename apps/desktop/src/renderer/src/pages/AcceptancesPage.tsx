@@ -77,6 +77,14 @@ interface AcceptanceData {
   readonly requirements: RequirementDto[];
 }
 
+interface PendingRemediationTask {
+  readonly acceptanceId: string;
+  readonly iterationApplied: boolean;
+  readonly iterationId: string | null;
+  readonly taskId: string;
+  readonly title: string;
+}
+
 type AcceptanceState =
   | { readonly status: 'loading' }
   | { readonly data: AcceptanceData; readonly status: 'ready' }
@@ -99,9 +107,12 @@ export function AcceptancesPage() {
     useState<AcceptanceFormValues>(EMPTY_ACCEPTANCE_FORM);
   const [editOpen, setEditOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreatingRemediation, setIsCreatingRemediation] = useState(false);
   const [isLoadingSelection, setIsLoadingSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingAcceptanceId, setPendingAcceptanceId] = useState<string | null>(null);
+  const [pendingRemediationTask, setPendingRemediationTask] =
+    useState<PendingRemediationTask | null>(null);
   const [remediationErrors, setRemediationErrors] = useState<string | null>(null);
   const [remediationForm, setRemediationForm] = useState(EMPTY_REMEDIATION_FORM);
   const [retryVersion, setRetryVersion] = useState(0);
@@ -124,6 +135,7 @@ export function AcceptancesPage() {
       failureReason: acceptance.failureReason,
       goal: acceptance.goal,
       id: acceptance.id,
+      participants: acceptance.participants,
       projectId: acceptance.projectId,
       remediationTaskCount: acceptance.remediationTasks.length,
       result: acceptance.result,
@@ -142,6 +154,7 @@ export function AcceptancesPage() {
     setCreateMessage(null);
     setEditOpen(false);
     setPendingAcceptanceId(null);
+    setPendingRemediationTask(null);
     setRemediationErrors(null);
     setRemediationForm(EMPTY_REMEDIATION_FORM);
 
@@ -362,10 +375,57 @@ export function AcceptancesPage() {
     }
   }
 
+  async function continuePendingRemediation(
+    pending: PendingRemediationTask,
+    projectId: string,
+  ): Promise<void> {
+    let current = pending;
+
+    try {
+      if (current.iterationId && !current.iterationApplied) {
+        await addIterationTask(api, projectId, current.iterationId, current.taskId, null);
+        current = { ...current, iterationApplied: true };
+        setPendingRemediationTask(current);
+      }
+    } catch (error) {
+      setActionError(
+        `整改任务已创建，但加入迭代失败：${getUserFacingError(error)}。重试不会再次创建任务。`,
+      );
+      return;
+    }
+
+    try {
+      const acceptance = await getAcceptance(api, projectId, current.acceptanceId);
+
+      setState((state) =>
+        state.status === 'ready'
+          ? {
+              data: {
+                ...state.data,
+                acceptance:
+                  state.data.acceptance?.id === acceptance.id ? acceptance : state.data.acceptance,
+                acceptances: state.data.acceptances.map((item) =>
+                  item.id === acceptance.id ? toAcceptanceSummary(acceptance) : item,
+                ),
+              },
+              status: 'ready',
+            }
+          : state,
+      );
+      setPendingRemediationTask(null);
+      setRemediationForm(EMPTY_REMEDIATION_FORM);
+      setActionMessage('整改任务已创建。');
+    } catch (error) {
+      setActionError(
+        `整改任务已创建，但刷新验收失败：${getUserFacingError(error)}。重试不会再次创建任务。`,
+      );
+    }
+  }
+
   async function handleCreateRemediation(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (state.status !== 'ready' || !state.data.acceptance) {
+    if (state.status !== 'ready' || !state.data.acceptance || isCreatingRemediation) {
       return;
     }
 
@@ -376,53 +436,52 @@ export function AcceptancesPage() {
       return;
     }
 
+    const projectId = state.data.project.id;
+    const acceptanceId = state.data.acceptance.id;
+    const iterationId = remediationForm.iterationId || null;
     setRemediationErrors(null);
     setActionError(null);
     setActionMessage(null);
+    setIsCreatingRemediation(true);
 
     try {
-      const task = await createTask(api, state.data.project.id, {
-        acceptanceId: state.data.acceptance.id,
+      const task = await createTask(api, projectId, {
+        acceptanceId,
         ...(remediationForm.assigneeId ? { assigneeId: remediationForm.assigneeId } : {}),
         ...(remediationForm.dueDate ? { dueDate: remediationForm.dueDate } : {}),
         ...(remediationForm.requirementId ? { requirementId: remediationForm.requirementId } : {}),
         priority: 'MEDIUM',
         title,
       });
+      const pending = {
+        acceptanceId,
+        iterationApplied: !iterationId,
+        iterationId,
+        taskId: task.id,
+        title: task.title,
+      };
 
-      if (remediationForm.iterationId) {
-        await addIterationTask(
-          api,
-          state.data.project.id,
-          remediationForm.iterationId,
-          task.id,
-          null,
-        );
-      }
-
-      const acceptance = await getAcceptance(api, state.data.project.id, state.data.acceptance.id);
-
-      setState((current) =>
-        current.status === 'ready'
-          ? {
-              data: {
-                ...current.data,
-                acceptance:
-                  current.data.acceptance?.id === acceptance.id
-                    ? acceptance
-                    : current.data.acceptance,
-                acceptances: current.data.acceptances.map((item) =>
-                  item.id === acceptance.id ? toAcceptanceSummary(acceptance) : item,
-                ),
-              },
-              status: 'ready',
-            }
-          : current,
-      );
-      setRemediationForm(EMPTY_REMEDIATION_FORM);
-      setActionMessage('整改任务已创建。');
+      setPendingRemediationTask(pending);
+      await continuePendingRemediation(pending, projectId);
     } catch (error) {
       setActionError(getUserFacingError(error));
+    } finally {
+      setIsCreatingRemediation(false);
+    }
+  }
+
+  async function retryPendingRemediation(): Promise<void> {
+    if (state.status !== 'ready' || !pendingRemediationTask || isCreatingRemediation) {
+      return;
+    }
+
+    setIsCreatingRemediation(true);
+    setActionError(null);
+
+    try {
+      await continuePendingRemediation(pendingRemediationTask, state.data.project.id);
+    } finally {
+      setIsCreatingRemediation(false);
     }
   }
 
@@ -581,7 +640,7 @@ export function AcceptancesPage() {
               {acceptances.map((item) => (
                 <button
                   className={`acceptance-list-row${acceptance?.id === item.id ? ' is-active' : ''}`}
-                  disabled={isLoadingSelection}
+                  disabled={isLoadingSelection || pendingRemediationTask !== null}
                   key={item.id}
                   onClick={() => requestAcceptanceSelection(item.id)}
                   type="button"
@@ -813,7 +872,35 @@ export function AcceptancesPage() {
                 {actionError ? <ErrorNotice message={actionError} /> : null}
                 {actionMessage ? <div className="success-notice">{actionMessage}</div> : null}
 
-                {canManage && canCreateRemediationTask(acceptance.result) ? (
+                {pendingRemediationTask ? (
+                  <div className="remediation-pending">
+                    <p>
+                      已创建任务“{pendingRemediationTask.title}
+                      ”，后续步骤尚未完成。重试不会重复创建任务。
+                    </p>
+                    <div className="button-row">
+                      <Link
+                        className="secondary-link"
+                        to={buildTaskPath(project.id, pendingRemediationTask.taskId)}
+                      >
+                        查看已创建任务
+                      </Link>
+                      <button
+                        className="secondary-button"
+                        disabled={isCreatingRemediation}
+                        onClick={() => void retryPendingRemediation()}
+                        type="button"
+                      >
+                        {isCreatingRemediation
+                          ? '正在重试...'
+                          : pendingRemediationTask.iterationId &&
+                              !pendingRemediationTask.iterationApplied
+                            ? '重试加入迭代并刷新'
+                            : '重新加载验收'}
+                      </button>
+                    </div>
+                  </div>
+                ) : canManage && canCreateRemediationTask(acceptance.result) ? (
                   <form
                     className="auth-form remediation-form"
                     onSubmit={(event) => void handleCreateRemediation(event)}
@@ -909,8 +996,12 @@ export function AcceptancesPage() {
                     </div>
                     {remediationErrors ? <small>{remediationErrors}</small> : null}
                     <div className="form-actions">
-                      <button className="primary-button" type="submit">
-                        创建整改任务
+                      <button
+                        className="primary-button"
+                        disabled={isCreatingRemediation}
+                        type="submit"
+                      >
+                        {isCreatingRemediation ? '正在创建...' : '创建整改任务'}
                       </button>
                     </div>
                   </form>

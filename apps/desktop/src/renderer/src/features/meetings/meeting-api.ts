@@ -6,6 +6,7 @@ export interface MeetingUserDto {
   readonly avatarUrl: string | null;
   readonly id: string;
   readonly nickname: string;
+  readonly userId: string;
   readonly username: string;
 }
 
@@ -27,6 +28,7 @@ export interface MeetingSummaryDto {
   readonly actionCount: number;
   readonly agenda: string | null;
   readonly createdAt: string;
+  readonly createdBy: MeetingUserDto;
   readonly createdById: string;
   readonly decisions: string | null;
   readonly id: string;
@@ -54,7 +56,7 @@ export interface ConvertedTaskDto {
   readonly title: string;
 }
 
-export interface MeetingActionConversionDto {
+export interface MeetingActionConversionDto extends MeetingActionDto {
   readonly action: MeetingActionDto;
   readonly task: ConvertedTaskDto;
 }
