@@ -8,6 +8,13 @@ import type { TaskPriority, TaskStatus } from '../task.constants';
 
 const taskSelect = {
   acceptanceId: true,
+  assignee: {
+    select: {
+      id: true,
+      nickname: true,
+      username: true,
+    },
+  },
   assigneeId: true,
   completedAt: true,
   completionNote: true,
@@ -17,9 +24,23 @@ const taskSelect = {
   dueDate: true,
   estimatedHours: true,
   id: true,
+  iteration: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  iterationId: true,
   priority: true,
   projectId: true,
   requirementId: true,
+  requirement: {
+    select: {
+      id: true,
+      number: true,
+      title: true,
+    },
+  },
   status: true,
   tags: {
     select: {
@@ -34,6 +55,11 @@ const taskSelect = {
 
 export interface TaskRecord {
   acceptanceId: string | null;
+  assignee: {
+    id: string;
+    nickname: string;
+    username: string;
+  } | null;
   assigneeId: string | null;
   completedAt: Date | null;
   completionNote: string | null;
@@ -43,9 +69,19 @@ export interface TaskRecord {
   dueDate: Date | null;
   estimatedHours: number | null;
   id: string;
+  iteration: {
+    id: string;
+    name: string;
+  } | null;
+  iterationId: string | null;
   priority: string;
   projectId: string;
   requirementId: string | null;
+  requirement: {
+    id: string;
+    number: string;
+    title: string;
+  } | null;
   rejectionReason?: string | null;
   status: string;
   tags: Array<{ tag: { name: string } }>;
@@ -64,15 +100,58 @@ export interface TaskWriteInput {
   title?: string;
 }
 
+export interface TaskListFilters {
+  assigneeId?: string;
+  dueDateFrom?: Date;
+  dueDateToExclusive?: Date;
+  iterationId?: string;
+  priority?: TaskPriority;
+  search?: string;
+  status?: TaskStatus;
+  tag?: string;
+}
+
 @Injectable()
 export class TasksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listByProject(projectId: string): Promise<TaskRecord[]> {
+  async listByProject(projectId: string, filters: TaskListFilters = {}): Promise<TaskRecord[]> {
+    const matchingTaskIds =
+      filters.search === undefined
+        ? undefined
+        : await this.findTaskIdsByLiteralTitle(projectId, filters.search);
+    if (matchingTaskIds?.length === 0) {
+      return [];
+    }
+
     const tasks = await this.prisma.task.findMany({
       orderBy: [{ createdAt: 'desc' }],
       select: taskSelect,
-      where: { projectId },
+      where: {
+        projectId,
+        ...(matchingTaskIds ? { id: { in: matchingTaskIds } } : {}),
+        ...(filters.assigneeId ? { assigneeId: filters.assigneeId } : {}),
+        ...(filters.iterationId ? { iterationId: filters.iterationId } : {}),
+        ...(filters.priority ? { priority: filters.priority } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.tag
+          ? {
+              tags: {
+                some: {
+                  tag: { name: filters.tag },
+                },
+              },
+            }
+          : {}),
+        ...(filters.dueDateFrom || filters.dueDateToExclusive
+          ? {
+              dueDate: {
+                ...(filters.dueDateFrom ? { gte: filters.dueDateFrom } : {}),
+                ...(filters.dueDateToExclusive ? { lt: filters.dueDateToExclusive } : {}),
+              },
+            }
+          : {}),
+      },
     });
     return this.withRejectionReasons(this.prisma, projectId, tasks);
   }
@@ -494,6 +573,17 @@ export class TasksRepository {
         );
       }
     }
+  }
+
+  private async findTaskIdsByLiteralTitle(projectId: string, search: string): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "Task"
+      WHERE "projectId" = ${projectId}
+        AND instr(lower("title"), lower(${search})) > 0
+    `;
+
+    return rows.map((row) => row.id);
   }
 
   private async syncTags(

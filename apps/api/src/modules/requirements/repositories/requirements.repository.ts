@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AppException } from '../../../common/errors/app.exception';
 import { withProjectWrite } from '../../projects/project-write-access';
+import type { ListRequirementsQueryDto } from '../dto/list-requirements-query.dto';
 import type { RequirementPriority, RequirementStatus } from '../requirement.constants';
 
 const requirementSelect = {
@@ -60,12 +61,40 @@ export interface RequirementWriteInput {
 export class RequirementsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listByProject(projectId: string): Promise<RequirementRecord[]> {
+  async listByProject(
+    projectId: string,
+    query: ListRequirementsQueryDto = {},
+  ): Promise<RequirementRecord[]> {
+    const matchingRequirementIds =
+      query.search === undefined
+        ? undefined
+        : await this.findRequirementIdsByLiteralTitle(projectId, query.search);
+    if (matchingRequirementIds?.length === 0) {
+      return [];
+    }
+
     return this.prisma.requirement.findMany({
       orderBy: [{ number: 'asc' }],
       select: requirementSelect,
-      where: { projectId },
+      where: {
+        projectId,
+        ...(matchingRequirementIds ? { id: { in: matchingRequirementIds } } : {}),
+      },
     });
+  }
+
+  private async findRequirementIdsByLiteralTitle(
+    projectId: string,
+    search: string,
+  ): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "Requirement"
+      WHERE "projectId" = ${projectId}
+        AND instr(lower("title"), lower(${search})) > 0
+    `;
+
+    return rows.map((row) => row.id);
   }
 
   async findById(projectId: string, requirementId: string): Promise<RequirementRecord | null> {
