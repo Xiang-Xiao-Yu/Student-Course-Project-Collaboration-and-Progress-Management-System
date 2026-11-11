@@ -8,14 +8,20 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 
+import { setCsvDownloadHeaders } from '../../common/export/csv';
 import { AppException } from '../../common/errors/app.exception';
 import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
+import { RawResponse } from '../../common/http/raw-response.decorator';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import type { TaskResponse } from './interfaces/task-response';
@@ -30,8 +36,9 @@ export class TasksController {
   listTasks(
     @Req() request: AuthenticatedRequest,
     @Param('projectId') projectId: string,
+    @Query() query: ListTasksQueryDto,
   ): Promise<TaskResponse[]> {
-    return this.tasksService.listTasks(this.requireUserId(request), projectId);
+    return this.tasksService.listTasks(this.requireUserId(request), projectId, query);
   }
 
   @Post()
@@ -42,6 +49,24 @@ export class TasksController {
     @Body() dto: CreateTaskDto,
   ): Promise<TaskResponse> {
     return this.tasksService.createTask(this.requireUserId(request), projectId, dto);
+  }
+
+  @Get('export')
+  @RawResponse()
+  async exportTasks(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId') projectId: string,
+    @Query() query: ListTasksQueryDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<string> {
+    const result = await this.tasksService.exportTasksCsv(
+      this.requireUserId(request),
+      projectId,
+      query,
+    );
+    setCsvDownloadHeaders(response, result.filename);
+
+    return result.content;
   }
 
   @Get(':taskId')

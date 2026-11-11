@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { AppException } from '../../common/errors/app.exception';
 import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateRequirementDto } from './dto/create-requirement.dto';
+import { ListRequirementsQueryDto } from './dto/list-requirements-query.dto';
 import { UpdateRequirementDto } from './dto/update-requirement.dto';
 import type { RequirementResponse } from './interfaces/requirement-response';
 import { RequirementsService } from './requirements.service';
@@ -29,8 +31,9 @@ export class RequirementsController {
   listRequirements(
     @Req() request: AuthenticatedRequest,
     @Param('projectId') projectId: string,
+    @Query() query: ListRequirementsQueryDto,
   ): Promise<RequirementResponse[]> {
-    return this.requirementsService.listRequirements(this.requireUserId(request), projectId);
+    return this.requirementsService.listRequirements(this.requireUserId(request), projectId, query);
   }
 
   @Post()

@@ -3,6 +3,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppException } from '../../common/errors/app.exception';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { CreateRequirementDto } from './dto/create-requirement.dto';
+import { ListRequirementsQueryDto } from './dto/list-requirements-query.dto';
 import { UpdateRequirementDto } from './dto/update-requirement.dto';
 import type { RequirementResponse } from './interfaces/requirement-response';
 import { REQUIREMENT_STATUS_TRANSITIONS, RequirementStatus } from './requirement.constants';
@@ -15,9 +16,13 @@ export class RequirementsService {
     private readonly requirementsRepository: RequirementsRepository,
   ) {}
 
-  async listRequirements(userId: string, projectId: string): Promise<RequirementResponse[]> {
+  async listRequirements(
+    userId: string,
+    projectId: string,
+    query: ListRequirementsQueryDto = new ListRequirementsQueryDto(),
+  ): Promise<RequirementResponse[]> {
     await this.projectAccessService.requirePermission(projectId, userId, 'REQUIREMENT_VIEW');
-    const requirements = await this.requirementsRepository.listByProject(projectId);
+    const requirements = await this.requirementsRepository.listByProject(projectId, query);
 
     return requirements.map((requirement) => this.toResponse(requirement));
   }

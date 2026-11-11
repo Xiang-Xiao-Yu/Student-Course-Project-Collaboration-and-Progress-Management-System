@@ -1,13 +1,31 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 
 import { AppException } from '../../common/errors/app.exception';
+import { createCsv } from '../../common/export/csv';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import type { TaskResponse } from './interfaces/task-response';
 import { TASK_STATUS_TRANSITIONS, TaskPriority, TaskStatus } from './task.constants';
 import { TaskRecord, TasksRepository } from './repositories/tasks.repository';
+import type { TaskListFilters } from './repositories/tasks.repository';
+
+const TASK_STATUS_LABELS: Readonly<Record<TaskStatus, string>> = {
+  BACKLOG: '待规划',
+  BLOCKED: '已阻塞',
+  COMPLETED: '已完成',
+  IN_PROGRESS: '进行中',
+  PENDING_REVIEW: '待审核',
+  TODO: '待开始',
+};
+
+const TASK_PRIORITY_LABELS: Readonly<Record<TaskPriority, string>> = {
+  HIGH: '高',
+  LOW: '低',
+  MEDIUM: '中',
+};
 
 @Injectable()
 export class TasksService {
@@ -16,11 +34,66 @@ export class TasksService {
     private readonly tasksRepository: TasksRepository,
   ) {}
 
-  async listTasks(userId: string, projectId: string): Promise<TaskResponse[]> {
+  async listTasks(
+    userId: string,
+    projectId: string,
+    query: ListTasksQueryDto = new ListTasksQueryDto(),
+  ): Promise<TaskResponse[]> {
     await this.projectAccessService.requirePermission(projectId, userId, 'TASK_VIEW');
-    const tasks = await this.tasksRepository.listByProject(projectId);
+    const tasks = await this.tasksRepository.listByProject(projectId, this.toTaskFilters(query));
 
     return tasks.map((task) => this.toResponse(task));
+  }
+
+  async exportTasksCsv(
+    userId: string,
+    projectId: string,
+    query: ListTasksQueryDto = new ListTasksQueryDto(),
+  ): Promise<{ content: string; filename: string }> {
+    await this.projectAccessService.requirePermission(projectId, userId, 'REPORT_EXPORT');
+    const tasks = await this.tasksRepository.listByProject(projectId, this.toTaskFilters(query));
+    const rows: unknown[][] = [
+      [
+        '任务 ID',
+        '标题',
+        '状态',
+        '优先级',
+        '负责人',
+        '关联需求',
+        '所属迭代',
+        '截止日期',
+        '标签',
+        '预估工时',
+        '完成说明',
+        '创建时间',
+        '完成时间',
+        '更新时间',
+      ],
+      ...tasks.map((task) => [
+        task.id,
+        task.title,
+        TASK_STATUS_LABELS[task.status as TaskStatus],
+        TASK_PRIORITY_LABELS[task.priority as TaskPriority],
+        task.assignee ? `${task.assignee.nickname} (@${task.assignee.username})` : '未分配',
+        task.requirement ? `${task.requirement.number} ${task.requirement.title}` : '',
+        task.iteration?.name ?? '',
+        task.dueDate?.toISOString() ?? '',
+        task.tags
+          .map((item) => item.tag.name)
+          .sort()
+          .join(';'),
+        task.estimatedHours ?? '',
+        task.completionNote ?? '',
+        task.createdAt.toISOString(),
+        task.completedAt?.toISOString() ?? '',
+        task.updatedAt.toISOString(),
+      ]),
+    ];
+
+    return {
+      content: createCsv(rows),
+      filename: `tasks-${projectId}.csv`,
+    };
   }
 
   async getTask(userId: string, projectId: string, taskId: string): Promise<TaskResponse> {
@@ -257,6 +330,43 @@ export class TasksService {
         '已归档项目只读，不能修改任务',
       );
     }
+  }
+
+  private toTaskFilters(query: ListTasksQueryDto): TaskListFilters {
+    const dueDateFrom =
+      query.dueDateFrom === undefined ? undefined : this.startOfUtcDay(query.dueDateFrom);
+    const dueDateToExclusive =
+      query.dueDateTo === undefined ? undefined : this.startOfNextUtcDay(query.dueDateTo);
+
+    if (dueDateFrom && dueDateToExclusive && dueDateFrom >= dueDateToExclusive) {
+      throw new AppException(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'TASK_FILTER_DATE_RANGE_INVALID',
+        '截止日期筛选结束日期不能早于开始日期',
+      );
+    }
+
+    return {
+      assigneeId: query.assigneeId,
+      dueDateFrom,
+      dueDateToExclusive,
+      iterationId: query.iterationId,
+      priority: query.priority,
+      search: query.search,
+      status: query.status,
+      tag: query.tag,
+    };
+  }
+
+  private startOfUtcDay(value: string): Date {
+    const date = new Date(value);
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  }
+
+  private startOfNextUtcDay(value: string): Date {
+    const date = this.startOfUtcDay(value);
+    date.setUTCDate(date.getUTCDate() + 1);
+    return date;
   }
 
   private assertDueDateValid(dueDate: Date | undefined, projectStartDate: Date | null): void {

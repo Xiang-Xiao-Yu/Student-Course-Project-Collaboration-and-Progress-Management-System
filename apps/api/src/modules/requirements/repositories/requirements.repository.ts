@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AppException } from '../../../common/errors/app.exception';
 import { withProjectWrite } from '../../projects/project-write-access';
+import type { ListRequirementsQueryDto } from '../dto/list-requirements-query.dto';
 import type { RequirementPriority, RequirementStatus } from '../requirement.constants';
 
 const requirementSelect = {
@@ -60,11 +61,17 @@ export interface RequirementWriteInput {
 export class RequirementsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listByProject(projectId: string): Promise<RequirementRecord[]> {
+  async listByProject(
+    projectId: string,
+    query: ListRequirementsQueryDto = {},
+  ): Promise<RequirementRecord[]> {
     return this.prisma.requirement.findMany({
       orderBy: [{ number: 'asc' }],
       select: requirementSelect,
-      where: { projectId },
+      where: {
+        projectId,
+        ...(query.search ? { title: { contains: query.search } } : {}),
+      },
     });
   }
 
