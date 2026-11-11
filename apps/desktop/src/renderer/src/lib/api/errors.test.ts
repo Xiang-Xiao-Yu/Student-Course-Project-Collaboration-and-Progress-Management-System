@@ -70,4 +70,25 @@ describe('getUserFacingError', () => {
       ),
     ).toBe('项目负责人或成员状态已变化，请刷新后重试。');
   });
+
+  it('任务筛选日期错误提供稳定中文提示', () => {
+    expect(
+      getUserFacingError(
+        new ApiError({
+          code: 'TASK_FILTER_DATE_INVALID',
+          message: '',
+          status: 422,
+        }),
+      ),
+    ).toBe('截止日期筛选日期无效，请重新选择。');
+    expect(
+      getUserFacingError(
+        new ApiError({
+          code: 'TASK_FILTER_DATE_RANGE_INVALID',
+          message: '',
+          status: 422,
+        }),
+      ),
+    ).toBe('截止日期筛选的结束日期不能早于开始日期。');
+  });
 });

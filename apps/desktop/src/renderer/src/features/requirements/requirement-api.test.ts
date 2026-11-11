@@ -60,4 +60,14 @@ describe('P3 requirement API', () => {
 
     await expect(listRequirements(api as never, 'project-1')).rejects.toBe(error);
   });
+
+  it('P6 按需求标题传递搜索参数', async () => {
+    const api = { get: vi.fn(async () => []) };
+
+    await listRequirements(api as never, 'project-1', '  验收标准  ');
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/projects/project-1/requirements?search=%E9%AA%8C%E6%94%B6%E6%A0%87%E5%87%86',
+    );
+  });
 });

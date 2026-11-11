@@ -10,6 +10,8 @@ import { LoadingState } from '../components/feedback/LoadingState';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import { useSession } from '../features/auth/session';
+import type { IterationSummaryDto } from '../features/iterations/iteration-api';
+import { listIterations } from '../features/iterations/iteration-api';
 import type { BoardTaskMutation } from '../features/tasks/board-task-state';
 import { applyBoardTaskMutation } from '../features/tasks/board-task-state';
 import type { ProjectDto, ProjectMemberDto } from '../features/projects/project-api';
@@ -18,19 +20,30 @@ import {
   canCreateProjectContent,
   canDeleteProjectContent,
   canEditProjectContent,
+  canManageProject,
   canReviewProjectTasks,
   getProjectRoleLabel,
 } from '../features/projects/project-presentation';
 import type { RequirementDto } from '../features/requirements/requirement-api';
 import { listRequirements } from '../features/requirements/requirement-api';
-import type { TaskDto } from '../features/tasks/task-api';
+import type { TaskDto, TaskListFilters } from '../features/tasks/task-api';
 import {
   createTask,
   deleteTask,
+  exportTasksCsv,
   listTasks,
   updateTask,
   updateTaskStatus,
 } from '../features/tasks/task-api';
+import type { TaskFilterValues } from '../features/tasks/task-filters';
+import {
+  EMPTY_TASK_FILTER_VALUES,
+  countActiveTaskFilters,
+  hasActiveTaskFilters,
+  toTaskListFilters,
+  validateTaskFilterValues,
+} from '../features/tasks/task-filters';
+import { TaskFilterPanel } from '../features/tasks/TaskFilterPanel';
 import { TaskFormFields } from '../features/tasks/TaskFormFields';
 import { canEditTaskDetails, canReassignTask } from '../features/tasks/task-permissions';
 import type {
@@ -62,6 +75,7 @@ import {
   validateTaskForm,
 } from '../features/tasks/task-validation';
 import { getUserFacingError } from '../lib/api/errors';
+import { saveDownload } from '../lib/download';
 
 const EMPTY_TASK_FORM: TaskFormValues = {
   assigneeId: '',
@@ -75,6 +89,7 @@ const EMPTY_TASK_FORM: TaskFormValues = {
 };
 
 interface BoardData {
+  readonly iterations: IterationSummaryDto[];
   readonly members: ProjectMemberDto[];
   readonly project: ProjectDto;
   readonly requirements: RequirementDto[];
@@ -106,11 +121,15 @@ export function BoardPage() {
   const [editInitialForm, setEditInitialForm] = useState<TaskFormValues>(EMPTY_TASK_FORM);
   const [editMessage, setEditMessage] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<TaskDto | null>(null);
+  const [appliedFilters, setAppliedFilters] = useState<TaskListFilters>({});
+  const [filterError, setFilterError] = useState<string | null>(null);
+  const [filterValues, setFilterValues] = useState<TaskFilterValues>(EMPTY_TASK_FILTER_VALUES);
   const [dragOverStatus, setDragOverStatus] = useState<TaskDto['status'] | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [isReassigning, setIsReassigning] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -140,14 +159,15 @@ export function BoardPage() {
     setState({ status: 'loading' });
     void Promise.all([
       getProject(api, projectId),
+      listIterations(api, projectId),
       listProjectMembers(api, projectId),
       listRequirements(api, projectId),
-      listTasks(api, projectId),
+      listTasks(api, projectId, appliedFilters),
     ])
-      .then(([project, members, requirements, tasks]) => {
+      .then(([project, iterations, members, requirements, tasks]) => {
         if (!isCancelled) {
           setState({
-            data: { members, project, requirements, tasks },
+            data: { iterations, members, project, requirements, tasks },
             status: 'ready',
           });
         }
@@ -161,7 +181,7 @@ export function BoardPage() {
     return () => {
       isCancelled = true;
     };
-  }, [api, projectId, retryVersion]);
+  }, [api, appliedFilters, projectId, retryVersion]);
 
   function mutateTasks(mutation: BoardTaskMutation): void {
     setState((current) => {
@@ -177,6 +197,58 @@ export function BoardPage() {
         status: 'ready',
       };
     });
+  }
+
+  async function refreshFilteredTasks(): Promise<void> {
+    if (!hasActiveTaskFilters(appliedFilters)) {
+      return;
+    }
+
+    try {
+      const tasks = await listTasks(api, projectId, appliedFilters);
+      setState((current) =>
+        current.status === 'ready'
+          ? { data: { ...current.data, tasks }, status: 'ready' }
+          : current,
+      );
+    } catch (error) {
+      setCreateMessage({ text: getUserFacingError(error), type: 'error' });
+    }
+  }
+
+  function applyTaskFilters(): void {
+    const validationError = validateTaskFilterValues(filterValues);
+    setFilterError(validationError);
+
+    if (!validationError) {
+      setAppliedFilters(toTaskListFilters(filterValues));
+    }
+  }
+
+  function clearTaskFilters(): void {
+    setFilterValues(EMPTY_TASK_FILTER_VALUES);
+    setFilterError(null);
+    setAppliedFilters({});
+  }
+
+  async function handleExportTasks(): Promise<void> {
+    if (state.status !== 'ready' || isExporting) {
+      return;
+    }
+
+    setIsExporting(true);
+    setCreateMessage(null);
+    setFilterError(null);
+
+    try {
+      const download = await exportTasksCsv(api, projectId, appliedFilters);
+      saveDownload(download);
+      setCreateMessage({ text: '当前筛选结果已导出为 CSV。', type: 'success' });
+    } catch (error) {
+      setFilterError(getUserFacingError(error));
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -201,6 +273,7 @@ export function BoardPage() {
       const task = await createTask(api, state.data.project.id, formToCreateTaskInput(createForm));
 
       mutateTasks({ task, type: 'created' });
+      void refreshFilteredTasks();
       setCreateForm(EMPTY_TASK_FORM);
       setCreateMessage({ text: '任务已创建。', type: 'success' });
     } catch (error) {
@@ -281,6 +354,7 @@ export function BoardPage() {
       );
 
       mutateTasks({ task, type: 'updated' });
+      void refreshFilteredTasks();
       setEditingTask(null);
       setCreateMessage({ text: '任务信息已更新。', type: 'success' });
     } catch (error) {
@@ -301,6 +375,7 @@ export function BoardPage() {
     try {
       await deleteTask(api, state.data.project.id, taskToDelete.id);
       mutateTasks({ taskId: taskToDelete.id, type: 'deleted' });
+      void refreshFilteredTasks();
       setEditingTask(null);
       setTaskToDelete(null);
       setCreateMessage({ text: '任务已删除。', type: 'success' });
@@ -337,6 +412,7 @@ export function BoardPage() {
       });
 
       mutateTasks({ task, type: 'updated' });
+      void refreshFilteredTasks();
       setTaskToReassign(null);
       setReassignAssigneeId('');
       setCreateMessage({ text: '任务负责人已调整。', type: 'success' });
@@ -372,6 +448,7 @@ export function BoardPage() {
       });
 
       mutateTasks({ task: updatedTask, type: 'updated' });
+      void refreshFilteredTasks();
       setTransitionRequest(null);
       setEditingTask(null);
       setTransitionValues({ completionNote: '', rejectionReason: '', reopenReason: '' });
@@ -491,12 +568,14 @@ export function BoardPage() {
     );
   }
 
-  const { members, project, requirements, tasks } = state.data;
+  const { iterations, members, project, requirements, tasks } = state.data;
   const canCreate = canCreateProjectContent(project.accessRole, project.status);
   const canEdit = canEditProjectContent(project.accessRole, project.status);
   const canDelete = canDeleteProjectContent(project.accessRole, project.status);
   const canReview = canReviewProjectTasks(project.accessRole);
   const canReassign = canReassignTask(project.accessRole);
+  const canExport = canManageProject(project.accessRole);
+  const activeFilterCount = countActiveTaskFilters(appliedFilters);
   const currentUserId = session?.user.id;
   const hasCreateDraft = hasUnsavedTaskChanges(EMPTY_TASK_FORM, createForm);
   const hasEditDraft = editingTask !== null && hasUnsavedTaskChanges(editInitialForm, editForm);
@@ -526,6 +605,21 @@ export function BoardPage() {
       {createMessage?.type === 'success' ? (
         <div className="success-notice">{createMessage.text}</div>
       ) : null}
+
+      <TaskFilterPanel
+        activeFilterCount={activeFilterCount}
+        canExport={canExport}
+        error={filterError}
+        exporting={isExporting}
+        iterations={iterations}
+        members={members}
+        onApply={applyTaskFilters}
+        onClear={clearTaskFilters}
+        onExport={() => void handleExportTasks()}
+        onValuesChange={setFilterValues}
+        taskCount={tasks.length}
+        values={filterValues}
+      />
 
       {canCreate ? (
         <section className="panel task-create-panel">

@@ -1,58 +1,69 @@
 import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 
-import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/feedback/ErrorState';
 import { LoadingState } from '../components/feedback/LoadingState';
 import { PageHeader } from '../components/PageHeader';
+import { buildProjectPath } from '../app/navigation';
 import { useSession } from '../features/auth/session';
-import type { ApiHealthResult } from '../lib/api/health';
-import { checkApiHealth } from '../lib/api/health';
+import type { ProjectDashboard } from '../features/dashboard/dashboard-api';
+import { getProjectDashboard } from '../features/dashboard/dashboard-api';
+import { DashboardContent } from '../features/dashboard/DashboardContent';
+import { getUserFacingError } from '../lib/api/errors';
 
-const metrics = [
-  { label: '任务总数', value: '0', tone: 'blue' },
-  { label: '进行中', value: '0', tone: 'teal' },
-  { label: '逾期任务', value: '0', tone: 'amber' },
-  { label: '整体完成率', value: '0%', tone: 'slate' },
-] as const;
-
-type HealthPageState = ApiHealthResult | { readonly status: 'loading' };
+type OverviewState =
+  | { readonly status: 'loading' }
+  | { readonly dashboard: ProjectDashboard; readonly status: 'ready' }
+  | { readonly message: string; readonly status: 'error' };
 
 export function OverviewPage() {
   const { api } = useSession();
+  const { projectId = '' } = useParams<{ projectId: string }>();
   const [requestVersion, setRequestVersion] = useState(0);
-  const [healthState, setHealthState] = useState<HealthPageState>({ status: 'loading' });
+  const [state, setState] = useState<OverviewState>({ status: 'loading' });
 
   useEffect(() => {
+    if (!projectId) {
+      setState({ message: '没有可加载的项目。', status: 'error' });
+      return;
+    }
+
     let isCancelled = false;
 
-    setHealthState({ status: 'loading' });
-    void checkApiHealth(api).then((result) => {
-      if (!isCancelled) {
-        setHealthState(result);
-      }
-    });
+    setState({ status: 'loading' });
+    void getProjectDashboard(api, projectId)
+      .then((dashboard) => {
+        if (!isCancelled) {
+          setState({ dashboard, status: 'ready' });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!isCancelled) {
+          setState({ message: getUserFacingError(error), status: 'error' });
+        }
+      });
 
     return () => {
       isCancelled = true;
     };
-  }, [api, requestVersion]);
+  }, [api, projectId, requestVersion]);
 
-  if (healthState.status === 'loading') {
+  if (state.status === 'loading') {
     return (
       <div className="page-stack">
         <PageHeader title="项目概览" description="查看项目整体进度和近期动态。" />
-        <LoadingState label="正在加载项目状态" />
+        <LoadingState label="正在加载项目统计" />
       </div>
     );
   }
 
-  if (healthState.status === 'error') {
+  if (state.status === 'error') {
     return (
       <div className="page-stack">
         <PageHeader title="项目概览" description="查看项目整体进度和近期动态。" />
         <ErrorState
           actionLabel="重试"
-          message={healthState.message}
+          message={state.message}
           onAction={() => setRequestVersion((version) => version + 1)}
           title="项目数据加载失败"
         />
@@ -62,38 +73,13 @@ export function OverviewPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader title="项目概览" description="查看项目整体进度和近期动态。" />
-
-      <section className="metric-grid" aria-label="项目指标">
-        {metrics.map((metric) => (
-          <article className={`metric-card metric-card--${metric.tone}`} key={metric.label}>
-            <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-          </article>
-        ))}
-      </section>
-
-      <div className="content-grid">
-        <section className="panel">
-          <div className="panel__header">
-            <div>
-              <h2>当前迭代</h2>
-              <p>任务完成情况会显示在这里。</p>
-            </div>
-          </div>
-          <EmptyState title="暂无进行中的迭代" description="创建迭代后即可查看进度和完成率。" />
-        </section>
-
-        <section className="panel">
-          <div className="panel__header">
-            <div>
-              <h2>最近动态</h2>
-              <p>项目操作记录会显示在这里。</p>
-            </div>
-          </div>
-          <EmptyState title="暂无操作记录" description="项目产生业务操作后，这里会显示最近动态。" />
-        </section>
+      <div className="page-heading-with-action">
+        <PageHeader title="项目概览" description="查看项目整体进度、风险、趋势和近期动态。" />
+        <Link className="secondary-link" to={buildProjectPath(projectId, 'reports')}>
+          统计与导出
+        </Link>
       </div>
+      <DashboardContent dashboard={state.dashboard} projectId={projectId} />
     </div>
   );
 }

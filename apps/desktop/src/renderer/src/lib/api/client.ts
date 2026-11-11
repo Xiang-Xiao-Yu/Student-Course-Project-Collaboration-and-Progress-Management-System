@@ -30,6 +30,11 @@ export interface ApiClientOptions {
   readonly fetchImpl?: typeof fetch;
 }
 
+export interface ApiDownload {
+  readonly blob: Blob;
+  readonly filename: string;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -48,6 +53,45 @@ function isApiEnvelope<T>(value: unknown): value is ApiEnvelope<T> {
 
 function joinUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+}
+
+function getDownloadFilename(response: Response): string {
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const encodedMatch = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1].trim());
+    } catch {
+      // Fall back to the plain filename below.
+    }
+  }
+
+  const plainMatch = /filename="?([^";]+)"?/i.exec(disposition);
+
+  return plainMatch?.[1]?.trim() || 'download.csv';
+}
+
+function toApiError(
+  payload: unknown,
+  status: number,
+  fallbackCode: string,
+  fallbackMessage: string,
+): ApiError {
+  if (isApiEnvelope<never>(payload) && !payload.success) {
+    return new ApiError({
+      code: payload.error.code,
+      message: payload.error.message,
+      status,
+      details: payload.error.details,
+    });
+  }
+
+  return new ApiError({
+    code: fallbackCode,
+    message: fallbackMessage,
+    status,
+  });
 }
 
 export class ApiClient {
@@ -138,6 +182,74 @@ export class ApiClient {
       status: response.status,
       details: payload.error.details,
     });
+  }
+
+  async download(path: string, init: RequestInit = {}): Promise<ApiDownload> {
+    const headers = new Headers(init.headers);
+    headers.set('Accept', 'text/csv');
+
+    const accessToken = await this.getAccessToken();
+
+    if (accessToken) {
+      headers.set('Authorization', `Bearer ${accessToken}`);
+    }
+
+    let response: Response;
+
+    try {
+      response = await this.fetchImpl(joinUrl(this.baseUrl, path), {
+        ...init,
+        headers,
+        method: init.method ?? 'GET',
+      });
+    } catch {
+      throw new ApiError({
+        code: 'NETWORK_ERROR',
+        message: '无法连接到服务，请检查网络后重试。',
+      });
+    }
+
+    if (!response.ok) {
+      let payload: unknown = null;
+
+      try {
+        payload = await response.clone().json();
+      } catch {
+        payload = null;
+      }
+
+      if (response.status === 401) {
+        this.onUnauthorized(accessToken);
+        throw toApiError(
+          payload,
+          response.status,
+          'AUTH_SESSION_EXPIRED',
+          '登录状态已失效，请重新登录。',
+        );
+      }
+
+      throw toApiError(
+        payload,
+        response.status,
+        'API_INVALID_RESPONSE',
+        '导出服务响应异常，请稍后重试。',
+      );
+    }
+
+    const contentType = response.headers.get('Content-Type')?.toLowerCase() ?? '';
+
+    if (!contentType.includes('text/csv')) {
+      throw new ApiError({
+        code: 'API_INVALID_RESPONSE',
+        message: '导出服务响应异常，请稍后重试。',
+        status: response.status,
+      });
+    }
+
+    return {
+      blob: await response.blob(),
+      filename: getDownloadFilename(response),
+    };
   }
 
   get<T>(path: string, init?: RequestInit): Promise<T> {

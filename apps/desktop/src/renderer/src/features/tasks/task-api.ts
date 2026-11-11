@@ -1,4 +1,4 @@
-import type { ApiClient } from '../../lib/api/client';
+import type { ApiClient, ApiDownload } from '../../lib/api/client';
 
 export type TaskPriority = 'HIGH' | 'LOW' | 'MEDIUM';
 export type TaskStatus =
@@ -54,6 +54,17 @@ export interface UpdateTaskStatusInput {
   readonly status: TaskStatus;
 }
 
+export interface TaskListFilters {
+  readonly assigneeId?: string;
+  readonly dueDateFrom?: string;
+  readonly dueDateTo?: string;
+  readonly iterationId?: string;
+  readonly priority?: TaskPriority;
+  readonly search?: string;
+  readonly status?: TaskStatus;
+  readonly tag?: string;
+}
+
 function tasksPath(projectId: string): string {
   return `/projects/${encodeURIComponent(projectId)}/tasks`;
 }
@@ -62,8 +73,49 @@ function taskPath(projectId: string, taskId: string): string {
   return `${tasksPath(projectId)}/${encodeURIComponent(taskId)}`;
 }
 
-export function listTasks(api: Pick<ApiClient, 'get'>, projectId: string): Promise<TaskDto[]> {
-  return api.get<TaskDto[]>(tasksPath(projectId));
+export function buildTaskQueryString(filters: TaskListFilters = {}): string {
+  const searchParams = new URLSearchParams();
+  const entries = [
+    ['search', filters.search],
+    ['assigneeId', filters.assigneeId],
+    ['status', filters.status],
+    ['priority', filters.priority],
+    ['tag', filters.tag],
+    ['iterationId', filters.iterationId],
+    ['dueDateFrom', filters.dueDateFrom],
+    ['dueDateTo', filters.dueDateTo],
+  ] as const;
+
+  for (const [key, value] of entries) {
+    const normalized = value?.trim();
+
+    if (normalized) {
+      searchParams.set(key, normalized);
+    }
+  }
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
+function tasksListPath(projectId: string, filters?: TaskListFilters): string {
+  return `${tasksPath(projectId)}${buildTaskQueryString(filters)}`;
+}
+
+export function listTasks(
+  api: Pick<ApiClient, 'get'>,
+  projectId: string,
+  filters: TaskListFilters = {},
+): Promise<TaskDto[]> {
+  return api.get<TaskDto[]>(tasksListPath(projectId, filters));
+}
+
+export function exportTasksCsv(
+  api: Pick<ApiClient, 'download'>,
+  projectId: string,
+  filters: TaskListFilters = {},
+): Promise<ApiDownload> {
+  return api.download(`${tasksPath(projectId)}/export${buildTaskQueryString(filters)}`);
 }
 
 export function getTask(

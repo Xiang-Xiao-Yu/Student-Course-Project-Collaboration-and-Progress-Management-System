@@ -20,6 +20,16 @@ function successEnvelope<T>(data: T): object {
   };
 }
 
+function csvResponse(content = '\uFEFF"任务"\r\n', filename = 'tasks.csv'): Response {
+  return new Response(content, {
+    status: 200,
+    headers: {
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Type': 'text/csv; charset=utf-8',
+    },
+  });
+}
+
 describe('ApiClient', () => {
   it('posts multipart form data without forcing a JSON content type', async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
@@ -201,5 +211,73 @@ describe('ApiClient', () => {
     });
 
     await expect(client.get('/health')).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
+  });
+
+  it('正常场景下载 CSV 并解析服务端文件名', async () => {
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      csvResponse('"标题"\r\n"任务 A"\r\n', 'tasks-project-1.csv'),
+    );
+    const client = new ApiClient({
+      baseUrl: 'http://127.0.0.1:3000/api/v1',
+      getAccessToken: () => 'download-token',
+      onUnauthorized: vi.fn(),
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    const download = await client.download('/projects/project-1/tasks/export');
+    const request = fetchImpl.mock.calls[0]?.[1];
+    const requestHeaders = request?.headers as Headers;
+
+    await expect(download.blob.text()).resolves.toContain('任务 A');
+    expect(download.filename).toBe('tasks-project-1.csv');
+    expect(request?.method).toBe('GET');
+    expect(requestHeaders.get('Accept')).toBe('text/csv');
+    expect(requestHeaders.get('Authorization')).toBe('Bearer download-token');
+  });
+
+  it('边界场景下载接口返回 JSON 错误时保留稳定错误码', async () => {
+    const client = new ApiClient({
+      baseUrl: 'http://127.0.0.1:3000/api/v1',
+      getAccessToken: () => 'download-token',
+      onUnauthorized: vi.fn(),
+      fetchImpl: async () =>
+        jsonResponse(
+          {
+            success: false,
+            error: { code: 'PROJECT_PERMISSION_DENIED', message: '没有导出权限' },
+            meta: { requestId: 'download-error', timestamp: '2026-11-11T00:00:00.000Z' },
+          },
+          403,
+        ),
+    });
+
+    await expect(client.download('/projects/project-1/reports/progress')).rejects.toMatchObject({
+      code: 'PROJECT_PERMISSION_DENIED',
+      status: 403,
+    });
+  });
+
+  it('失败场景下载遇到 401 时清理会话', async () => {
+    const onUnauthorized = vi.fn();
+    const client = new ApiClient({
+      baseUrl: 'http://127.0.0.1:3000/api/v1',
+      getAccessToken: () => 'expired-download-token',
+      onUnauthorized,
+      fetchImpl: async () =>
+        jsonResponse(
+          {
+            success: false,
+            error: { code: 'AUTH_SESSION_EXPIRED', message: '登录状态已失效' },
+            meta: { requestId: 'download-unauthorized', timestamp: '2026-11-11T00:00:00.000Z' },
+          },
+          401,
+        ),
+    });
+
+    await expect(client.download('/projects/project-1/tasks/export')).rejects.toMatchObject({
+      code: 'AUTH_SESSION_EXPIRED',
+      status: 401,
+    });
+    expect(onUnauthorized).toHaveBeenCalledWith('expired-download-token');
   });
 });

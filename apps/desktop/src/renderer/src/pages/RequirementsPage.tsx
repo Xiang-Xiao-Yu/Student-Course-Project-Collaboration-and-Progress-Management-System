@@ -61,7 +61,9 @@ export function RequirementsPage() {
     readonly type: 'error' | 'success';
   } | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [activeSearch, setActiveSearch] = useState('');
   const [retryVersion, setRetryVersion] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
   const [state, setState] = useState<RequirementsPageState>({ status: 'loading' });
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export function RequirementsPage() {
     let isCancelled = false;
 
     setState({ status: 'loading' });
-    void Promise.all([getProject(api, projectId), listRequirements(api, projectId)])
+    void Promise.all([getProject(api, projectId), listRequirements(api, projectId, activeSearch)])
       .then(([project, requirements]) => {
         if (!isCancelled) {
           setState({ project, requirements, status: 'ready' });
@@ -88,7 +90,7 @@ export function RequirementsPage() {
     return () => {
       isCancelled = true;
     };
-  }, [api, projectId, retryVersion]);
+  }, [activeSearch, api, projectId, retryVersion]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -116,9 +118,13 @@ export function RequirementsPage() {
         title: createForm.title.trim(),
       });
 
+      const matchesSearch =
+        !activeSearch ||
+        requirement.title.toLocaleLowerCase().includes(activeSearch.toLocaleLowerCase());
+
       setState({
         ...state,
-        requirements: [...state.requirements, requirement],
+        requirements: matchesSearch ? [...state.requirements, requirement] : state.requirements,
       });
       setCreateForm(EMPTY_REQUIREMENT_FORM);
       setCreateMessage({
@@ -161,6 +167,15 @@ export function RequirementsPage() {
     createForm.title.length > 0 ||
     createForm.description.length > 0 ||
     createForm.acceptanceCriteria.length > 0;
+
+  function applySearch(): void {
+    setActiveSearch(searchInput.trim());
+  }
+
+  function clearSearch(): void {
+    setSearchInput('');
+    setActiveSearch('');
+  }
 
   return (
     <div className="page-stack p3-page">
@@ -277,11 +292,46 @@ export function RequirementsPage() {
         </section>
       ) : null}
 
+      <section className="panel">
+        <div className="panel__header">
+          <div>
+            <h2>搜索需求</h2>
+            <p>按需求标题搜索，清空条件后恢复完整列表。</p>
+          </div>
+        </div>
+        <form
+          className="requirement-search-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            applySearch();
+          }}
+        >
+          <label className="form-field">
+            <span>需求标题</span>
+            <input
+              maxLength={100}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="输入需求标题关键字"
+              value={searchInput}
+            />
+          </label>
+          <button className="primary-button" type="submit">
+            搜索
+          </button>
+          <button className="secondary-button" onClick={clearSearch} type="button">
+            清空
+          </button>
+        </form>
+      </section>
+
       <section className="requirement-list-section" aria-labelledby="requirement-list-title">
         <div className="section-heading">
           <div>
             <h2 id="requirement-list-title">需求列表</h2>
-            <p>共 {state.requirements.length} 条需求</p>
+            <p>
+              {activeSearch ? `“${activeSearch}”的搜索结果` : '全部需求'}
+              {' · '}共 {state.requirements.length} 条
+            </p>
           </div>
         </div>
 
@@ -289,7 +339,7 @@ export function RequirementsPage() {
           <section className="panel panel--large">
             <EmptyState
               description="创建需求并填写验收标准后，可在详情中关联任务。"
-              title="暂无需求"
+              title={activeSearch ? '没有匹配的需求' : '暂无需求'}
             />
           </section>
         ) : (

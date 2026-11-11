@@ -58,9 +58,11 @@ vi.mock('../features/projects/project-api', () => ({
   listProjectMembers: async () => [],
 }));
 vi.mock('../features/requirements/requirement-api', () => ({ listRequirements: async () => [] }));
+vi.mock('../features/iterations/iteration-api', () => ({ listIterations: async () => [] }));
 vi.mock('../features/tasks/task-api', () => ({
   createTask: requests.create,
   deleteTask: requests.remove,
+  exportTasksCsv: vi.fn(),
   listTasks: requests.list,
   updateTask: requests.edit,
   updateTaskStatus: requests.status,
