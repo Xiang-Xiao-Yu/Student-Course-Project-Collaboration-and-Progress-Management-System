@@ -136,6 +136,7 @@ export function BoardPage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const appliedFiltersRef = useRef<TaskListFilters>({});
   const filterRequestVersion = useRef(0);
+  const renderedRequestVersion = filterRequestVersion.current;
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<BoardState>({ status: 'loading' });
   const [reassignAssigneeId, setReassignAssigneeId] = useState('');
@@ -200,7 +201,11 @@ export function BoardPage() {
 
   function mutateTasks(mutation: BoardTaskMutation): void {
     setState((current) => {
-      if (current.status !== 'ready') {
+      if (
+        current.status !== 'ready' ||
+        current.data.project.id !== projectId ||
+        hasActiveTaskFilters(appliedFiltersRef.current)
+      ) {
         return current;
       }
 
@@ -214,34 +219,18 @@ export function BoardPage() {
     });
   }
 
-  async function refreshFilteredTasks(): Promise<void> {
-    if (!hasActiveTaskFilters(appliedFilters)) {
+  function refreshFilteredTasks(): void {
+    if (
+      !hasActiveTaskFilters(appliedFiltersRef.current) &&
+      !hasActiveTaskFilters(appliedFilters) &&
+      renderedRequestVersion === filterRequestVersion.current
+    ) {
       return;
     }
 
-    const requestedFilters = appliedFilters;
-    const requestVersion = filterRequestVersion.current;
-
-    try {
-      const tasks = await listTasks(api, projectId, requestedFilters);
-
-      if (
-        isTaskFilterResponseCurrent(
-          requestVersion,
-          filterRequestVersion.current,
-          requestedFilters,
-          appliedFiltersRef.current,
-        )
-      ) {
-        setState((current) =>
-          current.status === 'ready'
-            ? { data: { ...current.data, tasks }, status: 'ready' }
-            : current,
-        );
-      }
-    } catch (error) {
-      setCreateMessage({ text: getUserFacingError(error), type: 'error' });
-    }
+    // Reuse the cancellable page load for the current filters. A mutation's
+    // submit-time filters and an older background snapshot may both be stale.
+    setRetryVersion((version) => version + 1);
   }
 
   function applyTaskFilters(): void {
