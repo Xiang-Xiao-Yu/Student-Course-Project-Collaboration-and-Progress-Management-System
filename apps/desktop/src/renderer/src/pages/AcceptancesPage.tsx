@@ -295,7 +295,7 @@ export function AcceptancesPage() {
   async function handleCreate(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (state.status !== 'ready' || isCreating) {
+    if (state.status !== 'ready' || selectionLocked) {
       return;
     }
 
@@ -332,6 +332,8 @@ export function AcceptancesPage() {
           : current,
       );
       if (shouldActivate) {
+        setActionError(null);
+        setActionMessage(null);
         setCreateForm(EMPTY_ACCEPTANCE_FORM);
         setCreateErrors({});
         setCreateMessage({ text: '阶段验收已创建。', type: 'success' });
@@ -459,7 +461,7 @@ export function AcceptancesPage() {
   async function handleCreateRemediation(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (state.status !== 'ready' || !state.data.acceptance || isCreatingRemediation) {
+    if (state.status !== 'ready' || !state.data.acceptance || selectionLocked) {
       return;
     }
 
@@ -655,7 +657,7 @@ export function AcceptancesPage() {
               selectedIds={createForm.participantIds}
             />
             <div className="form-actions">
-              <button className="primary-button" disabled={isCreating} type="submit">
+              <button className="primary-button" disabled={selectionLocked} type="submit">
                 {isCreating ? '正在创建...' : '创建阶段验收'}
               </button>
             </div>
@@ -915,7 +917,7 @@ export function AcceptancesPage() {
                 {actionError ? <ErrorNotice message={actionError} /> : null}
                 {actionMessage ? <div className="success-notice">{actionMessage}</div> : null}
 
-                {pendingRemediationTask ? (
+                {pendingRemediationTask?.acceptanceId === acceptance.id ? (
                   <div className="remediation-pending">
                     <p>
                       已创建任务“{pendingRemediationTask.title}
@@ -1039,11 +1041,7 @@ export function AcceptancesPage() {
                     </div>
                     {remediationErrors ? <small>{remediationErrors}</small> : null}
                     <div className="form-actions">
-                      <button
-                        className="primary-button"
-                        disabled={isCreatingRemediation}
-                        type="submit"
-                      >
+                      <button className="primary-button" disabled={selectionLocked} type="submit">
                         {isCreatingRemediation ? '正在创建...' : '创建整改任务'}
                       </button>
                     </div>

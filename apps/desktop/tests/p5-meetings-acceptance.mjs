@@ -128,7 +128,9 @@ try {
   );
   await apiRequest(`/projects/${project.id}/acceptances`, 'POST', owner.token, {
     acceptanceDate: '2026-11-15',
+    failureReason: '用于验证创建验收与整改提交互斥。',
     participantIds: [],
+    result: 'FAILED',
     stageName: 'P5 已有验收',
     standards: '用于验证创建期间的记录切换保护。',
   });
@@ -155,10 +157,20 @@ try {
   });
 
   let failNextIterationAssignment = true;
+  let releaseIterationAssignment;
+  let notifyIterationAssignment;
+  const iterationAssignmentGate = new Promise((resolve) => {
+    releaseIterationAssignment = resolve;
+  });
+  const iterationAssignmentStarted = new Promise((resolve) => {
+    notifyIterationAssignment = resolve;
+  });
   await page.route('**/iterations/*/tasks', async (route) => {
     if (failNextIterationAssignment && route.request().method() === 'POST') {
       failNextIterationAssignment = false;
       await route.fetch();
+      notifyIterationAssignment();
+      await iterationAssignmentGate;
       await route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
@@ -265,6 +277,13 @@ try {
     .filter({ hasText: member.username })
     .getByRole('checkbox')
     .check();
+  const previousRemediation = page.locator('.remediation-form');
+  await previousRemediation
+    .getByLabel('整改任务标题', { exact: true })
+    .fill('创建验收期间不得提交的整改任务');
+  const tasksBeforeAcceptanceCreate = (
+    await apiRequest(`/projects/${project.id}/tasks`, 'GET', owner.token)
+  ).length;
   await acceptanceForm.getByRole('button', { name: '创建阶段验收', exact: true }).click();
   await page.getByRole('button', { name: '正在创建...', exact: true }).waitFor();
   const existingAcceptanceRow = page
@@ -274,6 +293,20 @@ try {
   check(
     await existingAcceptanceRow.isDisabled(),
     'Acceptance selection is not locked during create',
+  );
+  check(
+    await previousRemediation
+      .getByRole('button', { name: '创建整改任务', exact: true })
+      .isDisabled(),
+    'Remediation submission is not locked during acceptance create',
+  );
+  await previousRemediation.evaluate((form) => {
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+  check(
+    (await apiRequest(`/projects/${project.id}/tasks`, 'GET', owner.token)).length ===
+      tasksBeforeAcceptanceCreate,
+    'Remediation submit handler bypassed the acceptance creation lock',
   );
   await capture('acceptance-create-lock.png');
   await page.getByText('阶段验收已创建。', { exact: true }).waitFor();
@@ -309,6 +342,37 @@ try {
   await page.getByText('阶段验收已保存。', { exact: true }).waitFor();
   results.push({ name: 'acceptance participant edit and failure reason', status: 'PASS' });
 
+  await acceptanceForm.getByLabel('验收阶段名称', { exact: true }).fill('P5 锁定解除后验收');
+  await acceptanceForm
+    .getByLabel('验收标准', { exact: true })
+    .fill('验证整改处理期间禁止创建验收。');
+  await acceptanceForm
+    .locator('.participant-selector label')
+    .filter({ hasText: owner.username })
+    .getByRole('checkbox')
+    .check();
+
+  async function assertAcceptanceCreationLocked(label) {
+    check(
+      await acceptanceForm.getByRole('button', { name: '创建阶段验收', exact: true }).isDisabled(),
+      `${label}: acceptance creation remains enabled`,
+    );
+    const before = (await apiRequest(`/projects/${project.id}/acceptances`, 'GET', owner.token))
+      .length;
+    await acceptanceForm.locator('form').evaluate((form) => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    await page.waitForTimeout(100);
+    check(
+      (await apiRequest(`/projects/${project.id}/acceptances`, 'GET', owner.token)).length ===
+        before,
+      `${label}: acceptance submit handler bypassed the lock`,
+    );
+    await page.getByRole('heading', { name: 'P5 阶段验收', exact: true }).waitFor();
+    await page.locator('.acceptance-detail-panel .remediation-pending').waitFor();
+    await page.getByRole('link', { name: '查看已创建任务', exact: true }).waitFor();
+  }
+
   const remediationForm = page.locator('.remediation-form');
   await remediationForm.getByLabel('整改任务标题', { exact: true }).fill('P5 整改任务');
   await remediationForm
@@ -323,7 +387,18 @@ try {
     .locator('select')
     .selectOption(remediationIteration.id);
   await remediationForm.getByRole('button', { name: '创建整改任务', exact: true }).click();
+  try {
+    await iterationAssignmentStarted;
+    await assertAcceptanceCreationLocked('in-flight remediation');
+    await capture('remediation-create-lock-inflight.png');
+    results.push({ name: 'remediation submission blocks acceptance creation', status: 'PASS' });
+  } finally {
+    releaseIterationAssignment();
+  }
   await page.getByText(/整改任务已创建，但加入迭代失败/).waitFor();
+  await assertAcceptanceCreationLocked('pending remediation retry');
+  await capture('remediation-create-lock-retry.png');
+  results.push({ name: 'pending remediation retry blocks acceptance creation', status: 'PASS' });
   await page.getByRole('link', { name: '查看已创建任务', exact: true }).waitFor();
   await capture('remediation-partial-success.png');
   await page.getByRole('button', { name: '重试加入迭代并刷新', exact: true }).click();
@@ -336,6 +411,16 @@ try {
   );
   await capture('acceptance-remediation.png');
   results.push({ name: 'acceptance remediation partial failure and retry', status: 'PASS' });
+  await acceptanceForm.getByRole('button', { name: '创建阶段验收', exact: true }).click();
+  await page.getByRole('heading', { name: 'P5 锁定解除后验收', exact: true }).waitFor();
+  check(
+    (await page.locator('.acceptance-detail-panel .remediation-pending').count()) === 0,
+    'A completed pending remediation leaked into the new acceptance',
+  );
+  check(
+    (await page.getByText('整改任务已创建。', { exact: true }).count()) === 0,
+    'Previous acceptance remediation feedback leaked into the new record',
+  );
 
   await logout();
   await login(observer.username);
