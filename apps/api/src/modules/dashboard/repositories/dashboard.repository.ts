@@ -73,7 +73,13 @@ export interface DashboardIterationRecord {
   id: string;
   name: string;
   status: string;
-  tasks: Array<{ status: string }>;
+}
+
+export interface DashboardTaskStatusEventRecord {
+  afterValue: string | null;
+  beforeValue: string | null;
+  createdAt: Date;
+  targetId: string;
 }
 
 export interface DashboardActivityRecord {
@@ -97,6 +103,7 @@ export interface DashboardSnapshot {
   members: DashboardMemberRecord[];
   requirements: DashboardRequirementRecord[];
   tasks: DashboardTaskRecord[];
+  taskStatusEvents: DashboardTaskStatusEventRecord[];
 }
 
 @Injectable()
@@ -104,48 +111,62 @@ export class DashboardRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getSnapshot(projectId: string): Promise<DashboardSnapshot> {
-    const [tasks, requirements, iterations, members, activities] = await Promise.all([
-      this.prisma.task.findMany({
-        orderBy: [{ createdAt: 'asc' }],
-        select: dashboardTaskSelect,
-        where: { projectId },
-      }),
-      this.prisma.requirement.findMany({
-        select: { status: true },
-        where: { projectId },
-      }),
-      this.prisma.iteration.findMany({
-        orderBy: [{ startDate: 'asc' }],
-        select: {
-          id: true,
-          name: true,
-          status: true,
-          tasks: { select: { status: true } },
-        },
-        where: { projectId },
-      }),
-      this.prisma.projectMember.findMany({
-        orderBy: [{ joinedAt: 'asc' }],
-        select: {
-          role: true,
-          user: {
-            select: {
-              avatarUrl: true,
-              id: true,
-              nickname: true,
-              username: true,
+    const [tasks, requirements, iterations, members, activities, taskStatusEvents] =
+      await this.prisma.$transaction([
+        this.prisma.task.findMany({
+          orderBy: [{ createdAt: 'asc' }],
+          select: dashboardTaskSelect,
+          where: { projectId },
+        }),
+        this.prisma.requirement.findMany({
+          select: { status: true },
+          where: { projectId },
+        }),
+        this.prisma.iteration.findMany({
+          orderBy: [{ startDate: 'asc' }],
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+          where: { projectId },
+        }),
+        this.prisma.projectMember.findMany({
+          orderBy: [{ joinedAt: 'asc' }],
+          select: {
+            role: true,
+            user: {
+              select: {
+                avatarUrl: true,
+                id: true,
+                nickname: true,
+                username: true,
+              },
             },
           },
-        },
-        where: { projectId },
-      }),
-      this.prisma.activityLog.findMany({
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        select: dashboardActivitySelect,
-        take: 10,
-        where: { projectId },
-      }),
-    ]);
+          where: { projectId },
+        }),
+        this.prisma.activityLog.findMany({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: dashboardActivitySelect,
+          take: 10,
+          where: { projectId },
+        }),
+        this.prisma.activityLog.findMany({
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          select: {
+            afterValue: true,
+            beforeValue: true,
+            createdAt: true,
+            targetId: true,
+          },
+          where: {
+            action: 'TASK_STATUS_CHANGED',
+            projectId,
+            targetType: 'TASK',
+          },
+        }),
+      ]);
 
     return {
       activities: activities.map((activity) => this.toActivity(activity)),
@@ -153,6 +174,7 @@ export class DashboardRepository {
       members,
       requirements,
       tasks: tasks.map((task) => this.toTask(task)),
+      taskStatusEvents,
     };
   }
 

@@ -1,44 +1,18 @@
 import { Injectable } from '@nestjs/common';
 
+import { addDays, businessDayKey } from '../../common/time/business-calendar';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { TASK_STATUSES, type TaskPriority, type TaskStatus } from '../tasks/task.constants';
 import { AvatarStorageService } from '../users/avatar-storage.service';
+import { buildDashboardChartData } from './dashboard-analytics';
 import type {
   DashboardActivityItem,
-  DashboardBurndownPoint,
-  DashboardCompletionTrendPoint,
   DashboardResponse,
   DashboardUpcomingTaskItem,
 } from './interfaces/dashboard-response';
 import { DashboardRepository, type DashboardTaskRecord } from './repositories/dashboard.repository';
 
-const DASHBOARD_TIME_ZONE = 'Asia/Shanghai';
-const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
-const COMPLETION_TREND_DAYS = 14;
 const UPCOMING_TASK_DAYS = 7;
-
-function calendarDayKey(value: Date): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: DASHBOARD_TIME_ZONE,
-    year: 'numeric',
-  }).formatToParts(value);
-
-  const year = parts.find((part) => part.type === 'year')?.value ?? '';
-  const month = parts.find((part) => part.type === 'month')?.value ?? '';
-  const day = parts.find((part) => part.type === 'day')?.value ?? '';
-
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(value: Date, days: number): Date {
-  return new Date(value.getTime() + days * DAY_MILLISECONDS);
-}
-
-function dayKeyToDate(value: string): Date {
-  return new Date(`${value}T00:00:00.000Z`);
-}
 
 function ratio(completed: number, total: number): number {
   return total === 0 ? 0 : Math.round((completed / total) * 10000) / 10000;
@@ -72,7 +46,7 @@ export class DashboardService {
     );
     const snapshot = await this.dashboardRepository.getSnapshot(projectId);
     const now = new Date();
-    const todayKey = calendarDayKey(now);
+    const todayKey = businessDayKey(now);
     const completedTasks = snapshot.tasks.filter((task) => task.status === 'COMPLETED').length;
     const completedRequirements = snapshot.requirements.filter(
       (requirement) => requirement.status === 'COMPLETED',
@@ -83,52 +57,106 @@ export class DashboardService {
     const taskStatusCounts = new Map<TaskStatus, number>(
       TASK_STATUSES.map((status) => [status, 0]),
     );
+    const memberStats = new Map<
+      string,
+      {
+        blockedTasks: number;
+        completedTasks: number;
+        inProgressTasks: number;
+        overdueTasks: number;
+        totalTasks: number;
+      }
+    >(
+      snapshot.members.map((member) => [
+        member.user.id,
+        {
+          blockedTasks: 0,
+          completedTasks: 0,
+          inProgressTasks: 0,
+          overdueTasks: 0,
+          totalTasks: 0,
+        },
+      ]),
+    );
+    let overdueTaskCount = 0;
+
     for (const task of snapshot.tasks) {
       const status = task.status as TaskStatus;
       taskStatusCounts.set(status, (taskStatusCounts.get(status) ?? 0) + 1);
+      const overdue = this.isOverdue(task, todayKey);
+      if (overdue) {
+        overdueTaskCount += 1;
+      }
+      if (task.assigneeId) {
+        const stats = memberStats.get(task.assigneeId);
+        if (stats) {
+          stats.totalTasks += 1;
+          if (status === 'BLOCKED') stats.blockedTasks += 1;
+          if (status === 'COMPLETED') stats.completedTasks += 1;
+          if (status === 'IN_PROGRESS') stats.inProgressTasks += 1;
+          if (overdue) stats.overdueTasks += 1;
+        }
+      }
     }
 
     const memberTaskDistribution = await Promise.all(
       snapshot.members.map(async (member) => {
-        const memberTasks = snapshot.tasks.filter((task) => task.assigneeId === member.user.id);
+        const stats = memberStats.get(member.user.id) ?? {
+          blockedTasks: 0,
+          completedTasks: 0,
+          inProgressTasks: 0,
+          overdueTasks: 0,
+          totalTasks: 0,
+        };
 
         return {
           avatarUrl: await this.avatarStorage.toDataUrl(member.user.id, member.user.avatarUrl),
-          blockedTasks: memberTasks.filter((task) => task.status === 'BLOCKED').length,
-          completedTasks: memberTasks.filter((task) => task.status === 'COMPLETED').length,
-          inProgressTasks: memberTasks.filter((task) => task.status === 'IN_PROGRESS').length,
+          ...stats,
           nickname: member.user.nickname,
-          overdueTasks: memberTasks.filter((task) => this.isOverdue(task, todayKey)).length,
-          totalTasks: memberTasks.length,
           userId: member.user.id,
           username: member.user.username,
         };
       }),
     );
 
+    const iterationStats = new Map<string, { completedTasks: number; totalTasks: number }>();
+    for (const task of snapshot.tasks) {
+      if (!task.iterationId) {
+        continue;
+      }
+
+      const stats = iterationStats.get(task.iterationId) ?? {
+        completedTasks: 0,
+        totalTasks: 0,
+      };
+      stats.totalTasks += 1;
+      if (task.status === 'COMPLETED') {
+        stats.completedTasks += 1;
+      }
+      iterationStats.set(task.iterationId, stats);
+    }
+
     const iterationCompletion = snapshot.iterations.map((iteration) => {
-      const iterationCompletedTasks = iteration.tasks.filter(
-        (task) => task.status === 'COMPLETED',
-      ).length;
+      const stats = iterationStats.get(iteration.id) ?? { completedTasks: 0, totalTasks: 0 };
 
       return {
-        completedTasks: iterationCompletedTasks,
-        completionRate: ratio(iterationCompletedTasks, iteration.tasks.length),
+        completedTasks: stats.completedTasks,
+        completionRate: ratio(stats.completedTasks, stats.totalTasks),
         id: iteration.id,
         name: iteration.name,
         status: iteration.status,
-        totalTasks: iteration.tasks.length,
+        totalTasks: stats.totalTasks,
       };
     });
 
-    const upcomingEndKey = calendarDayKey(addDays(now, UPCOMING_TASK_DAYS));
+    const upcomingEndKey = businessDayKey(addDays(now, UPCOMING_TASK_DAYS));
     const upcomingTasks: DashboardUpcomingTaskItem[] = snapshot.tasks
       .filter((task) => {
         if (!task.dueDate || task.status === 'COMPLETED') {
           return false;
         }
 
-        const dueDay = calendarDayKey(task.dueDate);
+        const dueDay = businessDayKey(task.dueDate);
         return dueDay >= todayKey && dueDay <= upcomingEndKey;
       })
       .sort((left, right) => (left.dueDate?.getTime() ?? 0) - (right.dueDate?.getTime() ?? 0))
@@ -152,16 +180,18 @@ export class DashboardService {
       targetId: activity.targetId,
       targetType: activity.targetType,
     }));
+    const chartData = buildDashboardChartData(
+      snapshot.tasks,
+      snapshot.taskStatusEvents,
+      access.project.startDate,
+      access.project.endDate,
+      now,
+    );
 
     return {
       asOf: now.toISOString(),
-      burndown: this.buildBurndown(
-        snapshot.tasks,
-        access.project.startDate,
-        access.project.endDate,
-        now,
-      ),
-      completionTrend: this.buildCompletionTrend(snapshot.tasks, now),
+      burndown: chartData.burndown,
+      completionTrend: chartData.completionTrend,
       iterationCompletion,
       memberTaskDistribution,
       project: {
@@ -179,7 +209,7 @@ export class DashboardService {
         completedRequirements,
         completedTasks,
         inProgressTasks: taskStatusCounts.get('IN_PROGRESS') ?? 0,
-        overdueTasks: snapshot.tasks.filter((task) => this.isOverdue(task, todayKey)).length,
+        overdueTasks: overdueTaskCount,
         pendingReviewTasks: taskStatusCounts.get('PENDING_REVIEW') ?? 0,
         requirementCompletionRate,
         taskCompletionRate,
@@ -195,96 +225,11 @@ export class DashboardService {
     };
   }
 
-  private buildCompletionTrend(
-    tasks: DashboardTaskRecord[],
-    now: Date,
-  ): DashboardCompletionTrendPoint[] {
-    const completedTasks = tasks.filter((task) => task.completedAt !== null);
-    const start = addDays(now, -(COMPLETION_TREND_DAYS - 1));
-    const points: DashboardCompletionTrendPoint[] = [];
-
-    for (let index = 0; index < COMPLETION_TREND_DAYS; index += 1) {
-      const day = calendarDayKey(addDays(start, index));
-      const completed = completedTasks.filter(
-        (task) => task.completedAt && calendarDayKey(task.completedAt) === day,
-      ).length;
-      const cumulativeCompleted = completedTasks.filter(
-        (task) => task.completedAt && calendarDayKey(task.completedAt) <= day,
-      ).length;
-
-      points.push({ completed, cumulativeCompleted, date: day });
-    }
-
-    return points;
-  }
-
-  private buildBurndown(
-    tasks: DashboardTaskRecord[],
-    projectStartDate: Date | null,
-    projectEndDate: Date | null,
-    now: Date,
-  ): DashboardBurndownPoint[] {
-    const startDate =
-      projectStartDate ??
-      tasks.reduce<Date | null>(
-        (earliest, task) =>
-          earliest === null || task.createdAt < earliest ? task.createdAt : earliest,
-        null,
-      ) ??
-      addDays(now, -(COMPLETION_TREND_DAYS - 1));
-    const plannedEndDate = projectEndDate ?? addDays(now, UPCOMING_TASK_DAYS);
-    const outputEndDate = plannedEndDate < now ? plannedEndDate : now;
-    const outputStartDate = startDate > outputEndDate ? outputEndDate : startDate;
-    const startKey = calendarDayKey(outputStartDate);
-    const outputEndKey = calendarDayKey(outputEndDate);
-    const durationDays = Math.max(
-      1,
-      Math.round(
-        (dayKeyToDate(calendarDayKey(plannedEndDate)).getTime() -
-          dayKeyToDate(startKey).getTime()) /
-          DAY_MILLISECONDS,
-      ),
-    );
-    const points: DashboardBurndownPoint[] = [];
-    let current = dayKeyToDate(startKey);
-
-    for (let index = 0; index < 366; index += 1) {
-      const day = calendarDayKey(current);
-      const completedTasks = tasks.filter(
-        (task) => task.completedAt && calendarDayKey(task.completedAt) === day,
-      ).length;
-      const remainingTasks = tasks.filter((task) => {
-        if (calendarDayKey(task.createdAt) > day) {
-          return false;
-        }
-
-        return task.completedAt === null || calendarDayKey(task.completedAt) > day;
-      }).length;
-      const idealRemainingTasks =
-        Math.round(tasks.length * (1 - Math.min(1, index / Math.max(1, durationDays))) * 100) / 100;
-
-      points.push({
-        completedTasks,
-        date: day,
-        idealRemainingTasks: Math.max(0, idealRemainingTasks),
-        remainingTasks,
-      });
-
-      if (day >= outputEndKey) {
-        break;
-      }
-
-      current = addDays(current, 1);
-    }
-
-    return points;
-  }
-
   private isOverdue(task: DashboardTaskRecord, todayKey: string): boolean {
     return (
       task.status !== 'COMPLETED' &&
       task.dueDate !== null &&
-      calendarDayKey(task.dueDate) < todayKey
+      businessDayKey(task.dueDate) < todayKey
     );
   }
 }
