@@ -32,7 +32,9 @@ export type ProjectPermission =
   | 'MEETING_UPDATE'
   | 'MEETING_ACTION_MANAGE'
   | 'ACCEPTANCE_VIEW'
-  | 'ACCEPTANCE_MANAGE';
+  | 'ACCEPTANCE_MANAGE'
+  | 'DASHBOARD_VIEW'
+  | 'REPORT_EXPORT';
 
 export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly ProjectPermission[]>> =
   {
@@ -65,6 +67,8 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'MEETING_ACTION_MANAGE',
       'ACCEPTANCE_VIEW',
       'ACCEPTANCE_MANAGE',
+      'DASHBOARD_VIEW',
+      'REPORT_EXPORT',
     ],
     MEMBER: [
       'PROJECT_VIEW',
@@ -85,6 +89,7 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'MEETING_UPDATE',
       'MEETING_ACTION_MANAGE',
       'ACCEPTANCE_VIEW',
+      'DASHBOARD_VIEW',
     ],
     OBSERVER: [
       'PROJECT_VIEW',
@@ -93,6 +98,7 @@ export const PROJECT_ROLE_PERMISSIONS: Readonly<Record<ProjectRole, readonly Pro
       'TASK_VIEW',
       'MEETING_VIEW',
       'ACCEPTANCE_VIEW',
+      'DASHBOARD_VIEW',
     ],
   };
 
