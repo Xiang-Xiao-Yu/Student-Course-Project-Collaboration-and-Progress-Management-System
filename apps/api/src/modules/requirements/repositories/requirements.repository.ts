@@ -65,14 +65,36 @@ export class RequirementsRepository {
     projectId: string,
     query: ListRequirementsQueryDto = {},
   ): Promise<RequirementRecord[]> {
+    const matchingRequirementIds =
+      query.search === undefined
+        ? undefined
+        : await this.findRequirementIdsByLiteralTitle(projectId, query.search);
+    if (matchingRequirementIds?.length === 0) {
+      return [];
+    }
+
     return this.prisma.requirement.findMany({
       orderBy: [{ number: 'asc' }],
       select: requirementSelect,
       where: {
         projectId,
-        ...(query.search ? { title: { contains: query.search } } : {}),
+        ...(matchingRequirementIds ? { id: { in: matchingRequirementIds } } : {}),
       },
     });
+  }
+
+  private async findRequirementIdsByLiteralTitle(
+    projectId: string,
+    search: string,
+  ): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "Requirement"
+      WHERE "projectId" = ${projectId}
+        AND instr(lower("title"), lower(${search})) > 0
+    `;
+
+    return rows.map((row) => row.id);
   }
 
   async findById(projectId: string, requirementId: string): Promise<RequirementRecord | null> {

@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsDateString, IsIn, IsOptional, IsString, Length } from 'class-validator';
+import { IsIn, IsOptional, IsString, Length, Matches } from 'class-validator';
 
 import {
   TASK_PRIORITIES,
@@ -42,10 +42,10 @@ export class ListTasksQueryDto {
   iterationId?: string;
 
   @IsOptional()
-  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: '截止日期筛选开始日期必须为 YYYY-MM-DD' })
   dueDateFrom?: string;
 
   @IsOptional()
-  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: '截止日期筛选结束日期必须为 YYYY-MM-DD' })
   dueDateTo?: string;
 }

@@ -22,6 +22,7 @@ import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AppModule } from '../../app.module';
+import { businessDayKey } from '../../common/time/business-calendar';
 import { PrismaService } from '../../prisma/prisma.service';
 
 interface ErrorEnvelope {
@@ -468,6 +469,73 @@ describe('P6 dashboard, filters and exports with SQLite', () => {
         { tagId: backendTag.id, taskId: completedTask.id },
       ],
     });
+    await prisma.task.createMany({
+      data: [
+        {
+          createdById: accounts.owner.id,
+          dueDate: new Date('2026-11-11T00:30:00.000Z'),
+          priority: 'MEDIUM',
+          projectId,
+          status: 'TODO',
+          title: '100%完成',
+        },
+        {
+          createdById: accounts.owner.id,
+          dueDate: new Date('2026-11-12T00:30:00.000Z'),
+          priority: 'MEDIUM',
+          projectId,
+          status: 'TODO',
+          title: '100X完成',
+        },
+        {
+          createdById: accounts.owner.id,
+          dueDate: new Date('2026-11-11T01:00:00.000Z'),
+          priority: 'MEDIUM',
+          projectId,
+          status: 'TODO',
+          title: 'a_b',
+        },
+        {
+          createdById: accounts.owner.id,
+          dueDate: new Date('2026-11-12T01:00:00.000Z'),
+          priority: 'MEDIUM',
+          projectId,
+          status: 'TODO',
+          title: 'aXb',
+        },
+      ],
+    });
+    await prisma.requirement.createMany({
+      data: [
+        {
+          acceptanceCriteria: '比例可正确显示',
+          creatorId: accounts.owner.id,
+          number: 'P6-FILTER-002',
+          priority: 'MEDIUM',
+          projectId,
+          status: 'DRAFT',
+          title: '比例100%完成',
+        },
+        {
+          acceptanceCriteria: '相似标题不误匹配',
+          creatorId: accounts.owner.id,
+          number: 'P6-FILTER-003',
+          priority: 'MEDIUM',
+          projectId,
+          status: 'DRAFT',
+          title: '比例100X完成',
+        },
+        {
+          acceptanceCriteria: '下划线按字面匹配',
+          creatorId: accounts.owner.id,
+          number: 'P6-FILTER-004',
+          priority: 'MEDIUM',
+          projectId,
+          status: 'DRAFT',
+          title: '比例_完成',
+        },
+      ],
+    });
 
     return { iterationId: iteration.id, matchedTaskId: matchedTask.id };
   }
@@ -626,12 +694,48 @@ describe('P6 dashboard, filters and exports with SQLite', () => {
       expect.objectContaining({ id: fixture.matchedTaskId }),
     ]);
 
+    const literalPercent = await request(
+      '/projects/' + projectId + '/tasks?search=' + encodeURIComponent('100%'),
+      'GET',
+      accounts.member.token,
+    );
+    expect(((await literalPercent.json()) as TaskEnvelope).data.map((task) => task.title)).toEqual([
+      '100%完成',
+    ]);
+
+    const percentOnly = await request(
+      '/projects/' + projectId + '/tasks?search=' + encodeURIComponent('%'),
+      'GET',
+      accounts.member.token,
+    );
+    expect(((await percentOnly.json()) as TaskEnvelope).data.map((task) => task.title)).toEqual([
+      '100%完成',
+    ]);
+
+    const underscoreOnly = await request(
+      '/projects/' + projectId + '/tasks?search=_',
+      'GET',
+      accounts.member.token,
+    );
+    expect(((await underscoreOnly.json()) as TaskEnvelope).data.map((task) => task.title)).toEqual([
+      'a_b',
+    ]);
+
+    const businessDay = await request(
+      '/projects/' + projectId + '/tasks?dueDateFrom=2026-11-11&dueDateTo=2026-11-11',
+      'GET',
+      accounts.member.token,
+    );
+    expect(
+      ((await businessDay.json()) as TaskEnvelope).data.map((task) => task.title).sort(),
+    ).toEqual(['100%完成', 'a_b'].sort());
+
     const cleared = await request(
       '/projects/' + projectId + '/tasks',
       'GET',
       accounts.member.token,
     );
-    expect(((await cleared.json()) as TaskEnvelope).data).toHaveLength(3);
+    expect(((await cleared.json()) as TaskEnvelope).data).toHaveLength(7);
 
     const invalidStatus = await request(
       '/projects/' + projectId + '/tasks?status=UNKNOWN',
@@ -639,6 +743,25 @@ describe('P6 dashboard, filters and exports with SQLite', () => {
       accounts.member.token,
     );
     expect(invalidStatus.status).toBe(400);
+
+    for (const invalidDate of ['2026-W46', '2026-315']) {
+      const response = await request(
+        '/projects/' + projectId + '/tasks?dueDateFrom=' + invalidDate,
+        'GET',
+        accounts.member.token,
+      );
+      expect(response.status).toBe(400);
+    }
+
+    const impossibleDate = await request(
+      '/projects/' + projectId + '/tasks?dueDateFrom=2026-02-30',
+      'GET',
+      accounts.member.token,
+    );
+    expect(impossibleDate.status).toBe(422);
+    expect(((await impossibleDate.json()) as ErrorEnvelope).error?.code).toBe(
+      'TASK_FILTER_DATE_INVALID',
+    );
 
     const invalidRange = await request(
       '/projects/' +
@@ -656,12 +779,27 @@ describe('P6 dashboard, filters and exports with SQLite', () => {
     );
 
     const requirements = await request(
-      '/projects/' + projectId + '/requirements?search=' + encodeURIComponent('登录'),
+      '/projects/' + projectId + '/requirements?search=' + encodeURIComponent('100%'),
       'GET',
       accounts.member.token,
     );
     expect(requirements.status).toBe(200);
-    expect(((await requirements.json()) as RequirementListEnvelope).data).toHaveLength(1);
+    expect(
+      ((await requirements.json()) as RequirementListEnvelope).data.map(
+        (requirement) => requirement.title,
+      ),
+    ).toEqual(['比例100%完成']);
+
+    const underscoreRequirement = await request(
+      '/projects/' + projectId + '/requirements?search=_',
+      'GET',
+      accounts.member.token,
+    );
+    expect(
+      ((await underscoreRequirement.json()) as RequirementListEnvelope).data.map(
+        (requirement) => requirement.title,
+      ),
+    ).toEqual(['比例_完成']);
 
     const noRequirements = await request(
       '/projects/' + projectId + '/requirements?search=' + encodeURIComponent('不存在'),
@@ -669,6 +807,108 @@ describe('P6 dashboard, filters and exports with SQLite', () => {
       accounts.member.token,
     );
     expect(((await noRequirements.json()) as RequirementListEnvelope).data).toEqual([]);
+  });
+
+  it('preserves historical completion data after reopening a task', async () => {
+    const projectId = await createProject('P6 历史图表项目');
+    const createdAt = offsetDate(-3);
+    const completedAt = offsetDate(-1);
+    const reopenedAt = offsetDate(0);
+    const task = await prisma.task.create({
+      data: {
+        createdAt,
+        createdById: accounts.owner.id,
+        projectId,
+        status: 'IN_PROGRESS',
+        title: '重开历史任务',
+      },
+    });
+    await prisma.activityLog.createMany({
+      data: [
+        {
+          action: 'TASK_STATUS_CHANGED',
+          actorId: accounts.member.id,
+          afterValue: JSON.stringify({ status: 'COMPLETED' }),
+          beforeValue: JSON.stringify({ status: 'PENDING_REVIEW' }),
+          createdAt: completedAt,
+          projectId,
+          targetId: task.id,
+          targetType: 'TASK',
+        },
+        {
+          action: 'TASK_STATUS_CHANGED',
+          actorId: accounts.owner.id,
+          afterValue: JSON.stringify({ status: 'IN_PROGRESS' }),
+          beforeValue: JSON.stringify({ status: 'COMPLETED' }),
+          createdAt: reopenedAt,
+          projectId,
+          targetId: task.id,
+          targetType: 'TASK',
+        },
+      ],
+    });
+
+    const response = await request(
+      '/projects/' + projectId + '/dashboard',
+      'GET',
+      accounts.owner.token,
+    );
+    expect(response.status).toBe(200);
+    const dashboard = ((await response.json()) as DashboardEnvelope).data;
+    const yesterday = businessDayKey(completedAt);
+    const today = businessDayKey(reopenedAt);
+
+    expect(dashboard.completionTrend.find((item) => item.date === yesterday)?.completed).toBe(1);
+    expect(dashboard.burndown.find((item) => item.date === yesterday)).toMatchObject({
+      completedTasks: 1,
+      remainingTasks: 0,
+    });
+    expect(dashboard.burndown.find((item) => item.date === today)?.remainingTasks).toBe(1);
+  });
+
+  it('keeps project and iteration statistics consistent during concurrent updates', async () => {
+    const projectId = await createProject('P6 并发统计项目');
+    const iteration = await prisma.iteration.create({
+      data: {
+        endDate: offsetDate(5),
+        name: '并发迭代',
+        projectId,
+        startDate: offsetDate(-5),
+        status: 'IN_PROGRESS',
+      },
+    });
+    const task = await prisma.task.create({
+      data: {
+        createdById: accounts.owner.id,
+        iterationId: iteration.id,
+        projectId,
+        status: 'BACKLOG',
+        title: '并发更新任务',
+      },
+    });
+    const path = '/projects/' + projectId + '/dashboard';
+    const dashboardRequests = Array.from({ length: 16 }, (_, index) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, index * 5);
+      }).then(() => request(path, 'GET', accounts.owner.token)),
+    );
+    const update = new Promise<void>((resolve) => {
+      setTimeout(resolve, 35);
+    }).then(async () => {
+      await prisma.task.update({
+        data: { completedAt: new Date(), status: 'COMPLETED' },
+        where: { id: task.id },
+      });
+    });
+    const [responses] = await Promise.all([Promise.all(dashboardRequests), update]);
+
+    for (const response of responses) {
+      expect(response.status).toBe(200);
+      const dashboard = ((await response.json()) as DashboardEnvelope).data;
+      const iterationStats = dashboard.iterationCompletion.find((item) => item.id === iteration.id);
+      expect(iterationStats?.completedTasks).toBe(dashboard.summary.completedTasks);
+      expect(iterationStats?.totalTasks).toBe(dashboard.summary.totalTasks);
+    }
   });
 
   it('exports filtered raw CSV task data and a progress report with owner-only permission', async () => {
@@ -687,6 +927,19 @@ describe('P6 dashboard, filters and exports with SQLite', () => {
     expect(taskCsv).toContain('"\'=SUM(1,2)"');
     expect(taskCsv).not.toContain('"前端页面"');
     expect(taskCsv.trimStart().startsWith('{')).toBe(false);
+
+    const businessDayExport = await request(
+      '/projects/' +
+        projectId +
+        '/tasks/export?search=%25&dueDateFrom=2026-11-11&dueDateTo=2026-11-11',
+      'GET',
+      accounts.owner.token,
+    );
+    const businessDayCsv = await businessDayExport.text();
+    expect(businessDayExport.status).toBe(200);
+    expect(businessDayCsv).toContain('"100%完成"');
+    expect(businessDayCsv).not.toContain('"100X完成"');
+    expect(businessDayCsv).not.toContain('"a_b"');
 
     expect((await request(exportPath, 'GET', accounts.member.token)).status).toBe(403);
     expect((await request(exportPath, 'GET', accounts.observer.token)).status).toBe(403);

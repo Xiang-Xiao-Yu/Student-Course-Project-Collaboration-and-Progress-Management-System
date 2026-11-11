@@ -116,15 +116,23 @@ export class TasksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async listByProject(projectId: string, filters: TaskListFilters = {}): Promise<TaskRecord[]> {
+    const matchingTaskIds =
+      filters.search === undefined
+        ? undefined
+        : await this.findTaskIdsByLiteralTitle(projectId, filters.search);
+    if (matchingTaskIds?.length === 0) {
+      return [];
+    }
+
     const tasks = await this.prisma.task.findMany({
       orderBy: [{ createdAt: 'desc' }],
       select: taskSelect,
       where: {
         projectId,
+        ...(matchingTaskIds ? { id: { in: matchingTaskIds } } : {}),
         ...(filters.assigneeId ? { assigneeId: filters.assigneeId } : {}),
         ...(filters.iterationId ? { iterationId: filters.iterationId } : {}),
         ...(filters.priority ? { priority: filters.priority } : {}),
-        ...(filters.search ? { title: { contains: filters.search } } : {}),
         ...(filters.status ? { status: filters.status } : {}),
         ...(filters.tag
           ? {
@@ -565,6 +573,17 @@ export class TasksRepository {
         );
       }
     }
+  }
+
+  private async findTaskIdsByLiteralTitle(projectId: string, search: string): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "Task"
+      WHERE "projectId" = ${projectId}
+        AND instr(lower("title"), lower(${search})) > 0
+    `;
+
+    return rows.map((row) => row.id);
   }
 
   private async syncTags(

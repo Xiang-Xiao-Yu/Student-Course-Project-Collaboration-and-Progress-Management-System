@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 
 import { AppException } from '../../common/errors/app.exception';
 import { createCsv } from '../../common/export/csv';
+import { parseBusinessDateRange } from '../../common/time/business-calendar';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { ListTasksQueryDto } from './dto/list-tasks-query.dto';
@@ -333,10 +334,22 @@ export class TasksService {
   }
 
   private toTaskFilters(query: ListTasksQueryDto): TaskListFilters {
-    const dueDateFrom =
-      query.dueDateFrom === undefined ? undefined : this.startOfUtcDay(query.dueDateFrom);
-    const dueDateToExclusive =
-      query.dueDateTo === undefined ? undefined : this.startOfNextUtcDay(query.dueDateTo);
+    const fromRange =
+      query.dueDateFrom === undefined ? undefined : parseBusinessDateRange(query.dueDateFrom);
+    const toRange =
+      query.dueDateTo === undefined ? undefined : parseBusinessDateRange(query.dueDateTo);
+    if (
+      (query.dueDateFrom !== undefined && fromRange === null) ||
+      (query.dueDateTo !== undefined && toRange === null)
+    ) {
+      throw new AppException(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'TASK_FILTER_DATE_INVALID',
+        '截止日期筛选日期无效',
+      );
+    }
+    const dueDateFrom = fromRange?.start;
+    const dueDateToExclusive = toRange?.endExclusive;
 
     if (dueDateFrom && dueDateToExclusive && dueDateFrom >= dueDateToExclusive) {
       throw new AppException(
@@ -356,17 +369,6 @@ export class TasksService {
       status: query.status,
       tag: query.tag,
     };
-  }
-
-  private startOfUtcDay(value: string): Date {
-    const date = new Date(value);
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  }
-
-  private startOfNextUtcDay(value: string): Date {
-    const date = this.startOfUtcDay(value);
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date;
   }
 
   private assertDueDateValid(dueDate: Date | undefined, projectStartDate: Date | null): void {
