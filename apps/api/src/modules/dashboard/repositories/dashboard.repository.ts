@@ -76,6 +76,7 @@ export interface DashboardIterationRecord {
 }
 
 export interface DashboardTaskStatusEventRecord {
+  action: string;
   afterValue: string | null;
   beforeValue: string | null;
   createdAt: Date;
@@ -155,13 +156,14 @@ export class DashboardRepository {
         this.prisma.activityLog.findMany({
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           select: {
+            action: true,
             afterValue: true,
             beforeValue: true,
             createdAt: true,
             targetId: true,
           },
           where: {
-            action: 'TASK_STATUS_CHANGED',
+            action: { in: ['TASK_STATUS_CHANGED', 'TASK_DELETED'] },
             projectId,
             targetType: 'TASK',
           },

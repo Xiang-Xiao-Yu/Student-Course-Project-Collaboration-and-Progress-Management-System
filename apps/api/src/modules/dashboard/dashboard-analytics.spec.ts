@@ -20,6 +20,7 @@ function statusEvent(
   after: string,
 ): DashboardChartStatusEvent {
   return {
+    action: 'TASK_STATUS_CHANGED',
     afterValue: JSON.stringify({ status: after }),
     beforeValue: JSON.stringify({ status: before }),
     createdAt,
@@ -88,5 +89,67 @@ describe('dashboard chart analytics', () => {
       date: '2026-11-11',
       remainingTasks: 0,
     });
+  });
+
+  it.each(['COMPLETED', 'IN_PROGRESS', 'TODO'])(
+    'retains historical work after deleting a %s task',
+    (status) => {
+      const now = new Date('2026-11-11T08:00:00.000Z');
+      const completed = status !== 'TODO';
+      const events = completed
+        ? [statusEvent('deleted', addDays(now, -1), 'PENDING_REVIEW', 'COMPLETED')]
+        : [];
+      if (status === 'IN_PROGRESS') {
+        events.push(statusEvent('deleted', now, 'COMPLETED', 'IN_PROGRESS'));
+      }
+      const deletion = {
+        ...statusEvent('deleted', now, status, status),
+        action: 'TASK_DELETED',
+        beforeValue: JSON.stringify({
+          id: 'deleted',
+          createdAt: addDays(now, -3).toISOString(),
+          completedAt: status === 'COMPLETED' ? addDays(now, -1).toISOString() : null,
+          status,
+        }),
+      };
+      const result = buildDashboardChartData(
+        [{ id: 'live', createdAt: addDays(now, -3), completedAt: null }],
+        [...events, deletion],
+        addDays(now, -4),
+        addDays(now, 1),
+        now,
+      );
+      expect(result.burndown.at(-3)?.remainingTasks).toBe(2);
+      expect(result.burndown.at(-2)).toMatchObject({
+        completedTasks: completed ? 1 : 0,
+        remainingTasks: completed ? 1 : 2,
+      });
+      expect(result.completionTrend.at(-2)?.completed).toBe(completed ? 1 : 0);
+      expect(result.burndown.at(-1)?.remainingTasks).toBe(1);
+    },
+  );
+
+  it('ignores corrupt deletion snapshots without changing live task statistics', () => {
+    const now = new Date('2026-11-11T08:00:00.000Z');
+    const task = { id: 'live', createdAt: addDays(now, -3), completedAt: null };
+    const result = buildDashboardChartData(
+      [task],
+      [
+        '{',
+        'null',
+        JSON.stringify({ id: 'broken', createdAt: 'invalid', completedAt: null, status: 'TODO' }),
+      ].map((beforeValue) => ({
+        action: 'TASK_DELETED',
+        targetId: 'broken',
+        createdAt: now,
+        beforeValue,
+        afterValue: null,
+      })),
+      addDays(now, -4),
+      now,
+      now,
+    );
+    expect(result.burndown.at(-1)?.remainingTasks).toBe(1);
+    expect(result.completionTrend.at(-1)?.cumulativeCompleted).toBe(0);
   });
 });

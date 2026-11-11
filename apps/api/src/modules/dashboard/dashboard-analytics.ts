@@ -4,7 +4,7 @@ import {
   differenceInDays,
   enumerateDayKeys,
 } from '../../common/time/business-calendar';
-import type { TaskStatus } from '../tasks/task.constants';
+import { TASK_STATUSES, type TaskStatus } from '../tasks/task.constants';
 import type {
   DashboardBurndownPoint,
   DashboardCompletionTrendPoint,
@@ -21,10 +21,46 @@ export interface DashboardChartTask {
 }
 
 export interface DashboardChartStatusEvent {
+  action: string;
   afterValue: string | null;
   beforeValue: string | null;
   createdAt: Date;
   targetId: string;
+}
+
+function parseDeletedTask(event: DashboardChartStatusEvent): {
+  task: DashboardChartTask;
+  status: TaskStatus;
+} | null {
+  try {
+    const value: unknown = JSON.parse(event.beforeValue ?? 'null');
+    if (typeof value !== 'object' || value === null) return null;
+    const snapshot = value as Record<string, unknown>;
+    if (
+      snapshot['id'] !== event.targetId ||
+      typeof snapshot['createdAt'] !== 'string' ||
+      typeof snapshot['status'] !== 'string' ||
+      !TASK_STATUSES.includes(snapshot['status'] as TaskStatus) ||
+      (snapshot['completedAt'] !== null && typeof snapshot['completedAt'] !== 'string')
+    ) {
+      return null;
+    }
+    const createdAt = new Date(snapshot['createdAt']);
+    const completedAt =
+      snapshot['completedAt'] === null ? null : new Date(snapshot['completedAt'] as string);
+    if (
+      !Number.isFinite(createdAt.getTime()) ||
+      (completedAt !== null && !Number.isFinite(completedAt.getTime()))
+    ) {
+      return null;
+    }
+    return {
+      task: { id: event.targetId, createdAt, completedAt },
+      status: snapshot['status'] as TaskStatus,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export interface DashboardChartData {
@@ -68,8 +104,21 @@ export function buildDashboardChartData(
   const eventsByTask = new Map<string, DashboardChartStatusEvent[]>();
   const totalCompletionCounts = new Map<string, number>();
   const remainingDeltas = new Map<string, number>();
+  const historicalTasks = new Map(tasks.map((task) => [task.id, task]));
+  const deletions = new Map<string, { day: string; status: TaskStatus }>();
 
   for (const event of statusEvents) {
+    if (event.action === 'TASK_DELETED') {
+      const deleted = parseDeletedTask(event);
+      if (deleted && !historicalTasks.has(event.targetId)) {
+        historicalTasks.set(event.targetId, deleted.task);
+        deletions.set(event.targetId, {
+          day: businessDayKey(event.createdAt),
+          status: deleted.status,
+        });
+      }
+      continue;
+    }
     const events = eventsByTask.get(event.targetId);
     if (events) {
       events.push(event);
@@ -78,7 +127,7 @@ export function buildDashboardChartData(
     }
   }
 
-  for (const task of tasks) {
+  for (const task of historicalTasks.values()) {
     addCount(remainingDeltas, businessDayKey(task.createdAt), 1);
     const events = eventsByTask.get(task.id) ?? [];
     let hasCompletionEvent = false;
@@ -100,11 +149,15 @@ export function buildDashboardChartData(
       addCount(totalCompletionCounts, completionDay, 1);
       addCount(remainingDeltas, completionDay, -1);
     }
+    const deletion = deletions.get(task.id);
+    if (deletion && deletion.status !== 'COMPLETED') {
+      addCount(remainingDeltas, deletion.day, -1);
+    }
   }
 
   return {
     burndown: buildBurndown(
-      tasks,
+      [...historicalTasks.values()],
       remainingDeltas,
       totalCompletionCounts,
       projectStartDate,

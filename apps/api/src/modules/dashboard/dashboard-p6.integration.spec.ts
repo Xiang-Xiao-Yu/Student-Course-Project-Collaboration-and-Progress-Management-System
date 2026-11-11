@@ -866,6 +866,97 @@ describe('P6 dashboard, filters and exports with SQLite', () => {
     expect(dashboard.burndown.find((item) => item.date === today)?.remainingTasks).toBe(1);
   });
 
+  it.each(['COMPLETED', 'IN_PROGRESS', 'TODO'])(
+    'keeps historical charts when a %s task is deleted through the API',
+    async (status) => {
+      const projectId = await createProject('P6 删除历史 ' + status);
+      const taskPath = '/projects/' + projectId + '/tasks';
+      const createdAt = offsetDate(-3);
+      const completedAt = offsetDate(-1);
+      const createResponse = await request(taskPath, 'POST', accounts.owner.token, {
+        title: '待删除任务',
+        priority: 'MEDIUM',
+      });
+      expect(createResponse.status).toBe(201);
+      const taskId = ((await createResponse.json()) as ProjectEnvelope).data.id;
+      const liveResponse = await request(taskPath, 'POST', accounts.owner.token, {
+        title: '保留的未完成任务',
+        priority: 'MEDIUM',
+      });
+      expect(liveResponse.status).toBe(201);
+      const liveTaskId = ((await liveResponse.json()) as ProjectEnvelope).data.id;
+      await prisma.task.updateMany({
+        where: { id: { in: [taskId, liveTaskId] } },
+        data: { createdAt },
+      });
+      await prisma.activityLog.updateMany({
+        where: { targetId: { in: [taskId, liveTaskId] }, action: 'TASK_CREATED' },
+        data: { createdAt },
+      });
+      const transitions =
+        status === 'TODO' ? ['TODO'] : ['TODO', 'IN_PROGRESS', 'PENDING_REVIEW', 'COMPLETED'];
+      for (const nextStatus of transitions) {
+        expect(
+          (
+            await request(taskPath + '/' + taskId + '/status', 'PATCH', accounts.owner.token, {
+              status: nextStatus,
+              ...(nextStatus === 'PENDING_REVIEW' ? { completionNote: '完成工作' } : {}),
+            })
+          ).status,
+        ).toBe(200);
+      }
+      if (status !== 'TODO') {
+        await prisma.task.update({ where: { id: taskId }, data: { completedAt } });
+        await prisma.activityLog.updateMany({
+          where: {
+            targetId: taskId,
+            action: 'TASK_STATUS_CHANGED',
+            afterValue: { contains: '"status":"COMPLETED"' },
+          },
+          data: { createdAt: completedAt },
+        });
+      }
+      if (status === 'IN_PROGRESS') {
+        expect(
+          (
+            await request(taskPath + '/' + taskId + '/status', 'PATCH', accounts.owner.token, {
+              status,
+              reopenReason: '需要补充工作',
+            })
+          ).status,
+        ).toBe(200);
+      }
+      const dashboardPath = '/projects/' + projectId + '/dashboard';
+      const beforeResponse = await request(dashboardPath, 'GET', accounts.owner.token);
+      expect(beforeResponse.status).toBe(200);
+      const before = ((await beforeResponse.json()) as DashboardEnvelope).data;
+      expect((await request(taskPath + '/' + taskId, 'DELETE', accounts.owner.token)).status).toBe(
+        200,
+      );
+      const afterResponse = await request(dashboardPath, 'GET', accounts.owner.token);
+      expect(afterResponse.status).toBe(200);
+      const after = ((await afterResponse.json()) as DashboardEnvelope).data;
+      const yesterday = businessDayKey(completedAt);
+      expect(before.completionTrend.find((point) => point.date === yesterday)?.completed).toBe(
+        status === 'TODO' ? 0 : 1,
+      );
+      expect(after.completionTrend).toEqual(before.completionTrend);
+      expect(after.burndown.find((point) => point.date === yesterday)).toEqual(
+        before.burndown.find((point) => point.date === yesterday),
+      );
+      expect(after.burndown.at(-1)?.remainingTasks).toBe(1);
+      expect(after.summary).toMatchObject({ totalTasks: 1, completedTasks: 0 });
+      expect(
+        await prisma.activityLog.count({
+          where: { targetId: taskId, action: 'TASK_DELETED' },
+        }),
+      ).toBe(1);
+      expect((await request(taskPath + '/' + taskId, 'GET', accounts.owner.token)).status).toBe(
+        404,
+      );
+    },
+  );
+
   it('keeps project and iteration statistics consistent during concurrent updates', async () => {
     const projectId = await createProject('P6 并发统计项目');
     const iteration = await prisma.iteration.create({
