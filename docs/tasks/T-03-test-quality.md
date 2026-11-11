@@ -102,11 +102,12 @@
 
 ## 进度记录（仅 `ChatGPT@root` 可修改）
 
-- 当前阶段：P5 会议与阶段验收测试（本条仅在 PR #43 合并进入 main 时生效；合并前保持 P4 冻结，P6 及以后锁定）
+- 当前阶段：P6 仪表盘、筛选与导出测试（已解锁；仅 P6.1～P6.3，AC-09/AC-10；P7 及以后锁定）
+- P5 门禁通过 / P6 解锁（2026-11-11）：root 已复核合并后的 main `6b8ee6f`：自动测试 418/418、标准 Electron 9/9、P5 完整闭环补测 3/3、类型/构建/规范检查通过；验收创建并发归属缺陷已由 PR #49 修复，独立评审无阻塞。项目组长明确要求检查并解锁 P6，本任务进入既有 P6.1～P6.3；P7 及扩展范围仍锁定。报告：[P5 阶段门禁](../test/p5-gate-2026-11-11.md)。
 - 已完成：测试阶段、小功能和阶段门禁定义；建立 `docs/test/test-plan.md`、P0 证据模板、环境采集和 API 契约冒烟检查；增加 `pnpm test:p0-env` 与 `pnpm test:p0-smoke` 独立命令；T-01、T-02 均已提交 P0 冻结候选。
 - P0 检查记录：2026-10-11 在 PR #15 合并后的最新 main 提交 `28d9e077b3875452e1ed477a4ad49260580b550c` 全新隔离工作区重新执行完整自动门禁：冻结安装、Prisma generate/Migration/Seed 两次、lint、typecheck、36 项测试、build、API health/error smoke、缺少 JWT_SECRET 启动回归和无效数据库配置检查全部通过。项目组长完成人工桌面检查并确认通过；root 已记录 P0 门禁通过，P1 已解锁。详细证据见 `docs/test/p0-r1-retest-2026-10-11.md`。
-- 当前检查：P4 自动回归和标准沙箱桌面验收通过，详见 [P4 阶段验收](../test/p4-gate-2026-11-07.md)。
-- 待完成：PR #43 合并后按既有 P5 范围执行 AC-06、AC-07 正常、边界、失败与权限检查；P6 及以后保持锁定。
+- 当前检查：P5 正常、边界、失败、权限及并发恢复复核通过，当前基线为 main `6b8ee6f`，证据见 [P5 阶段门禁](../test/p5-gate-2026-11-11.md)。
+- 待完成：跟踪 T-01/T-02 的 P6 开发；两端均标记待测试后冻结，按 AC-09/AC-10 统一执行指标、组合筛选、导出、空数据及异常场景检查。P6 门禁通过并获组长确认前，不进入 P7。
 - P1-R3 重开（2026-10-20，Issue #26）：项目组长批准 FR-01 头像文件选择、服务端上传和新增 AC-11；此前 P1-R2 30 项认证结论保留为历史结果，AC-11 必须补充正常/边界/失败/安全证据后重新复核门禁，P2 保持锁定。用例见 [P1-R3 头像上传测试](../test/p1-r3-avatar-upload.md)。
 - P1-R3 复测结论（2026-10-20）：`pnpm lint`、`pnpm typecheck`、`pnpm test`（123/123）、`pnpm build`、Electron 黑盒脚本语法检查和 `git diff --check` 全部通过；P1 API 24/24、桌面 16/16 回归通过，真实 Electron AC-11 4/4 通过。原始输出及截图位于 `docs/test/p1-r3-evidence/final/`。AC-11 标记复测通过并等待项目组长复核；P2 未解锁。详情见 [P1-R3 头像上传测试](../test/p1-r3-avatar-upload.md)。
 - P1-R3-D01 补充复测（2026-10-20）：项目组长发现选图后直接保存会丢失预览，证实首次 4 场景遗漏保存入口；修复后真实 Electron 5/5 通过（直接保存含昵称变更、刷新/重新登录、重复保存、独立上传、断网与伪造内容），全量 123 项测试及 lint、桌面 typecheck/build 通过。保留修复前失败和修复后通过证据，详见 P1-R3 报告 D01。AC-11 重新交项目组长复核，P2 仍锁定。
@@ -120,7 +121,6 @@
 - P2 门禁开始（2026-10-25）：T-01 已标记 `待测试`，T-02 PR #30 保持 `待测试`；P2 API 单元 77/77、Repository/隔离 SQLite 5/5、真实 HTTP 4/4、Prisma validate/generate、API typecheck/build 已执行。PR #30 静态复审仍需检查访问门禁与未保存归档交互；门禁结论待完成跨分支 UI 复测后记录，不解锁 P3。
 - P2-R1 复测通过（2026-10-26）：API 全量 113/113，P2 定向 API 回归 37/37（含 HTTP 4 项、SQLite Repository/Service 5 项）；desktop 18 个测试文件、69/69；API/desktop typecheck 与 build、Prisma format/validate/generate、全仓 ESLint/Prettier、桌面改动 ESLint/Prettier及 UI 脚本语法均通过。临时 SQLite 上通过真实 renderer/API 浏览器检查：脏表单归档显示提示且保留草稿，保存后归档成功；非成员直达成员路由显示 404 访问拒绝状态。报告与原始日志见 `docs/test/p2-r1-2026-10-25.md` 和同名目录。
 - 环境限制：`prisma migrate deploy`/`db push` 在当前本机返回空的 `Schema engine error`，完整 Electron + Playwright 运行组也因缺少 Electron 二进制和 Playwright 包未运行；测试仍通过 Prisma validate/generate、临时 SQLite 对全部四份 migration SQL 的应用、真实 Nest HTTP 与真实 renderer 浏览器检查。P2 门禁由 root 判定通过，P3 不自动解锁。
-
 
 - P3 解锁（2026-10-26）：项目组长明确确认后，root 将阶段状态更新为 P3 已解锁；T-01/T-02 仅按既有任务清单开展 P3.1～P3.4（FR-04/FR-05/FR-07、AC-03/AC-04），T-03 后续按 AC-03/AC-04 统一验收。
 
