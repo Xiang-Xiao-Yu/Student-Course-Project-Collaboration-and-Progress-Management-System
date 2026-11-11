@@ -42,6 +42,15 @@ describe('P0.1 路由骨架', () => {
     expect(buildProjectPath('project 1', 'iterations')).toBe('/projects/project%201/iterations');
   });
 
+  it('会议与阶段验收路由可匹配', () => {
+    expect(matchRoutes(appRoutes, '/projects/demo-project/meetings')?.at(-1)?.route.path).toBe(
+      'meetings',
+    );
+    expect(matchRoutes(appRoutes, '/projects/demo-project/acceptance')?.at(-1)?.route.path).toBe(
+      'acceptance',
+    );
+  });
+
   it('边界场景可以匹配带尾斜杠的深层路由', () => {
     const matches = matchRoutes(appRoutes, '/projects/demo-project/board/');
 

@@ -5,7 +5,9 @@ import { RequireSession } from '../features/auth/RequireSession';
 import { AccountLayout } from '../layouts/AccountLayout';
 import { AppLayout } from '../layouts/AppLayout';
 import { BoardPage } from '../pages/BoardPage';
+import { AcceptancesPage } from '../pages/AcceptancesPage';
 import { LoginPage } from '../pages/LoginPage';
+import { MeetingsPage } from '../pages/MeetingsPage';
 import { MembersPage } from '../pages/MembersPage';
 import { MyTasksPage } from '../pages/MyTasksPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -100,11 +102,11 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: 'meetings',
-            element: <SectionPage section="meetings" />,
+            element: <MeetingsPage />,
           },
           {
             path: 'acceptance',
-            element: <SectionPage section="acceptance" />,
+            element: <AcceptancesPage />,
           },
           {
             path: 'reports',
