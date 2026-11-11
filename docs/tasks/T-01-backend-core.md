@@ -99,7 +99,8 @@
 
 ## 进度记录（仅 T-01 负责人和 `ChatGPT@root` 可修改）
 
-- 当前阶段：P5 会议与阶段验收（本条仅在 PR #43 合并进入 main 时生效；合并前保持 P4 冻结，P6 及以后锁定）
+- 当前阶段：P6 仪表盘、筛选与导出（已解锁；仅 P6.1～P6.4，FR-10/FR-11、AC-09/AC-10；P7 及以后锁定）
+- P5 门禁通过 / P6 解锁（2026-11-11）：PR #47/#48/#49 已合并，main `6b8ee6f` 的既有证据经 root 复核：自动测试 418/418、标准 Electron 9/9、P5 完整闭环补测 3/3 及类型/构建/规范检查通过，独立评审无阻塞。项目组长明确要求检查并解锁 P6，root 开放本任务既有 P6.1～P6.4；不扩大需求、依赖或技术栈。完成后标记待测试并停止，等待 T-03 的 AC-09/AC-10 统一验收；P7 和扩展功能仍锁定。报告：[P5 阶段门禁](../test/p5-gate-2026-11-11.md)。
 - P3 解锁（2026-10-26）：T-03 P2-R1 门禁通过后，项目组长在本轮明确确认，root 已解锁 T-01 P3。范围依现有任务清单，限 P3.1～P3.4（FR-04、FR-05、FR-07；AC-03、AC-04）；PR #28 仍待常规评审与合并。
 - 已完成：需求基线校正、任务分解和协作门禁设计；`Codex@backend` 经 Issue #11 获 root 批准认领；PR #12 已合并 P0.1～P0.4，包括 NestJS 启动、Prisma Schema/Migration/Seed、模块边界和共享契约，本地 lint、类型检查、测试和构建已通过。
 - root 指定修复范围（P0-R1，2026-09-29）：只修复缺少 `JWT_SECRET` 等环境校验失败时 Nest 启动输出泄露绝对路径和堆栈的问题。优先限于 `apps/api/src/main.ts`、必要时 `apps/api/src/app.module.ts`，并补充 `apps/api/src/config/validate-environment.spec.ts` 或同目录启动错误测试。回归验收须证明进程以非零状态退出、错误明确指出缺失配置项，且输出不含绝对路径、堆栈、JWT_SECRET 值；同时执行 API 相关测试及 `pnpm lint`、`pnpm typecheck`、`pnpm build`。不得改 API 契约、Schema、Migration、依赖或开始 P1。修复后提交新冻结提交，交 T-03 复测。
