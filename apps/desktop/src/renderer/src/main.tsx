@@ -8,6 +8,7 @@ import './styles/projects.css';
 import './styles/p3.css';
 import './styles/p4.css';
 import './styles/p5.css';
+import './styles/p6.css';
 
 const container = document.getElementById('root');
 

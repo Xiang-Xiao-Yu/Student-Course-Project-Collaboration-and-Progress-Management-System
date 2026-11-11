@@ -41,8 +41,11 @@ export interface UpdateRequirementInput {
   readonly title?: string;
 }
 
-function requirementsPath(projectId: string): string {
-  return `/projects/${encodeURIComponent(projectId)}/requirements`;
+function requirementsPath(projectId: string, search?: string): string {
+  const path = `/projects/${encodeURIComponent(projectId)}/requirements`;
+  const normalizedSearch = search?.trim();
+
+  return normalizedSearch ? `${path}?${new URLSearchParams({ search: normalizedSearch })}` : path;
 }
 
 function requirementPath(projectId: string, requirementId: string): string {
@@ -52,8 +55,9 @@ function requirementPath(projectId: string, requirementId: string): string {
 export function listRequirements(
   api: Pick<ApiClient, 'get'>,
   projectId: string,
+  search?: string,
 ): Promise<RequirementDto[]> {
-  return api.get<RequirementDto[]>(requirementsPath(projectId));
+  return api.get<RequirementDto[]>(requirementsPath(projectId, search));
 }
 
 export function getRequirement(

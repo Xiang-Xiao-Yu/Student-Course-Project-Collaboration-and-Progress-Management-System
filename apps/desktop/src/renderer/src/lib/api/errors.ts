@@ -47,6 +47,8 @@ const messageByCode: Record<string, string> = {
   PROJECT_OWNER_TRANSFER_REQUIRED: '必须先转移项目负责人后才能修改其角色。',
   PROJECT_PERMISSION_DENIED: '当前账号没有执行此项目操作的权限。',
   PROJECT_STATUS_TRANSITION_INVALID: '当前项目状态不能转换为目标状态。',
+  TASK_FILTER_DATE_INVALID: '截止日期筛选日期无效，请重新选择。',
+  TASK_FILTER_DATE_RANGE_INVALID: '截止日期筛选的结束日期不能早于开始日期。',
   USER_NOT_FOUND: '用户名对应的用户不存在。',
   VALIDATION_FAILED: '提交的数据未通过校验，请检查后重试。',
 };

@@ -18,7 +18,7 @@ import { ProjectSettingsPage } from '../pages/ProjectSettingsPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { RequirementDetailPage } from '../pages/RequirementDetailPage';
 import { RequirementsPage } from '../pages/RequirementsPage';
-import { SectionPage } from '../pages/SectionPage';
+import { ReportsPage } from '../pages/ReportsPage';
 import { TaskDetailPage } from '../pages/TaskDetailPage';
 import { IterationsPage } from '../pages/IterationsPage';
 
@@ -110,7 +110,7 @@ export const appRoutes: RouteObject[] = [
           },
           {
             path: 'reports',
-            element: <SectionPage section="reports" />,
+            element: <ReportsPage />,
           },
           {
             path: 'members',

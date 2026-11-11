@@ -5,16 +5,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { ProjectDto } from '../features/projects/project-api';
 import { TaskFormFields } from '../features/tasks/TaskFormFields';
+import { TaskFilterPanel } from '../features/tasks/TaskFilterPanel';
 import type { TaskDto } from '../features/tasks/task-api';
 import { BoardPage } from './BoardPage';
 
 const hooks = vi.hoisted(() => ({
   cursor: 0,
+  effectCursor: 0,
   effects: [] as Array<() => void>,
+  dependencies: [] as Array<readonly unknown[]>,
+  cleanups: [] as Array<void | (() => void)>,
   mounted: false,
+  refs: [] as Array<{ current: unknown }>,
   values: [] as unknown[],
 }));
 const requests = vi.hoisted(() => ({
+  api: {},
   create: vi.fn(),
   edit: vi.fn(),
   list: vi.fn(),
@@ -27,8 +33,16 @@ const requests = vi.hoisted(() => ({
 // persistent hook state; API promises control response timing without a DOM.
 vi.mock('react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react')>()),
-  useEffect: (effect: () => void) => {
-    if (!hooks.mounted) hooks.effects.push(effect);
+  useEffect: (effect: () => void | (() => void), dependencies: readonly unknown[]) => {
+    const index = hooks.effectCursor++;
+    const previous = hooks.dependencies[index];
+    if (!previous || dependencies.some((value, i) => !Object.is(value, previous[i]))) {
+      hooks.dependencies[index] = dependencies;
+      hooks.effects.push(() => {
+        hooks.cleanups[index]?.();
+        hooks.cleanups[index] = effect();
+      });
+    }
   },
   useState: <T,>(initial: T | (() => T)) => {
     const index = hooks.cursor++;
@@ -45,22 +59,31 @@ vi.mock('react', async (importOriginal) => ({
       },
     ];
   },
+  useRef: <T,>(initial: T) => {
+    const index = hooks.cursor++;
+    if (!(index in hooks.refs)) {
+      hooks.refs[index] = { current: initial };
+    }
+    return hooks.refs[index] as { current: T };
+  },
 }));
 vi.mock('react-router-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-router-dom')>()),
   useParams: () => ({ projectId: 'project-1' }),
 }));
 vi.mock('../features/auth/session', () => ({
-  useSession: () => ({ api: {}, session: { user: { id: 'owner-1' } } }),
+  useSession: () => ({ api: requests.api, session: { user: { id: 'owner-1' } } }),
 }));
 vi.mock('../features/projects/project-api', () => ({
   getProject: requests.project,
   listProjectMembers: async () => [],
 }));
 vi.mock('../features/requirements/requirement-api', () => ({ listRequirements: async () => [] }));
+vi.mock('../features/iterations/iteration-api', () => ({ listIterations: async () => [] }));
 vi.mock('../features/tasks/task-api', () => ({
   createTask: requests.create,
   deleteTask: requests.remove,
+  exportTasksCsv: vi.fn(),
   listTasks: requests.list,
   updateTask: requests.edit,
   updateTaskStatus: requests.status,
@@ -110,11 +133,10 @@ function deferred<T>() {
 
 function render(): ReactElement {
   hooks.cursor = 0;
+  hooks.effectCursor = 0;
   const tree = BoardPage();
-  if (!hooks.mounted) {
-    hooks.mounted = true;
-    hooks.effects.forEach((effect) => effect());
-  }
+  hooks.mounted = true;
+  hooks.effects.splice(0).forEach((effect) => effect());
   return tree;
 }
 
@@ -166,11 +188,127 @@ async function flush(): Promise<ReactElement> {
 beforeEach(() => {
   hooks.cursor = 0;
   hooks.effects = [];
+  hooks.dependencies = [];
+  hooks.cleanups = [];
   hooks.mounted = false;
+  hooks.refs = [];
   hooks.values = [];
   vi.resetAllMocks();
   requests.project.mockResolvedValue(project);
   requests.list.mockResolvedValue([task, { ...task, id: 'task-b', title: '任务 B' }]);
+});
+
+function filterPanel(tree: ReactNode) {
+  return elements(tree).find((element) => element.type === TaskFilterPanel) as ReactElement<
+    ComponentProps<typeof TaskFilterPanel>
+  >;
+}
+
+async function applySearch(tree: ReactNode, search: string) {
+  const panel = filterPanel(tree).props;
+  panel.onValuesChange({ ...panel.values, search });
+  filterPanel(render()).props.onApply();
+  render();
+  return flush();
+}
+
+function taskTitles(tree: ReactNode) {
+  return elements(tree)
+    .filter((element) => element.type === 'h3')
+    .map((element) => {
+      const child = element.props.children;
+      return isValidElement<{ children: ReactNode }>(child) ? child.props.children : child;
+    });
+}
+
+describe('P6 筛选中的异步任务变更', () => {
+  it.each(['alpha', ''])('从“%s”清空筛选仍在加载时完成创建会重新加载全部任务', async (search) => {
+    const creating = deferred<TaskDto>();
+    const clearing = deferred<TaskDto[]>();
+    const created = { ...task, id: 'task-c', title: 'alpha 新任务' };
+    requests.list.mockResolvedValue([task]);
+    let tree = await loadBoard();
+    if (search) tree = await applySearch(tree, search);
+    const create = fields(tree)[0]!.props;
+    create.onChange({ ...create.values, title: created.title });
+    requests.create.mockReturnValue(creating.promise);
+    forms(render())[0]!.props.onSubmit?.({ preventDefault() {} } as never);
+    requests.list.mockReturnValueOnce(clearing.promise).mockResolvedValue([task, created]);
+    filterPanel(render()).props.onClear();
+    render();
+    creating.resolve(created);
+    await flush();
+    tree = await flush();
+    clearing.resolve([task]);
+    tree = await flush();
+    expect(taskTitles(tree)).toContain(created.title);
+  });
+
+  it('创建响应晚于切换筛选时只保留当前筛选的任务', async () => {
+    const alpha = { ...task, title: 'alpha' };
+    const beta = { ...task, id: 'task-b', title: 'beta' };
+    const pending = deferred<TaskDto>();
+    requests.list.mockImplementation((_api, _project, filters) =>
+      Promise.resolve(filters.search === 'beta' ? [beta] : [alpha]),
+    );
+    let tree = await loadBoard();
+    tree = await applySearch(tree, 'alpha');
+    const create = fields(tree)[0]!.props;
+    create.onChange({ ...create.values, title: 'alpha 新任务' });
+    requests.create.mockReturnValue(pending.promise);
+    forms(render())[0]!.props.onSubmit?.({ preventDefault() {} } as never);
+    tree = await applySearch(render(), 'beta');
+    expect(taskTitles(tree)).toEqual(['beta']);
+    pending.resolve({ ...task, id: 'task-c', title: 'alpha 新任务' });
+    tree = await flush();
+    tree = await flush();
+    expect(taskTitles(tree)).toEqual(['beta']);
+  });
+
+  it('同一筛选的旧刷新最后返回时不会覆盖新的任务快照', async () => {
+    const oldSnapshot = deferred<TaskDto[]>();
+    const creating = deferred<TaskDto>();
+    const transitioning = deferred<TaskDto>();
+    const created = { ...task, id: 'task-c', title: 'alpha 新任务' };
+    const latest = { ...task, status: 'TODO' as const };
+    requests.list.mockResolvedValue([task]);
+    let tree = await loadBoard();
+    tree = await applySearch(tree, 'alpha');
+    requests.list.mockReturnValueOnce(oldSnapshot.promise).mockResolvedValue([latest, created]);
+    requests.create.mockReturnValue(creating.promise);
+    requests.status.mockReturnValue(transitioning.promise);
+    const create = fields(tree)[0]!.props;
+    create.onChange({ ...create.values, title: 'alpha 新任务' });
+    forms(render())[0]!.props.onSubmit?.({ preventDefault() {} } as never);
+    click(render(), '编辑任务');
+    click(render(), '移至待开始');
+    creating.resolve(created);
+    await flush();
+    transitioning.resolve(latest);
+    tree = await flush();
+    tree = await flush();
+    oldSnapshot.resolve([task]);
+    tree = await flush();
+    expect(taskTitles(tree).sort()).toEqual(['alpha 新任务', '任务 A']);
+  });
+
+  it('活动筛选下创建不匹配任务时不会将任务追加进结果', async () => {
+    const beta = { ...task, title: 'beta' };
+    requests.list.mockResolvedValue([beta]);
+    let tree = await loadBoard();
+    tree = await applySearch(tree, 'beta');
+    const create = fields(tree)[0]!.props;
+    create.onChange({ ...create.values, title: 'alpha 不匹配' });
+    requests.create.mockResolvedValue({ ...task, id: 'task-c', title: 'alpha 不匹配' });
+    const refresh = deferred<TaskDto[]>();
+    requests.list.mockReturnValue(refresh.promise);
+    forms(render())[0]!.props.onSubmit?.({ preventDefault() {} } as never);
+    tree = await flush();
+    expect(taskTitles(tree)).not.toContain('alpha 不匹配');
+    refresh.resolve([beta]);
+    tree = await flush();
+    expect(taskTitles(tree)).toEqual(['beta']);
+  });
 });
 
 describe('P3 看板任务操作互斥', () => {
