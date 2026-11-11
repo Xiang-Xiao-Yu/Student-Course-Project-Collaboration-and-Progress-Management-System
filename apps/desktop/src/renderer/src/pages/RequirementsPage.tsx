@@ -118,19 +118,12 @@ export function RequirementsPage() {
         title: createForm.title.trim(),
       });
 
-      const matchesSearch =
-        !activeSearch ||
-        requirement.title.toLocaleLowerCase().includes(activeSearch.toLocaleLowerCase());
-
-      setState({
-        ...state,
-        requirements: matchesSearch ? [...state.requirements, requirement] : state.requirements,
-      });
       setCreateForm(EMPTY_REQUIREMENT_FORM);
       setCreateMessage({
         text: `需求 ${requirement.number} 已创建。`,
         type: 'success',
       });
+      setRetryVersion((version) => version + 1);
     } catch (error) {
       setCreateMessage({ text: getUserFacingError(error), type: 'error' });
     } finally {

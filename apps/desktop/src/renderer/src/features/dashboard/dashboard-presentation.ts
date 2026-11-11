@@ -57,10 +57,42 @@ export function getDashboardActivityLabel(action: string): string {
   return activityLabels[action] ?? action.replaceAll('_', ' ');
 }
 
+export interface DashboardSectionVisibility {
+  readonly hasBurndownHistory: boolean;
+  readonly hasCompletionHistory: boolean;
+  readonly hasIterationTasks: boolean;
+  readonly hasMemberTasks: boolean;
+  readonly hasTaskStatus: boolean;
+}
+
+export function getDashboardSectionVisibility(
+  dashboard: ProjectDashboard,
+): DashboardSectionVisibility {
+  return {
+    hasBurndownHistory: dashboard.burndown.some(
+      (point) =>
+        point.completedTasks > 0 || point.idealRemainingTasks > 0 || point.remainingTasks > 0,
+    ),
+    hasCompletionHistory: dashboard.completionTrend.some(
+      (point) => point.completed > 0 || point.cumulativeCompleted > 0,
+    ),
+    hasIterationTasks: dashboard.iterationCompletion.some((iteration) => iteration.totalTasks > 0),
+    hasMemberTasks: dashboard.memberTaskDistribution.some((member) => member.totalTasks > 0),
+    hasTaskStatus: dashboard.summary.totalTasks > 0,
+  };
+}
+
 export function isDashboardEmpty(dashboard: ProjectDashboard): boolean {
+  const visibility = getDashboardSectionVisibility(dashboard);
+
   return (
-    dashboard.summary.totalTasks === 0 &&
+    !visibility.hasTaskStatus &&
+    !visibility.hasMemberTasks &&
+    !visibility.hasIterationTasks &&
+    !visibility.hasCompletionHistory &&
+    !visibility.hasBurndownHistory &&
     dashboard.summary.totalRequirements === 0 &&
-    dashboard.iterationCompletion.length === 0
+    dashboard.recentActivities.length === 0 &&
+    dashboard.upcomingTasks.length === 0
   );
 }

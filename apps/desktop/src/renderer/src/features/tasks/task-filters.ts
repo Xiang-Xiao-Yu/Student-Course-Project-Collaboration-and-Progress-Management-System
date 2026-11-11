@@ -75,3 +75,28 @@ export function countActiveTaskFilters(filters: TaskListFilters): number {
 export function hasActiveTaskFilters(filters: TaskListFilters): boolean {
   return countActiveTaskFilters(filters) > 0;
 }
+
+export function getTaskFilterKey(filters: TaskListFilters): string {
+  return JSON.stringify([
+    filters.search ?? '',
+    filters.assigneeId ?? '',
+    filters.status ?? '',
+    filters.priority ?? '',
+    filters.tag ?? '',
+    filters.iterationId ?? '',
+    filters.dueDateFrom ?? '',
+    filters.dueDateTo ?? '',
+  ]);
+}
+
+export function isTaskFilterResponseCurrent(
+  requestVersion: number,
+  currentVersion: number,
+  requestedFilters: TaskListFilters,
+  currentFilters: TaskListFilters,
+): boolean {
+  return (
+    requestVersion === currentVersion &&
+    getTaskFilterKey(requestedFilters) === getTaskFilterKey(currentFilters)
+  );
+}

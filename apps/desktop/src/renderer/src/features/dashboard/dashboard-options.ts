@@ -58,11 +58,12 @@ export function buildMemberTaskOption(members: readonly DashboardMemberTaskItem[
       member.inProgressTasks,
       member.blockedTasks,
       member.overdueTasks,
+      member.totalTasks,
     ]),
   );
 
   return {
-    color: ['#2563eb', '#2dd4bf', '#d04444', '#f0a13a'],
+    color: ['#94a3b8', '#2563eb', '#2dd4bf', '#d04444', '#f0a13a'],
     grid: { ...grid, bottom: 24 },
     legend: {
       bottom: 0,
@@ -71,6 +72,13 @@ export function buildMemberTaskOption(members: readonly DashboardMemberTaskItem[
       textStyle: { color: textColor, fontSize: 11 },
     },
     series: [
+      {
+        barMaxWidth: 28,
+        data: members.map((member) => member.totalTasks),
+        itemStyle: { opacity: 0.55 },
+        name: '任务总数',
+        type: 'bar',
+      },
       {
         barMaxWidth: 20,
         data: members.map((member) => member.completedTasks),

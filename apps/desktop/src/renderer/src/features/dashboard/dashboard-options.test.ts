@@ -29,9 +29,16 @@ describe('P6 dashboard chart options', () => {
     ]);
 
     expect(Array.isArray(status.series) ? status.series : []).toHaveLength(1);
-    expect(Array.isArray(members.series) ? members.series : []).toHaveLength(4);
+    expect(Array.isArray(members.series) ? members.series : []).toHaveLength(5);
+    expect(members.series).toContainEqual(
+      expect.objectContaining({
+        data: [6],
+        name: '任务总数',
+        type: 'bar',
+      }),
+    );
     expect(members.xAxis).toMatchObject({ data: ['成员 A'], type: 'category' });
-    expect(members.yAxis).toMatchObject({ interval: 1, max: 3, minInterval: 1 });
+    expect(members.yAxis).toMatchObject({ max: 6, minInterval: 1 });
   });
 
   it('边界场景迭代完成率转换为百分比', () => {

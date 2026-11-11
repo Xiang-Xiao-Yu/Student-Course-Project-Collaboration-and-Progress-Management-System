@@ -12,6 +12,7 @@ const hooks = vi.hoisted(() => ({
   cursor: 0,
   effects: [] as Array<() => void>,
   mounted: false,
+  refs: [] as Array<{ current: unknown }>,
   values: [] as unknown[],
 }));
 const requests = vi.hoisted(() => ({
@@ -44,6 +45,13 @@ vi.mock('react', async (importOriginal) => ({
             : value;
       },
     ];
+  },
+  useRef: <T,>(initial: T) => {
+    const index = hooks.cursor++;
+    if (!(index in hooks.refs)) {
+      hooks.refs[index] = { current: initial };
+    }
+    return hooks.refs[index] as { current: T };
   },
 }));
 vi.mock('react-router-dom', async (importOriginal) => ({
@@ -169,6 +177,7 @@ beforeEach(() => {
   hooks.cursor = 0;
   hooks.effects = [];
   hooks.mounted = false;
+  hooks.refs = [];
   hooks.values = [];
   vi.resetAllMocks();
   requests.project.mockResolvedValue(project);

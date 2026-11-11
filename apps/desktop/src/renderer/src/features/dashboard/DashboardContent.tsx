@@ -17,7 +17,7 @@ import {
   formatCompletionRate,
   formatDashboardDateTime,
   getDashboardActivityLabel,
-  isDashboardEmpty,
+  getDashboardSectionVisibility,
 } from './dashboard-presentation';
 
 interface DashboardContentProps {
@@ -46,18 +46,7 @@ export function DashboardContent({ dashboard, projectId }: DashboardContentProps
     () => buildBurndownOption(dashboard.burndown),
     [dashboard.burndown],
   );
-  const hasMemberTasks = dashboard.memberTaskDistribution.some((member) => member.totalTasks > 0);
-
-  if (isDashboardEmpty(dashboard)) {
-    return (
-      <section className="panel panel--large">
-        <EmptyState
-          description="创建需求、任务或迭代后，项目指标、趋势和成员分布会显示在这里。"
-          title="暂无项目数据"
-        />
-      </section>
-    );
-  }
+  const visibility = getDashboardSectionVisibility(dashboard);
 
   return (
     <>
@@ -109,17 +98,24 @@ export function DashboardContent({ dashboard, projectId }: DashboardContentProps
               <p>查看各状态的任务数量与占比。</p>
             </div>
           </div>
-          <DashboardChart ariaLabel="任务状态分布图" option={statusOption} />
+          {visibility.hasTaskStatus ? (
+            <DashboardChart ariaLabel="任务状态分布图" option={statusOption} />
+          ) : (
+            <EmptyState
+              description="当前没有现存任务，历史趋势仍保留在下方。"
+              title="暂无任务状态"
+            />
+          )}
         </section>
 
         <section className="panel">
           <div className="panel__header">
             <div>
               <h2>成员任务分布</h2>
-              <p>对比成员的完成、进行中、阻塞和逾期任务。</p>
+              <p>对比成员的任务总数，以及完成、进行中、阻塞和逾期状态。</p>
             </div>
           </div>
-          {hasMemberTasks ? (
+          {visibility.hasMemberTasks ? (
             <DashboardChart
               ariaLabel="成员任务分布图"
               className="dashboard-chart--tall"
@@ -137,7 +133,11 @@ export function DashboardContent({ dashboard, projectId }: DashboardContentProps
               <p>最近 14 天的当日完成与累计完成情况。</p>
             </div>
           </div>
-          <DashboardChart ariaLabel="任务完成趋势图" option={trendOption} />
+          {visibility.hasCompletionHistory ? (
+            <DashboardChart ariaLabel="任务完成趋势图" option={trendOption} />
+          ) : (
+            <EmptyState description="任务完成或重新打开后显示历史趋势。" title="暂无完成趋势" />
+          )}
         </section>
 
         <section className="panel">
@@ -147,7 +147,7 @@ export function DashboardContent({ dashboard, projectId }: DashboardContentProps
               <p>按迭代比较任务完成比例。</p>
             </div>
           </div>
-          {dashboard.iterationCompletion.length > 0 ? (
+          {visibility.hasIterationTasks ? (
             <DashboardChart ariaLabel="迭代完成率图" option={iterationOption} />
           ) : (
             <EmptyState description="创建迭代并加入任务后显示完成率。" title="暂无迭代数据" />
@@ -162,11 +162,15 @@ export function DashboardContent({ dashboard, projectId }: DashboardContentProps
             <p>比较实际剩余任务与按计划计算的理想剩余任务。</p>
           </div>
         </div>
-        <DashboardChart
-          ariaLabel="项目燃尽图"
-          className="dashboard-chart--wide"
-          option={burndownOption}
-        />
+        {visibility.hasBurndownHistory ? (
+          <DashboardChart
+            ariaLabel="项目燃尽图"
+            className="dashboard-chart--wide"
+            option={burndownOption}
+          />
+        ) : (
+          <EmptyState description="任务产生和完成历史后显示燃尽变化。" title="暂无燃尽数据" />
+        )}
       </section>
 
       <div className="dashboard-lower-grid">

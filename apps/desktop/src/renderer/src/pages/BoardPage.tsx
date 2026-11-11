@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -40,6 +40,7 @@ import {
   EMPTY_TASK_FILTER_VALUES,
   countActiveTaskFilters,
   hasActiveTaskFilters,
+  isTaskFilterResponseCurrent,
   toTaskListFilters,
   validateTaskFilterValues,
 } from '../features/tasks/task-filters';
@@ -133,6 +134,8 @@ export function BoardPage() {
   const [isReassigning, setIsReassigning] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const appliedFiltersRef = useRef<TaskListFilters>({});
+  const filterRequestVersion = useRef(0);
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<BoardState>({ status: 'loading' });
   const [reassignAssigneeId, setReassignAssigneeId] = useState('');
@@ -155,6 +158,10 @@ export function BoardPage() {
     }
 
     let isCancelled = false;
+    const requestVersion = filterRequestVersion.current + 1;
+
+    filterRequestVersion.current = requestVersion;
+    appliedFiltersRef.current = appliedFilters;
 
     setState({ status: 'loading' });
     void Promise.all([
@@ -165,7 +172,15 @@ export function BoardPage() {
       listTasks(api, projectId, appliedFilters),
     ])
       .then(([project, iterations, members, requirements, tasks]) => {
-        if (!isCancelled) {
+        if (
+          !isCancelled &&
+          isTaskFilterResponseCurrent(
+            requestVersion,
+            filterRequestVersion.current,
+            appliedFilters,
+            appliedFiltersRef.current,
+          )
+        ) {
           setState({
             data: { iterations, members, project, requirements, tasks },
             status: 'ready',
@@ -204,13 +219,26 @@ export function BoardPage() {
       return;
     }
 
+    const requestedFilters = appliedFilters;
+    const requestVersion = filterRequestVersion.current;
+
     try {
-      const tasks = await listTasks(api, projectId, appliedFilters);
-      setState((current) =>
-        current.status === 'ready'
-          ? { data: { ...current.data, tasks }, status: 'ready' }
-          : current,
-      );
+      const tasks = await listTasks(api, projectId, requestedFilters);
+
+      if (
+        isTaskFilterResponseCurrent(
+          requestVersion,
+          filterRequestVersion.current,
+          requestedFilters,
+          appliedFiltersRef.current,
+        )
+      ) {
+        setState((current) =>
+          current.status === 'ready'
+            ? { data: { ...current.data, tasks }, status: 'ready' }
+            : current,
+        );
+      }
     } catch (error) {
       setCreateMessage({ text: getUserFacingError(error), type: 'error' });
     }

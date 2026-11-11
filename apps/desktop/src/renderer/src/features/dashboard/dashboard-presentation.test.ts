@@ -4,6 +4,7 @@ import type { ProjectDashboard } from './dashboard-api';
 import {
   formatCompletionRate,
   getDashboardActivityLabel,
+  getDashboardSectionVisibility,
   isDashboardEmpty,
 } from './dashboard-presentation';
 
@@ -66,5 +67,44 @@ describe('P6 dashboard presentation', () => {
         }),
       ),
     ).toBe(false);
+  });
+
+  it('任务删除后仍保留历史趋势和近期活动', () => {
+    const historical = dashboard({
+      burndown: [
+        {
+          completedTasks: 1,
+          date: '2026-11-10',
+          idealRemainingTasks: 1,
+          remainingTasks: 0,
+        },
+      ],
+      completionTrend: [
+        {
+          completed: 1,
+          cumulativeCompleted: 1,
+          date: '2026-11-10',
+        },
+      ],
+      recentActivities: [
+        {
+          action: 'TASK_DELETED',
+          actor: null,
+          afterValue: null,
+          beforeValue: null,
+          createdAt: '2026-11-10T00:00:00.000Z',
+          id: 'activity-1',
+          targetId: 'task-1',
+          targetType: 'TASK',
+        },
+      ],
+    });
+
+    expect(getDashboardSectionVisibility(historical)).toMatchObject({
+      hasBurndownHistory: true,
+      hasCompletionHistory: true,
+      hasTaskStatus: false,
+    });
+    expect(isDashboardEmpty(historical)).toBe(false);
   });
 });

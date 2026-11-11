@@ -147,17 +147,37 @@ class PageReplay {
   }
 
   changeTitle(value: string): void {
-    this.props<ComponentProps<'input'>>('input').onChange?.({
+    this.props<ComponentProps<'input'>>('input', 0).onChange?.({
+      target: { value },
+    } as ChangeEvent<HTMLInputElement>);
+    this.render();
+  }
+
+  changeSearch(value: string): void {
+    this.props<ComponentProps<'input'>>('input', 1).onChange?.({
       target: { value },
     } as ChangeEvent<HTMLInputElement>);
     this.render();
   }
 
   submit(): void {
-    this.props<ComponentProps<'form'>>('form').onSubmit?.({
+    this.props<ComponentProps<'form'>>('form', 0).onSubmit?.({
       preventDefault: vi.fn(),
     } as unknown as Parameters<NonNullable<ComponentProps<'form'>['onSubmit']>>[0]);
     this.render();
+  }
+
+  submitSearch(): void {
+    this.props<ComponentProps<'form'>>('form', 1).onSubmit?.({
+      preventDefault: vi.fn(),
+    } as unknown as Parameters<NonNullable<ComponentProps<'form'>['onSubmit']>>[0]);
+    this.render();
+  }
+
+  requirementNumbers(): string[] {
+    return this.find('span')
+      .filter((element) => String(element.props.className).includes('requirement-number'))
+      .map((element) => String(element.props.children));
   }
 
   confirmDelete(): void {
@@ -304,8 +324,39 @@ describe('FR-04 需求页面异步操作回归', () => {
     boundary.api.post.mockResolvedValueOnce(requirement('new', '新需求草稿'));
     page.submit();
     await page.settle();
+    await page.settle();
     expect(page.title()).toBe('');
     expect(page.guardsUnsavedChanges()).toBe(false);
+  });
+
+  it('创建等待期间切换搜索后按当前搜索条件刷新列表', async () => {
+    const pending = deferred<RequirementDto>();
+    boundary.api.post.mockReturnValueOnce(pending.promise);
+    boundary.api.get.mockImplementation(async (path) => {
+      if (path === '/projects/project-1') return project;
+      if (path.endsWith('search=beta')) return [requirement('beta', 'beta 需求')];
+      if (path === '/projects/project-1/requirements') return [requirement('alpha', 'alpha 需求')];
+      return [];
+    });
+    const page = new PageReplay(RequirementsPage);
+    await page.settle();
+
+    page.changeTitle('alpha 新建需求');
+    page.submit();
+    page.changeSearch('beta');
+    page.submitSearch();
+    await page.settle();
+
+    pending.resolve(requirement('new', 'alpha 新建需求'));
+    await page.settle();
+    await page.settle();
+
+    expect(page.props<ComponentProps<'input'>>('input', 1).value).toBe('beta');
+    expect(page.requirementNumbers()).toEqual(['REQ-beta']);
+    const requirementRequests = boundary.api.get.mock.calls
+      .map(([path]) => path)
+      .filter((path) => path.startsWith('/projects/project-1/requirements'));
+    expect(requirementRequests.at(-1)).toContain('search=beta');
   });
 
   it('脏表单删除成功先解除离开提示并关闭弹窗，再返回列表', async () => {

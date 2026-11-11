@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_TASK_FILTER_VALUES,
   countActiveTaskFilters,
+  getTaskFilterKey,
   hasActiveTaskFilters,
+  isTaskFilterResponseCurrent,
   toTaskListFilters,
   validateTaskFilterValues,
 } from './task-filters';
@@ -63,5 +65,14 @@ describe('P6 task filters', () => {
         dueDateTo: '2026-11-1',
       }),
     ).toBe('截止日期筛选的结束日期无效，请使用 YYYY-MM-DD 格式。');
+  });
+
+  it('旧筛选响应不能覆盖当前筛选结果', () => {
+    const alpha = toTaskListFilters({ ...EMPTY_TASK_FILTER_VALUES, search: 'alpha' });
+    const beta = toTaskListFilters({ ...EMPTY_TASK_FILTER_VALUES, search: 'beta' });
+
+    expect(getTaskFilterKey(alpha)).not.toBe(getTaskFilterKey(beta));
+    expect(isTaskFilterResponseCurrent(1, 2, alpha, beta)).toBe(false);
+    expect(isTaskFilterResponseCurrent(2, 2, beta, beta)).toBe(true);
   });
 });
