@@ -1,21 +1,29 @@
 // Real Electron + API + SQLite regression for P7 MVP and role boundaries.
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 
-const root = resolve(process.argv[2] ?? '');
+if (process.argv.slice(2).length !== 4) {
+  throw new Error(
+    'Usage: node p7-mvp-regression.mjs root playwrightPackage electronExe apiBaseUrl',
+  );
+}
+const root = resolve(process.argv[2]);
 const playwrightPackage = process.argv[3];
 const electronExe = process.argv[4];
 const apiBaseUrl = process.argv[5];
-const runDirectory = join(root, 'tmp', 'p7-mvp-regression-' + Date.now());
+const runDirectory = process.env.P7_OUTPUT_DIRECTORY
+  ? resolve(process.env.P7_OUTPUT_DIRECTORY)
+  : join(root, 'tmp', 'p7-mvp-regression-' + Date.now());
 mkdirSync(runDirectory, { recursive: true });
 
 const { _electron } = createRequire(playwrightPackage)('playwright');
-const password = 'P7-regression-password-123';
+const password = randomBytes(24).toString('base64url');
 const results = [];
 let electronApp;
 let page;
+const rendererErrors = [];
 
 function logStep(label) {
   console.log(`[p7] ${label}`);
@@ -82,6 +90,7 @@ async function login(user) {
     page.getByRole('button', { name: '登录', exact: true }).click(),
   ]);
   check(response.status() === 200, `Login failed for ${user.username}: ${response.status()}`);
+  user.token = (await response.json()).data.accessToken;
   await page.evaluate(() => {
     globalThis.location.hash = '#/projects';
   });
@@ -104,6 +113,86 @@ function currentProjectId() {
   return decodeURIComponent(match[1]);
 }
 
+async function taskTransition(title, action, status, note) {
+  const card = page.locator('.task-card').filter({ hasText: title });
+  await card.getByRole('button', { name: '编辑任务', exact: true }).click();
+  await page.getByRole('button', { name: action, exact: true }).click();
+  if (note) {
+    await page.locator('.task-status-dialog textarea').fill(note);
+    await page.getByRole('button', { name: '确认提交', exact: true }).click();
+  }
+  await page.getByText(`任务已更新为“${status}”。`, { exact: true }).waitFor();
+}
+
+async function saveAcceptanceResult(result, reason) {
+  const detail = page.locator('.acceptance-detail-panel');
+  await detail.getByRole('button', { name: `进入“${result}”`, exact: true }).click();
+  if (reason) {
+    await detail.getByLabel('未通过原因', { exact: true }).fill(reason);
+  }
+  await detail.getByRole('button', { name: '保存验收', exact: true }).click();
+  await page.getByText('阶段验收已保存。', { exact: true }).waitFor();
+  await detail
+    .locator('.panel__header .acceptance-result')
+    .getByText(result, { exact: true })
+    .waitFor();
+}
+
+async function verifyPassedAcceptance(remediationTitle) {
+  const detail = page.locator('.acceptance-detail-panel');
+  await detail.getByRole('heading', { name: 'P7 阶段验收', exact: true }).waitFor();
+  await detail
+    .locator('.panel__header .acceptance-result')
+    .getByText('已通过', { exact: true })
+    .waitFor();
+  const task = detail.locator('.linked-task-row').filter({ hasText: remediationTitle });
+  await task.getByRole('link', { name: remediationTitle, exact: true }).waitFor();
+  await task.getByText('已完成', { exact: true }).waitFor();
+}
+
+async function verifyDashboard() {
+  const metrics = page.locator('.metric-card');
+  await metrics
+    .filter({ has: page.getByText('任务总数', { exact: true }) })
+    .getByText('3', { exact: true })
+    .waitFor();
+  await metrics
+    .filter({ has: page.getByText('任务完成率', { exact: true }) })
+    .getByText('66.67%', { exact: true })
+    .waitFor();
+}
+
+async function downloadProgressReport(projectName, projectId) {
+  const index = await electronApp.evaluate(() => globalThis.p7Downloads.length);
+  await page.getByRole('button', { name: '导出项目进度报告', exact: true }).click();
+  let item;
+  for (let attempt = 0; attempt < 150; attempt++) {
+    item = await electronApp.evaluate((_electron, i) => globalThis.p7Downloads[i], index);
+    if (item?.state) break;
+    await page.waitForTimeout(100);
+  }
+  check(
+    item?.state === 'completed',
+    `Progress report download failed: ${item?.state ?? 'missing'}`,
+  );
+  check(item.filename === `progress-${projectId}.csv`, 'Progress report filename mismatch');
+  const bytes = readFileSync(item.path);
+  check(bytes.subarray(0, 3).toString('hex') === 'efbbbf', 'CSV UTF-8 BOM missing');
+  const lines = bytes
+    .toString('utf8')
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/);
+  for (const line of [
+    `"项目","${projectName}"`,
+    '"任务总数","3"',
+    '"已完成任务","2"',
+    '"任务完成率","66.67%"',
+  ]) {
+    check(lines.includes(line), `Progress report row mismatch: ${line}`);
+  }
+  await page.getByText('项目进度报告已导出。', { exact: true }).waitFor();
+}
+
 try {
   const owner = await createAccount('owner', 'P7 项目负责人');
   const member = await createAccount('member', 'P7 项目成员');
@@ -119,8 +208,24 @@ try {
     env: { ...process.env, ELECTRON_API_BASE_URL: apiBaseUrl },
     timeout: 20000,
   });
+  await electronApp.evaluate(({ session }, destination) => {
+    globalThis.p7Downloads = [];
+    session.defaultSession.on('will-download', (_event, item) => {
+      const record = {
+        filename: item.getFilename(),
+        path: `${destination}/download-${globalThis.p7Downloads.length}.csv`,
+        state: null,
+      };
+      globalThis.p7Downloads.push(record);
+      item.setSavePath(record.path);
+      item.once('done', (_doneEvent, state) => {
+        record.state = state;
+      });
+    });
+  }, runDirectory);
   page = await electronApp.firstWindow();
   page.setDefaultTimeout(15000);
+  page.on('pageerror', (error) => rendererErrors.push(error.message));
   page.on('dialog', (dialog) => {
     void dialog.accept().catch(() => undefined);
   });
@@ -311,37 +416,82 @@ try {
   await actionRow.getByRole('link', { name: '查看任务', exact: true }).waitFor();
   results.push({ name: 'iteration-meeting-action-flow', status: 'passed' });
 
-  const failedAcceptance = await apiRequest(
-    `/projects/${projectId}/acceptances`,
-    'POST',
-    owner.token,
-    {
-      acceptanceDate: '2026-11-25',
-      failureReason: '首次验收发现整改项。',
-      goal: '确认 P7 MVP 主流程可用',
-      participantIds: [owner.id, member.id, observer.id],
-      result: 'FAILED',
-      stageName: 'P7 阶段验收',
-      standards: '需求拆解、任务流转、审核和统计均可用。',
-    },
+  logStep('UI acceptance failure, remediation and re-acceptance');
+  await sidebar.getByRole('link', { name: '阶段验收', exact: true }).click();
+  const acceptanceForm = page.locator('.acceptance-create-panel');
+  await acceptanceForm.getByLabel('验收阶段名称', { exact: true }).fill('P7 阶段验收');
+  await acceptanceForm.getByLabel('验收日期', { exact: true }).fill('2026-11-25');
+  await acceptanceForm.getByLabel('验收目标', { exact: true }).fill('确认 P7 MVP 主流程可用');
+  await acceptanceForm
+    .getByLabel('验收标准', { exact: true })
+    .fill('整改完成后重新验收，统计与导出一致。');
+  await acceptanceForm
+    .getByRole('checkbox', { name: `${owner.nickname} (@${owner.username})`, exact: true })
+    .check();
+  await acceptanceForm.getByRole('button', { name: '创建阶段验收', exact: true }).click();
+  await page.getByRole('heading', { name: 'P7 阶段验收', exact: true }).waitFor();
+  await saveAcceptanceResult('验收中');
+  await saveAcceptanceResult('未通过', '首次验收发现整改项。');
+
+  const remediationTitle = 'P7 验收整改任务';
+  const remediationForm = page.locator('.remediation-form');
+  await remediationForm.getByLabel('整改任务标题', { exact: true }).fill(remediationTitle);
+  await remediationForm.getByRole('combobox', { name: /^负责人/ }).selectOption(member.id);
+  await remediationForm.getByLabel('截止日期', { exact: true }).fill('2026-11-24');
+  await remediationForm
+    .getByRole('combobox', { name: /^关联需求/ })
+    .selectOption(createdRequirement.id);
+  await remediationForm.getByRole('button', { name: '创建整改任务', exact: true }).click();
+  await page.getByText('整改任务已创建。', { exact: true }).waitFor();
+  await page
+    .locator('.linked-task-row')
+    .getByRole('link', { name: remediationTitle, exact: true })
+    .waitFor();
+  const acceptanceList = await apiRequest(`/projects/${projectId}/acceptances`, 'GET', owner.token);
+  const acceptance = acceptanceList.find((item) => item.stageName === 'P7 阶段验收');
+  check(acceptance?.result === 'FAILED', 'Failed acceptance was not persisted');
+  const remediationTasks = (
+    await apiRequest(`/projects/${projectId}/tasks`, 'GET', owner.token)
+  ).filter((task) => task.title === remediationTitle);
+  check(remediationTasks.length === 1, 'Expected exactly one remediation task');
+  check(
+    remediationTasks[0].acceptanceId === acceptance.id &&
+      remediationTasks[0].requirementId === createdRequirement.id,
+    'Remediation task is linked to the wrong acceptance or requirement',
   );
-  await apiRequest(`/projects/${projectId}/tasks`, 'POST', owner.token, {
-    acceptanceId: failedAcceptance.id,
-    assigneeId: member.id,
-    description: '完成 P7 首次验收整改。',
-    dueDate: '2026-11-24',
-    priority: 'HIGH',
-    requirementId: createdRequirement.id,
-    title: 'P7 验收整改任务',
-  });
-  await apiRequest(
-    `/projects/${projectId}/acceptances/${failedAcceptance.id}`,
-    'PATCH',
+
+  await logout();
+  await login(member);
+  await enterProject();
+  await sidebar.getByRole('link', { name: '任务看板', exact: true }).click();
+  await taskTransition(remediationTitle, '移至待开始', '待开始');
+  await taskTransition(remediationTitle, '开始处理', '进行中');
+  await taskTransition(remediationTitle, '提交审核', '待审核', 'P7 整改已完成，请负责人复核。');
+  await logout();
+  await login(owner);
+  await enterProject();
+  await sidebar.getByRole('link', { name: '任务看板', exact: true }).click();
+  await taskTransition(remediationTitle, '审核通过', '已完成', 'P7 整改审核通过。');
+  await sidebar.getByRole('link', { name: '阶段验收', exact: true }).click();
+  await page.getByRole('heading', { name: 'P7 阶段验收', exact: true }).waitFor();
+  await saveAcceptanceResult('验收中');
+  await saveAcceptanceResult('已通过');
+  await page.reload();
+  await verifyPassedAcceptance(remediationTitle);
+  const persistedAcceptance = await apiRequest(
+    `/projects/${projectId}/acceptances/${acceptance.id}`,
+    'GET',
     owner.token,
-    {
-      failureReason: '',
-      result: 'PASSED',
-    },
+  );
+  check(
+    persistedAcceptance.result === 'PASSED' && persistedAcceptance.failureReason === null,
+    'Re-acceptance result was not persisted',
+  );
+  check(
+    persistedAcceptance.remediationTasks.some(
+      (task) => task.id === remediationTasks[0].id && task.status === 'COMPLETED',
+    ),
+    'Completed remediation association was not persisted',
   );
 
   await page.route('**/dashboard', async (route) => route.abort());
@@ -350,19 +500,17 @@ try {
   await page.unroute('**/dashboard');
   await page.getByRole('button', { name: '重试', exact: true }).click();
   await page.locator('.dashboard-chart canvas').first().waitFor();
+  await verifyDashboard();
   results.push({ name: 'dashboard-failure-retry', status: 'passed' });
   await capture('owner-dashboard.png');
 
   await sidebar.getByRole('link', { name: '统计与导出', exact: true }).click();
   await page.getByRole('heading', { name: '统计与导出', exact: true }).waitFor();
-  const [progressResponse] = await Promise.all([
-    page.waitForResponse((response) => response.url().includes('/reports/progress')),
-    page.getByRole('button', { name: '导出项目进度报告', exact: true }).click(),
-  ]);
-  check(progressResponse.status() === 200, 'P7 progress report export failed');
+  await verifyDashboard();
+  await downloadProgressReport(projectName, projectId);
   await capture('owner-reports.png');
   await page.getByRole('link', { name: '阶段验收', exact: true }).click();
-  await page.getByRole('heading', { name: 'P7 阶段验收', exact: true }).waitFor();
+  await verifyPassedAcceptance(remediationTitle);
   results.push({ name: 'acceptance-dashboard-report', status: 'passed' });
   await capture('owner-acceptance.png');
 
@@ -396,9 +544,14 @@ try {
   );
   results.push({ name: 'cross-project-isolation', status: 'passed' });
 
+  check(rendererErrors.length === 0, 'Renderer reported an unhandled error');
   writeFileSync(join(runDirectory, 'results.json'), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ runDirectory, results }, null, 2));
 } catch (error) {
+  writeFileSync(
+    join(runDirectory, 'results.json'),
+    JSON.stringify({ results, status: 'failed' }, null, 2),
+  );
   if (page) {
     await capture('failure.png').catch(() => undefined);
     const text = await page
@@ -409,5 +562,7 @@ try {
   }
   throw error;
 } finally {
+  // Failed assertions may leave a draft whose unsaved-change guard blocks close().
+  await electronApp?.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
   await electronApp?.close().catch(() => undefined);
 }
