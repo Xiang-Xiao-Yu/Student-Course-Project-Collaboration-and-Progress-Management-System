@@ -51,6 +51,7 @@ export interface ChangePasswordResponseDto {
 }
 
 export interface UserProfileDto {
+  readonly isPlatformAdmin?: boolean;
   readonly avatarUrl: string | null;
   readonly createdAt: string;
   readonly id: string;

@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 
 import { ErrorNotice } from '../components/ErrorNotice';
 import { useSession } from '../features/auth/session';
+import { AdminUsersLink } from '../features/users/AdminUsersLink';
 
 export function AccountLayout() {
   const { session, signOut, signOutError } = useSession();
@@ -20,6 +21,7 @@ export function AccountLayout() {
         </Link>
 
         <nav aria-label="账户导航" className="account-nav">
+          <AdminUsersLink className="account-link" />
           <NavLink
             className={({ isActive }) => `account-link${isActive ? ' is-active' : ''}`}
             to="/account/profile"

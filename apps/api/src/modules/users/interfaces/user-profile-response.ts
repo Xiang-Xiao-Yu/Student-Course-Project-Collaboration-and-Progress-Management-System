@@ -1,4 +1,5 @@
 export interface UserProfileResponse {
+  isPlatformAdmin: boolean;
   avatarUrl: string | null;
   createdAt: string;
   id: string;

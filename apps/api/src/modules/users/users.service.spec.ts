@@ -54,6 +54,7 @@ describe('UsersService', () => {
     });
 
     await expect(service.getProfile('user-1')).resolves.toEqual({
+      isPlatformAdmin: false,
       avatarUrl: null,
       createdAt: '2026-10-13T10:00:00.000Z',
       id: 'user-1',
@@ -128,6 +129,7 @@ describe('UsersService.updateProfile', () => {
         nickname: '新昵称',
       }),
     ).resolves.toEqual({
+      isPlatformAdmin: false,
       avatarUrl: 'https://example.com/avatar.png',
       createdAt: '2026-10-13T10:00:00.000Z',
       id: 'user-1',

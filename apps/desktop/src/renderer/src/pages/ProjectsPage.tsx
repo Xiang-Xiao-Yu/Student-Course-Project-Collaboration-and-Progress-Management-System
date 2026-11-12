@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AdminUsersLink } from '../features/users/AdminUsersLink';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -115,6 +116,7 @@ export function ProjectsPage() {
         when={hasCreateDraft && !isCreating}
       />
       <PageHeader title="项目中心" description="选择工作区，或创建一个新的课程项目。" />
+      <AdminUsersLink />
 
       <section className="panel project-create-panel">
         <div className="panel__header">

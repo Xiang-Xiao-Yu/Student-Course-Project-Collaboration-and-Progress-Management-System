@@ -224,6 +224,18 @@ model ActivityLog {
   @@index([actorId])
 }
 
+model UserDisableAudit {
+  id           String   @id @default(cuid())
+  actorId      String
+  targetUserId String
+  beforeStatus String
+  afterStatus  String
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([actorId, createdAt])
+}
+
 model ProjectDeletionAudit {
   id            String   @id @default(cuid())
   projectId     String
