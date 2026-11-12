@@ -172,7 +172,7 @@ try {
   page.setDefaultTimeout(8000);
   page.on('dialog', (dialog) => void dialog.accept().catch(() => {}));
   async function checkWorkspaceAvatar(preview) {
-    await page.getByRole('link', { name: '返回项目', exact: true }).click();
+    await page.getByRole('link', { name: /^(返回项目|项目中心)$/ }).click();
     const headerAvatar = page.locator('.user-chip__avatar img');
     await headerAvatar.waitFor();
     check((await headerAvatar.getAttribute('src')) === preview, 'Header shows a different avatar');
@@ -552,7 +552,7 @@ try {
       await page.getByRole('button', { name: '登录', exact: true }).click();
       await page.getByRole('link', { name: '个人资料', exact: true }).click();
       await page.getByRole('button', { name: '保存资料', exact: true }).waitFor();
-      await page.getByRole('link', { name: '返回项目', exact: true }).click();
+      await page.getByRole('link', { name: /^(返回项目|项目中心)$/ }).click();
       check(
         (await page.locator('.user-chip__avatar img').count()) === 0,
         'The new account inherited the previous avatar',
