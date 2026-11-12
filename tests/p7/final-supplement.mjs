@@ -12,7 +12,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const [playwrightPackage, electronExe] = process.argv.slice(2);
 assert(playwrightPackage && electronExe, 'Required: playwright/package.json electron.exe');
-const baseline = '2d4d6004ceffdf2099f8bb75f10f01f0cb94800c';
+const baseline = process.env.P7_ACCEPTANCE_BASE ?? '2d4d6004ceffdf2099f8bb75f10f01f0cb94800c';
 execFileSync(
   'git',
   [
@@ -28,7 +28,10 @@ execFileSync(
   ],
   { cwd: root, stdio: 'pipe' },
 );
-const output = join(root, 'tmp/p7-final-2026-11-12', `supplement-${Date.now()}`);
+const evidenceRoot = process.env.P7_EVIDENCE_ROOT
+  ? resolve(process.env.P7_EVIDENCE_ROOT)
+  : join(root, 'tmp/p7-final-2026-11-12');
+const output = join(evidenceRoot, `supplement-${Date.now()}`);
 mkdirSync(output, { recursive: true });
 const database = join(output, 'p7.sqlite');
 writeFileSync(database, '', { flag: 'wx' });

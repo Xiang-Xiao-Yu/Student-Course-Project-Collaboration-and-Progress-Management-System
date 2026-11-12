@@ -134,6 +134,7 @@ export class UsersService {
     uploadedDataUrl?: string,
   ): Promise<UserProfileResponse> {
     return {
+      isPlatformAdmin: user.isPlatformAdmin === true,
       avatarUrl: uploadedDataUrl ?? (await this.avatarStorage.toDataUrl(user.id, user.avatarUrl)),
       createdAt: user.createdAt.toISOString(),
       id: user.id,

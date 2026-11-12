@@ -21,6 +21,7 @@ import { RequirementsPage } from '../pages/RequirementsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { TaskDetailPage } from '../pages/TaskDetailPage';
 import { IterationsPage } from '../pages/IterationsPage';
+import { AdminUsersPage } from '../pages/AdminUsersPage';
 
 export const appRoutes: RouteObject[] = [
   {
@@ -50,6 +51,10 @@ export const appRoutes: RouteObject[] = [
       {
         path: 'tasks',
         element: <MyTasksPage />,
+      },
+      {
+        path: 'users',
+        element: <AdminUsersPage />,
       },
     ],
   },

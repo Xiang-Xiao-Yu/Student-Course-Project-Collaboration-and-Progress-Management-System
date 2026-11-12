@@ -9,7 +9,10 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const evidence = join(root, 'tmp/p7-final-2026-11-12/dashboard');
+const evidenceRoot = process.env.P7_EVIDENCE_ROOT
+  ? resolve(process.env.P7_EVIDENCE_ROOT)
+  : join(root, 'tmp/p7-final-2026-11-12');
+const evidence = join(evidenceRoot, 'dashboard');
 const run = join(evidence, 'run-' + Date.now());
 await mkdir(run, { recursive: true });
 execFileSync(
@@ -17,7 +20,7 @@ execFileSync(
   [
     'diff',
     '--exit-code',
-    '2d4d6004ceffdf2099f8bb75f10f01f0cb94800c',
+    process.env.P7_ACCEPTANCE_BASE ?? '2d4d6004ceffdf2099f8bb75f10f01f0cb94800c',
     '--',
     'apps',
     'packages',

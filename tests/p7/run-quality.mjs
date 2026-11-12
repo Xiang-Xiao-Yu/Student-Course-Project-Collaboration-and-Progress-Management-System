@@ -4,9 +4,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const output = join(root, 'tmp/p7-final-2026-11-12/quality');
+const evidence = process.env.P7_EVIDENCE_ROOT
+  ? resolve(process.env.P7_EVIDENCE_ROOT)
+  : join(root, 'tmp/p7-final-2026-11-12');
+const output = join(evidence, 'quality');
 mkdirSync(output, { recursive: true });
-const baseline = '2d4d6004ceffdf2099f8bb75f10f01f0cb94800c';
+const baseline = process.env.P7_ACCEPTANCE_BASE ?? '2d4d6004ceffdf2099f8bb75f10f01f0cb94800c';
 execFileSync(
   'git',
   [

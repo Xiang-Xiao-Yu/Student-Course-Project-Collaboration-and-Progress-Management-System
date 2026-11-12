@@ -7,6 +7,7 @@ const userProfileSelect = {
   avatarUrl: true,
   createdAt: true,
   id: true,
+  isPlatformAdmin: true,
   nickname: true,
   status: true,
   updatedAt: true,
@@ -14,6 +15,7 @@ const userProfileSelect = {
 } satisfies Prisma.UserSelect;
 
 export interface UserProfileRecord {
+  isPlatformAdmin: boolean;
   avatarUrl: string | null;
   createdAt: Date;
   id: string;

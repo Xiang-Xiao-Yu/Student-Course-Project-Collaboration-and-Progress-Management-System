@@ -18,6 +18,9 @@ export class ApiError extends Error {
 }
 
 const messageByCode: Record<string, string> = {
+  ADMIN_PERMISSION_DENIED: '仅平台管理员可以管理用户。',
+  USER_ADMIN_PROTECTED: '管理员账号受保护，不能禁用。',
+  USER_CONFIRMATION_MISMATCH: '确认的用户名不匹配，请刷新后重试。',
   AUTH_INVALID_CREDENTIALS: '用户名或密码错误。',
   AUTH_SESSION_EXPIRED: '登录状态已失效，请重新登录。',
   AUTH_CURRENT_PASSWORD_INVALID: '当前密码不正确。',
