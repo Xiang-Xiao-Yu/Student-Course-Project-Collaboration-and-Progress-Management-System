@@ -8,7 +8,9 @@
 
 ## 1. 当前状态
 
-P0（基础工程与契约）脚手架已完成：工作区、启动命令、环境变量模板、Prisma Schema 骨架，以及可跑通的 `lint`、`typecheck`、`test`、`build` 链路。业务实现由 T-01、T-02 在完成任务认领后按阶段推进，不在本仓库脚手架范围内。
+本仓库包含 Windows 0.1.10 的 MVP 业务源码。结项范围为 FR-01～FR-11、AC-01～AC-11，依据[需求规格 0.1.6](docs/需求规格说明书.md)。检查结果、安装包校验值及尚待人工确认的事项见[结项检查](docs/结项文档/0.1.10-结项检查.md)。
+
+已取得课程安装包的用户可运行 `SCPC-0.1.10-x64.msi`，从安装目录的 `SCPC.exe` 或开始菜单启动。便携版请放在可写目录运行。发行包与测试数据不纳入 Git。空库调试管理员的首次登录信息由交付人单独提供，已有库沿用自己的密码。
 
 | 工作区                 | 路径               | 技术栈                  | 负责方 |
 | ---------------------- | ------------------ | ----------------------- | ------ |
@@ -33,9 +35,10 @@ git clone https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-
 cd Student-Course-Project-Collaboration-and-Progress-Management-System
 
 pnpm install --frozen-lockfile
-Copy-Item .env.example .env
+if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
 powershell -ExecutionPolicy Bypass -File scripts/set-agent-file-attributes.ps1
 
+pnpm db:generate
 pnpm db:migrate
 pnpm lint
 pnpm typecheck
@@ -65,7 +68,7 @@ P0 约定的启动命令（与 `docs/P0-工程与契约约定.md` 第 4 节一�
 | `pnpm lint`                      | 执行 ESLint 与 Prettier 检查                    |
 | `pnpm typecheck`                 | 执行 TypeScript 严格类型检查                    |
 
-`pnpm db:seed` 依赖 T-01 在 P0.2 中建立的 `prisma/seed.ts`；该文件尚未建立时命令会以模块缺失失败，属于预期状态。
+首次启动前在本地配置中设置随机的 `JWT_SECRET`。开发库需要示例数据时才运行 `pnpm db:seed`。
 
 ## 5. 数据库与目录约定
 
@@ -115,7 +118,7 @@ P0 约定的启动命令（与 `docs/P0-工程与契约约定.md` 第 4 节一�
 | 文档                        | 内容                                          |
 | --------------------------- | --------------------------------------------- |
 | `docs/README.md`            | `docs/` 交付物索引与维护规则                  |
-| `docs/需求规格说明书.md`    | 需求基线：FR-01～FR-15、AC-01～AC-10          |
+| `docs/需求规格说明书.md`    | 需求基线：FR-01～FR-15、AC-01～AC-11          |
 | `docs/P0-工程与契约约定.md` | P0 目录、命令、环境变量、响应格式与数据库约定 |
 | `docs/design/ui-demo.html`  | P0 前端风格演示（纯静态页面）                 |
 | `docs/ai-logs/README.md`    | 智能体日志规范与模板                          |
@@ -126,7 +129,6 @@ P0 约定的启动命令（与 `docs/P0-工程与契约约定.md` 第 4 节一�
 | 现象                                               | 处理方式                                                                                       |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `pnpm db:migrate` 报 `Error: Schema engine error:` | 确认 `data/` 目录与 `data/app.db` 是否存在；直接重新执行 `pnpm db:migrate`，脚本会补齐后再迁移 |
-| `pnpm db:seed` 报 `ERR_MODULE_NOT_FOUND`           | `prisma/seed.ts` 由 T-01 在 P0.2 建立，尚未实现时属于预期失败                                  |
 | PowerShell 拒绝执行脚本                            | 使用 `powershell -ExecutionPolicy Bypass -File <脚本路径>`                                     |
 | `pnpm install` 提示 Node 版本不符                  | 升级到 Node.js 24.18.0 及以上，或按团队约定统一版本                                            |
 

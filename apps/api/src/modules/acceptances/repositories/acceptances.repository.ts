@@ -96,7 +96,7 @@ export interface AcceptanceDetailRecord extends AcceptanceSummaryRecord {
 }
 
 export interface AcceptanceWriteInput {
-  acceptanceDate?: Date;
+  acceptanceDate?: Date | null;
   failureReason?: string | null;
   goal?: string | null;
   participantIds?: string[];

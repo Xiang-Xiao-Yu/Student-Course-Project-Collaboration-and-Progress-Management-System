@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { seedOwnedProject } from '../../test-support/project-owner';
 
 import { vi } from 'vitest';
 
@@ -124,6 +125,7 @@ describe('P3 requirements and tasks with SQLite', () => {
     for (const name of ['owner', 'member', 'outsider'] as const) {
       accounts[name] = await createAccount(name);
     }
+    await seedOwnedProject(prisma, accounts.owner.id);
   });
 
   afterAll(async () => {

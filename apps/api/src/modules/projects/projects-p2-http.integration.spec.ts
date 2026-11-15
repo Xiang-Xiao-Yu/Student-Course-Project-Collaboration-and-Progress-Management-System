@@ -197,6 +197,57 @@ describe('P2 project and member API with isolated SQLite', () => {
     expect(response.status).toBe(201);
   }
 
+  it('allows independent creation and scopes transfers and deletion to authorized actors', async () => {
+    const actor = await createAccount('资格变更');
+    const replacement = await createAccount('新负责人');
+    const permission = async () => {
+      const response = await request('/projects/creation-permission', 'GET', actor.token);
+      expect(response.status).toBe(200);
+      return ((await response.json()) as SuccessBody<{ canCreate: boolean }>).data.canCreate;
+    };
+    expect(await permission()).toBe(true);
+    const owned = await createProject(actor, '第一个项目');
+    expect(owned.ownerId).toBe(actor.userId);
+    const other = await createProject(replacement, '其他项目');
+    await invite(replacement, other.id, actor, 'OBSERVER');
+    expect(await permission()).toBe(true);
+    await invite(actor, owned.id, replacement, 'MEMBER');
+    const admin = await createAccount('平台监管');
+    await prisma.user.update({ where: { id: admin.userId }, data: { isPlatformAdmin: true } });
+    const target = `/projects/${owned.id}/members/${replacement.userId}`;
+    const denied = await request(target, 'PATCH', admin.token, { role: 'OWNER' });
+    expect(denied.status).toBe(403);
+    expect((await prisma.project.findUniqueOrThrow({ where: { id: owned.id } })).ownerId).toBe(
+      actor.userId,
+    );
+    const transfer = await request(target, 'PATCH', actor.token, { role: 'OWNER' });
+    expect(transfer.status).toBe(200);
+    expect(
+      await prisma.projectMember.findMany({
+        where: { projectId: owned.id, role: 'OWNER' },
+        select: { userId: true },
+      }),
+    ).toEqual([{ userId: replacement.userId }]);
+    expect(await permission()).toBe(true);
+    expect((await createProject(actor, '移交后的新项目')).ownerId).toBe(actor.userId);
+    const path = `/projects/${owned.id}`;
+    const confirm = { confirmName: owned.name };
+    expect((await request(path, 'DELETE', actor.token, confirm)).status).toBe(403);
+    expect((await request(path, 'DELETE', admin.token, { confirmName: '错误名称' })).status).toBe(
+      422,
+    );
+    expect((await request(path, 'DELETE', admin.token, confirm)).status).toBe(200);
+    expect((await request('/projects', 'POST', undefined, { name: '匿名创建' })).status).toBe(401);
+  });
+
+  it('rejects project creation after an account is disabled', async () => {
+    const account = await createAccount('已禁用');
+    await prisma.user.update({ where: { id: account.userId }, data: { status: 'DISABLED' } });
+    const response = await request('/projects', 'POST', account.token, { name: '禁用账号的项目' });
+    expect(response.status).toBe(403);
+    expect(await prisma.project.count({ where: { ownerId: account.userId } })).toBe(0);
+  });
+
   it('creates a dated project, invites two roles, resolves member avatars, and hides non-member projects', async () => {
     const owner = await createAccount('负责人');
     const member = await createAccount('成员');

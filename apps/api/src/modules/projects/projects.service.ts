@@ -47,6 +47,10 @@ export class ProjectsService {
     return projects.map((project) => this.toListResponse(project, user.isPlatformAdmin));
   }
 
+  async getCreationPermission(userId: string): Promise<{ canCreate: boolean }> {
+    return { canCreate: await this.projectsRepository.canCreateProject(userId) };
+  }
+
   async createProject(userId: string, dto: CreateProjectDto): Promise<ProjectResponse> {
     const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
     const endDate = dto.endDate ? new Date(dto.endDate) : undefined;

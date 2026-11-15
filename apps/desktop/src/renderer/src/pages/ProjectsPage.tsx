@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { AdminUsersLink } from '../features/users/AdminUsersLink';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -11,7 +10,11 @@ import { LoadingState } from '../components/feedback/LoadingState';
 import { UnsavedChangesGuard } from '../components/feedback/UnsavedChangesGuard';
 import { PageHeader } from '../components/PageHeader';
 import type { ProjectDto, ProjectInput } from '../features/projects/project-api';
-import { createProject, listProjects } from '../features/projects/project-api';
+import {
+  createProject,
+  getCreationPermission,
+  listProjects,
+} from '../features/projects/project-api';
 import {
   canManageProject,
   formatProjectDate,
@@ -32,7 +35,7 @@ const EMPTY_PROJECT_FORM: ProjectFormValues = {
 
 type ProjectsState =
   | { readonly status: 'loading' }
-  | { readonly projects: ProjectDto[]; readonly status: 'ready' }
+  | { readonly projects: ProjectDto[]; readonly canCreate: boolean; readonly status: 'ready' }
   | { readonly message: string; readonly status: 'error' };
 
 function toProjectInput(values: ProjectFormValues): ProjectInput {
@@ -58,10 +61,10 @@ export function ProjectsPage() {
     let isCancelled = false;
 
     setProjectsState({ status: 'loading' });
-    void listProjects(api)
-      .then((projects) => {
+    void Promise.all([listProjects(api), getCreationPermission(api)])
+      .then(([projects, permission]) => {
         if (!isCancelled) {
-          setProjectsState({ projects, status: 'ready' });
+          setProjectsState({ projects, canCreate: permission.canCreate, status: 'ready' });
         }
       })
       .catch((error: unknown) => {
@@ -80,6 +83,7 @@ export function ProjectsPage() {
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (projectsState.status !== 'ready' || !projectsState.canCreate) return;
     const nextErrors = validateProjectForm(createForm);
 
     setCreateErrors(nextErrors);
@@ -115,87 +119,88 @@ export function ProjectsPage() {
         message="新项目信息尚未保存，离开后填写内容将丢失。"
         when={hasCreateDraft && !isCreating}
       />
-      <PageHeader title="项目中心" description="选择工作区，或创建一个新的课程项目。" />
-      <AdminUsersLink />
+      <PageHeader title="项目中心" description="选择要进入的课程项目。" />
 
-      <section className="panel project-create-panel">
-        <div className="panel__header">
-          <div>
-            <h2>创建项目</h2>
-            <p>新项目默认进入规划中状态。</p>
+      {projectsState.status === 'ready' && projectsState.canCreate && (
+        <section className="panel project-create-panel">
+          <div className="panel__header">
+            <div>
+              <h2>创建项目</h2>
+              <p>创建后，你将成为这个项目的负责人，可以邀请成员。</p>
+            </div>
           </div>
-        </div>
 
-        {createMessage ? <ErrorNotice message={createMessage} /> : null}
+          {createMessage ? <ErrorNotice message={createMessage} /> : null}
 
-        <form
-          className="auth-form project-form"
-          onSubmit={(event) => void handleCreateProject(event)}
-        >
-          <label className="form-field">
-            <span>项目名称</span>
-            <input
-              disabled={isCreating}
-              maxLength={100}
-              onChange={(event) =>
-                setCreateForm((current) => ({ ...current, name: event.target.value }))
-              }
-              placeholder="例如：软件工程课程设计"
-              value={createForm.name}
-            />
-            {createErrors.name ? <small>{createErrors.name}</small> : null}
-          </label>
-
-          <label className="form-field">
-            <span>项目简介</span>
-            <textarea
-              disabled={isCreating}
-              maxLength={1000}
-              onChange={(event) =>
-                setCreateForm((current) => ({ ...current, description: event.target.value }))
-              }
-              placeholder="简要说明项目目标和协作范围"
-              rows={3}
-              value={createForm.description}
-            />
-            {createErrors.description ? <small>{createErrors.description}</small> : null}
-          </label>
-
-          <div className="project-form-grid">
+          <form
+            className="auth-form project-form"
+            onSubmit={(event) => void handleCreateProject(event)}
+          >
             <label className="form-field">
-              <span>开始日期</span>
+              <span>项目名称</span>
               <input
                 disabled={isCreating}
+                maxLength={100}
                 onChange={(event) =>
-                  setCreateForm((current) => ({ ...current, startDate: event.target.value }))
+                  setCreateForm((current) => ({ ...current, name: event.target.value }))
                 }
-                type="date"
-                value={createForm.startDate}
+                placeholder="例如：软件工程课程设计"
+                value={createForm.name}
               />
-              {createErrors.startDate ? <small>{createErrors.startDate}</small> : null}
+              {createErrors.name ? <small>{createErrors.name}</small> : null}
             </label>
 
             <label className="form-field">
-              <span>结束日期</span>
-              <input
+              <span>项目简介</span>
+              <textarea
                 disabled={isCreating}
+                maxLength={1000}
                 onChange={(event) =>
-                  setCreateForm((current) => ({ ...current, endDate: event.target.value }))
+                  setCreateForm((current) => ({ ...current, description: event.target.value }))
                 }
-                type="date"
-                value={createForm.endDate}
+                placeholder="简要说明项目目标和协作范围"
+                rows={3}
+                value={createForm.description}
               />
-              {createErrors.endDate ? <small>{createErrors.endDate}</small> : null}
+              {createErrors.description ? <small>{createErrors.description}</small> : null}
             </label>
-          </div>
 
-          <div className="form-actions">
-            <button className="primary-button" disabled={isCreating} type="submit">
-              {isCreating ? '正在创建...' : '创建并进入项目'}
-            </button>
-          </div>
-        </form>
-      </section>
+            <div className="project-form-grid">
+              <label className="form-field">
+                <span>开始日期</span>
+                <input
+                  disabled={isCreating}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, startDate: event.target.value }))
+                  }
+                  type="date"
+                  value={createForm.startDate}
+                />
+                {createErrors.startDate ? <small>{createErrors.startDate}</small> : null}
+              </label>
+
+              <label className="form-field">
+                <span>结束日期</span>
+                <input
+                  disabled={isCreating}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, endDate: event.target.value }))
+                  }
+                  type="date"
+                  value={createForm.endDate}
+                />
+                {createErrors.endDate ? <small>{createErrors.endDate}</small> : null}
+              </label>
+            </div>
+
+            <div className="form-actions">
+              <button className="primary-button" disabled={isCreating} type="submit">
+                {isCreating ? '正在创建...' : '创建并进入项目'}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section className="project-list-section" aria-labelledby="project-list-title">
         <div className="section-heading">
@@ -220,7 +225,11 @@ export function ProjectsPage() {
         ) : projectsState.projects.length === 0 ? (
           <section className="panel panel--large">
             <EmptyState
-              description="创建第一个项目后，即可进入需求、任务和成员工作区。"
+              description={
+                projectsState.canCreate
+                  ? '在上方创建你的第一个项目，或请负责人邀请你加入已有项目。'
+                  : '请联系项目负责人邀请你加入项目。'
+              }
               title="暂无项目"
             />
           </section>

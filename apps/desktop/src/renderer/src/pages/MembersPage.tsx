@@ -292,6 +292,7 @@ export function MembersPage() {
   const manager = canManageMembers(project.accessRole);
   const archived = isProjectArchived(project.status);
   const canWriteMembers = manager && !archived;
+  const canTransferOwnership = canWriteMembers && project.ownerId === session?.user.id;
 
   return (
     <div className="page-stack projects-page">
@@ -419,14 +420,16 @@ export function MembersPage() {
                   <div className="member-row__actions">
                     {canWriteMembers && !isOwner ? (
                       <>
-                        <button
-                          className="secondary-button"
-                          disabled={Boolean(busyUserId)}
-                          onClick={() => setMemberToTransfer(member)}
-                          type="button"
-                        >
-                          移交负责人
-                        </button>
+                        {canTransferOwnership && (
+                          <button
+                            className="secondary-button"
+                            disabled={Boolean(busyUserId)}
+                            onClick={() => setMemberToTransfer(member)}
+                            type="button"
+                          >
+                            移交负责人
+                          </button>
+                        )}
                         <button
                           className="danger-text-button"
                           disabled={Boolean(busyUserId)}
@@ -449,11 +452,7 @@ export function MembersPage() {
         <ConfirmDialog
           confirmLabel="确认移交"
           isPending={Boolean(busyUserId)}
-          message={
-            project.accessRole === 'ADMIN'
-              ? `移交后原项目负责人将降为普通成员，${memberToTransfer.nickname} 将获得项目负责人权限。`
-              : `移交后你将成为普通成员，${memberToTransfer.nickname} 将获得项目负责人权限。`
-          }
+          message={`移交后你将成为普通成员，${memberToTransfer.nickname} 将获得项目负责人权限。`}
           onCancel={() => setMemberToTransfer(null)}
           onConfirm={() => void handleTransferOwnership()}
           title="移交项目负责人"

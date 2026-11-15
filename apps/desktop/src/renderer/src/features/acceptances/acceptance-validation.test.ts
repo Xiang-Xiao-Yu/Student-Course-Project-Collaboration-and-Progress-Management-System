@@ -4,7 +4,7 @@ import type { AcceptanceDto } from './acceptance-api';
 import {
   acceptanceToForm,
   formToCreateAcceptanceInput,
-  getAcceptanceDateClearError,
+  formToUpdateAcceptanceInput,
   hasUnsavedAcceptanceChanges,
   validateAcceptanceForm,
 } from './acceptance-validation';
@@ -84,9 +84,14 @@ describe('P5 acceptance validation', () => {
     });
   });
 
-  it('边界场景阻止前端把无法清除的日期误报为保存成功', () => {
-    expect(getAcceptanceDateClearError('2026-11-20', '')).toContain('暂不支持清除验收日期');
-    expect(getAcceptanceDateClearError('2026-11-20', '2026-11-21')).toBeUndefined();
-    expect(getAcceptanceDateClearError('', '')).toBeUndefined();
+  it('编辑清空日期发送null，创建空日期仍省略，非法日期仍拒绝', () => {
+    expect(formToUpdateAcceptanceInput({ ...form, acceptanceDate: '' }).acceptanceDate).toBeNull();
+    expect(
+      formToCreateAcceptanceInput({ ...form, acceptanceDate: '' }).acceptanceDate,
+    ).toBeUndefined();
+    expect(formToUpdateAcceptanceInput(form).acceptanceDate).toBe('2026-11-20');
+    expect(
+      validateAcceptanceForm({ ...form, acceptanceDate: '2026-02-30' }).acceptanceDate,
+    ).toBeDefined();
   });
 });

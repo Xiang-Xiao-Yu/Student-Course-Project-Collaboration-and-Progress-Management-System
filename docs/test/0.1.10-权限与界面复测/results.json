@@ -1,0 +1,128 @@
+[
+  {
+    "name": "项目工作区导航顺序",
+    "actual": [
+      "项目中心",
+      "我的任务",
+      "个人资料",
+      "用户管理"
+    ],
+    "expected": [
+      "项目中心",
+      "我的任务",
+      "个人资料",
+      "用户管理"
+    ],
+    "passed": true
+  },
+  {
+    "name": "我的任务导航顺序与当前页",
+    "actual": [
+      "项目中心,我的任务,个人资料,用户管理",
+      "page"
+    ],
+    "expected": [
+      "项目中心,我的任务,个人资料,用户管理",
+      "page"
+    ],
+    "passed": true
+  },
+  {
+    "name": "个人资料导航顺序与当前页",
+    "actual": [
+      "项目中心,我的任务,个人资料,用户管理",
+      "page"
+    ],
+    "expected": [
+      "项目中心,我的任务,个人资料,用户管理",
+      "page"
+    ],
+    "passed": true
+  },
+  {
+    "name": "项目中心导航顺序与当前页",
+    "actual": [
+      "项目中心,我的任务,个人资料,用户管理",
+      "page"
+    ],
+    "expected": [
+      "项目中心,我的任务,个人资料,用户管理",
+      "page"
+    ],
+    "passed": true
+  },
+  {
+    "name": "跨项目移交被拒且原负责人保留",
+    "actual": [
+      false,
+      403,
+      true
+    ],
+    "expected": [
+      false,
+      403,
+      true
+    ],
+    "passed": true
+  },
+  {
+    "name": "现任普通组长可移交",
+    "actual": "cmwhtzhr40001vt3858ojzf3u",
+    "expected": "cmwhtzhr40001vt3858ojzf3u",
+    "passed": true
+  },
+  {
+    "name": "管理员移交自己的项目",
+    "actual": "cmwhtzhoz0000vt382lybnez0",
+    "expected": "cmwhtzhoz0000vt382lybnez0",
+    "passed": true
+  },
+  {
+    "name": "移交后管理员无法再次移交",
+    "actual": 403,
+    "expected": 403,
+    "passed": true
+  },
+  {
+    "name": "验收中待保存提示与保存焦点",
+    "actual": [
+      "待保存：未开始 → 验收中",
+      true
+    ],
+    "expected": [
+      "待保存：未开始 → 验收中",
+      true
+    ],
+    "passed": true
+  },
+  {
+    "name": "未通过原因自动聚焦",
+    "actual": true,
+    "expected": true,
+    "passed": true
+  },
+  {
+    "name": "长页面滚动时页脚唯一且位置固定",
+    "actual": [
+      1,
+      640
+    ],
+    "expected": [
+      1,
+      640
+    ],
+    "passed": true
+  },
+  {
+    "name": "窄窗导航和退出均可见",
+    "actual": true,
+    "expected": true,
+    "passed": true
+  },
+  {
+    "name": "矮窗导航可用",
+    "actual": true,
+    "expected": true,
+    "passed": true
+  }
+]

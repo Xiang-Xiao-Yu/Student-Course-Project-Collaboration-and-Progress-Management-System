@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { seedOwnedProject } from '../../test-support/project-owner';
 
 import { vi } from 'vitest';
 
@@ -171,6 +172,7 @@ describe('P5 meetings and acceptances with SQLite', () => {
     for (const name of ['owner', 'member', 'outsider', 'observer'] as const) {
       accounts[name] = await createAccount(name);
     }
+    await seedOwnedProject(prisma, accounts.owner.id);
   });
 
   afterAll(async () => {
@@ -471,6 +473,48 @@ describe('P5 meetings and acceptances with SQLite', () => {
     );
     expect(pausedAcceptance.status).toBe(409);
     expect(((await pausedAcceptance.json()) as ErrorEnvelope).error?.code).toBe('PROJECT_PAUSED');
+  });
+
+  it('clears an optional acceptance date while preserving omission, validation, permissions and audit', async () => {
+    const projectId = await createProject();
+    const path = `/projects/${projectId}/acceptances`;
+    const created = await request(path, 'POST', accounts.owner.token, {
+      stageName: '日期编辑验证',
+      standards: '日期可编辑并可清空',
+      acceptanceDate: '2026-11-15',
+    });
+    expect(created.status).toBe(201);
+    const acceptance = (await created.json()) as AcceptanceEnvelope;
+    const detailPath = `${path}/${acceptance.data.id}`;
+    const omitted = await request(detailPath, 'PATCH', accounts.owner.token, {
+      goal: '省略日期应保留',
+    });
+    expect(omitted.status).toBe(200);
+    expect(((await omitted.json()) as AcceptanceEnvelope).data.acceptanceDate).toBe(
+      '2026-11-15T00:00:00.000Z',
+    );
+    expect(
+      (await request(detailPath, 'PATCH', accounts.member.token, { acceptanceDate: null })).status,
+    ).toBe(403);
+    expect(
+      (await request(detailPath, 'PATCH', accounts.owner.token, { acceptanceDate: '2026-02-30' }))
+        .status,
+    ).toBe(400);
+    const cleared = await request(detailPath, 'PATCH', accounts.owner.token, {
+      acceptanceDate: null,
+    });
+    expect(cleared.status).toBe(200);
+    expect(((await cleared.json()) as AcceptanceEnvelope).data.acceptanceDate).toBeNull();
+    expect(
+      (await prisma.acceptance.findUnique({ where: { id: acceptance.data.id } }))?.acceptanceDate,
+    ).toBeNull();
+    const logs = await prisma.activityLog.findMany({
+      where: { projectId, targetId: acceptance.data.id, action: 'ACCEPTANCE_UPDATED' },
+    });
+    expect(logs).toHaveLength(2);
+    expect(
+      logs.some((log) => log.afterValue && JSON.parse(log.afterValue).acceptanceDate === null),
+    ).toBe(true);
   });
 
   it('records failed acceptance, remediation tasks, and a later result', async () => {

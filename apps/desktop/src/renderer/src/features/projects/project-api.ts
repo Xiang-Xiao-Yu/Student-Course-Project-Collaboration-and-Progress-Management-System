@@ -51,6 +51,12 @@ export function listProjects(api: Pick<ApiClient, 'get'>): Promise<ProjectDto[]>
   return api.get<ProjectDto[]>('/projects');
 }
 
+export function getCreationPermission(
+  api: Pick<ApiClient, 'get'>,
+): Promise<{ canCreate: boolean }> {
+  return api.get<{ canCreate: boolean }>('/projects/creation-permission');
+}
+
 export function createProject(
   api: Pick<ApiClient, 'post'>,
   input: ProjectInput,

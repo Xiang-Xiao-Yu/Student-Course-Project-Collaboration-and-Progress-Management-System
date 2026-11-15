@@ -1,41 +1,49 @@
 # 文档索引与交付物清单
 
+## 当前最终技术交付
+
+2026-11-15：[Windows 0.1.10 结项检查](结项文档/0.1.10-结项检查.md)对应需求基线 0.1.6，含本次重新执行的检查、发行物校验及人工验收边界。
+
+2026-11-14收尾：root负责的修复、回归、便携运行验证及结项正文已整理，组长体验为可选补充。优先阅读[结项总目录](结项文档/README.md)、[使用说明](结项文档/系统使用说明书.md)、[最终测试报告](结项文档/最终测试报告.md)、[技术验收](结项文档/项目验收报告.md)和[交付清单](结项文档/最终交付清单.md)。历史报告保留原版本与失败时序。
+
 本文件是 `docs/` 的入口索引。根目录 `AGENTS.md` 要求 `docs/` 保存需求规格、用例图、ER 图、接口说明、测试计划、迭代记录和验收报告；本文件列出这些交付物的目标路径、负责人和当前状态，避免出现漏拆或无人负责的文档。
 
 ## 1. 已建立的文件与脚本
 
-| 文件 | 内容 | 维护者 |
-|---|---|---|
-| `README.md`（仓库根目录） | 克隆、安装、启动命令、智能体接入流程和受保护文件说明 | `root` |
-| `AGENTS.md`（仓库根目录） | 根级 AI 协作与交付规范 | `root` |
-| `docs/ai-agents/AGENTS.md` | 其他智能体工作规范 | `root` |
-| `docs/ai-agents/智能体初始化提示词.md` | 其他智能体初始化提示词 | `root` |
-| `docs/需求规格说明书.md` | 需求基线 `0.1.1`，FR-01～FR-15、AC-01～AC-10 | `root` |
-| `docs/P0-工程与契约约定.md` | P0 工程入口与跨任务契约 | `root` |
-| `docs/ai-logs/README.md` | 智能体日志规范 | `root` |
-| `docs/ai-logs/root/YYYY-MM-DD.md` | root 工作日志 | `root` |
-| `docs/tasks/T-01-backend-core.md` | T-01 后端核心与共享契约任务 | T-01 负责人 |
-| `docs/tasks/T-02-frontend-client.md` | T-02 前端客户端与交互流程任务 | T-02 负责人 |
-| `docs/tasks/T-03-test-quality.md` | T-03 测试、质量门禁与验收任务 | `root` |
-| `docs/design/ui-demo.html` | P0 前端风格演示（纯静态页面，不含后端实现） | `root` 维护，T-02 参照实现 |
-| `docs/test/test-plan.md` | P0～P7 测试计划、用例编号、命令与门禁条件 | T-03 |
-| `docs/test/p0-evidence-template.md` | P0 阶段门禁原始证据模板 | T-03 |
-| `scripts/set-agent-file-attributes.ps1` | 受保护文件的 Windows 只读 + 隐藏属性设置脚本（支持 `-Status`、`-Clear`） | `root` |
-| `scripts/ensure-database-file.mjs` | Prisma 迁移或种子命令前补齐本地 SQLite 目录与数据库文件 | `root` |
+| 文件                                    | 内容                                                                     | 维护者                     |
+| --------------------------------------- | ------------------------------------------------------------------------ | -------------------------- |
+| `README.md`（仓库根目录）               | 克隆、安装、启动命令、智能体接入流程和受保护文件说明                     | `root`                     |
+| `AGENTS.md`（仓库根目录）               | 根级 AI 协作与交付规范                                                   | `root`                     |
+| `docs/ai-agents/AGENTS.md`              | 其他智能体工作规范                                                       | `root`                     |
+| `docs/ai-agents/智能体初始化提示词.md`  | 其他智能体初始化提示词                                                   | `root`                     |
+| `docs/需求规格说明书.md`                | 需求基线 `0.1.4`，FR-01～FR-15、AC-01～AC-11                             | `root`                     |
+| `docs/P0-工程与契约约定.md`             | P0 工程入口与跨任务契约                                                  | `root`                     |
+| `docs/ai-logs/README.md`                | 智能体日志规范                                                           | `root`                     |
+| `docs/ai-logs/root/YYYY-MM-DD.md`       | root 工作日志                                                            | `root`                     |
+| `docs/tasks/T-01-backend-core.md`       | T-01 后端核心与共享契约任务                                              | T-01 负责人                |
+| `docs/tasks/T-02-frontend-client.md`    | T-02 前端客户端与交互流程任务                                            | T-02 负责人                |
+| `docs/tasks/T-03-test-quality.md`       | T-03 测试、质量门禁与验收任务                                            | `root`                     |
+| `docs/design/ui-demo.html`              | P0 前端风格演示（纯静态页面，不含后端实现）                              | `root` 维护，T-02 参照实现 |
+| `docs/test/test-plan.md`                | P0～P7 测试计划、用例编号、命令与门禁条件                                | T-03                       |
+| `docs/test/p0-evidence-template.md`     | P0 阶段门禁原始证据模板                                                  | T-03                       |
+| `scripts/set-agent-file-attributes.ps1` | 受保护文件的 Windows 只读 + 隐藏属性设置脚本（支持 `-Status`、`-Clear`） | `root`                     |
+| `scripts/ensure-database-file.mjs`      | Prisma 迁移或种子命令前补齐本地 SQLite 目录与数据库文件                  | `root`                     |
 
 ## 2. 待建立的交付物
 
-| 交付物 | 目标路径 | 负责人 | 计划阶段 | 状态 |
-|---|---|---|---|---|
-| 用例图 | `docs/design/use-case-diagram.md` | T-01 | P1 | 待创建 |
-| ER 图 | `docs/design/er-diagram.md` | T-01 | P1 | 待创建 |
-| 接口说明 | `docs/design/api-spec.md` | T-01 | P1 | 待创建 |
-| 迭代记录 | `docs/iteration/log.md` | `root` | 每阶段结束时 | 待创建 |
-| 验收报告 | `docs/acceptance/report.md` | T-03 | 每轮门禁 | 待创建 |
+| 交付物   | 目标路径                              | 负责人   | 计划阶段 | 状态               |
+| -------- | ------------------------------------- | -------- | -------- | ------------------ |
+| 用例图   | `docs/结项文档/用例设计说明书.md`     | root汇总 | P7       | 已形成正文和图示   |
+| ER 图    | `docs/结项文档/数据库设计说明书.md`   | root汇总 | P7       | 已核对17模型       |
+| 接口说明 | `docs/结项文档/API接口说明书.md`      | root汇总 | P7       | 已同步最终接口     |
+| 迭代记录 | `docs/结项文档/项目计划与迭代记录.md` | root     | P7       | 已整理真实里程碑   |
+| 验收报告 | `docs/结项文档/项目验收报告.md`       | root     | P7       | 最终技术结果见正文 |
 
 以上路径为约定位置；确需调整时先创建 GitHub Issue，由 `root` 批准后同步更新本文件与相关任务文档。
 
 ## 3. 维护规则
+
+正式结项前必须完成 [全面测试清单](test/final-full-test-checklist-2026-11-12.md)。root [第一轮技术报告](test/final-full-test-report-2026-11-12.md) 已形成，FT-13万任务交互未通过；接续 [项目组长人工测试](test/final-manual-test-guide-2026-11-12.md)，处理问题并复测、复核后再定稿结项文档和最终交付包。PR #57原技术通过记录保留，FR-12～FR-15继续锁定。
 
 - 本清单与 `AGENTS.md` 的 `docs/` 交付物要求保持一致；新增、移动或删除交付物时，必须在同一个 PR 内更新本文件。
 - 任务负责人只能修改自己任务允许的交付物和任务文档中的“进度记录”“验证记录”“交接记录”，不得修改他人交付物。

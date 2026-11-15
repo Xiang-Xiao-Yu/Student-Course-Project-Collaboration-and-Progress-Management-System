@@ -89,6 +89,8 @@ const EMPTY_TASK_FORM: TaskFormValues = {
   title: '',
 };
 
+const BOARD_COLUMN_PAGE_SIZE = 50;
+
 interface BoardData {
   readonly iterations: IterationSummaryDto[];
   readonly members: ProjectMemberDto[];
@@ -125,6 +127,7 @@ export function BoardPage() {
   const [appliedFilters, setAppliedFilters] = useState<TaskListFilters>({});
   const [filterError, setFilterError] = useState<string | null>(null);
   const [filterValues, setFilterValues] = useState<TaskFilterValues>(EMPTY_TASK_FILTER_VALUES);
+  const [columnPages, setColumnPages] = useState<Partial<Record<TaskDto['status'], number>>>({});
   const [dragOverStatus, setDragOverStatus] = useState<TaskDto['status'] | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -165,6 +168,7 @@ export function BoardPage() {
     appliedFiltersRef.current = appliedFilters;
 
     setState({ status: 'loading' });
+    setColumnPages({});
     void Promise.all([
       getProject(api, projectId),
       listIterations(api, projectId),
@@ -332,6 +336,12 @@ export function BoardPage() {
     event.preventDefault();
 
     if (state.status !== 'ready' || !editingTask || isTaskActionPending) {
+      return;
+    }
+
+    if (!hasEditDraft) {
+      setEditingTask(null);
+      setCreateMessage({ text: '任务内容没有变化。', type: 'success' });
       return;
     }
 
@@ -667,9 +677,20 @@ export function BoardPage() {
       <section className="task-board" aria-label="任务看板">
         {taskStatusColumns.map((status) => {
           const columnTasks = tasks.filter((task) => task.status === status);
+          const pageCount = Math.max(1, Math.ceil(columnTasks.length / BOARD_COLUMN_PAGE_SIZE));
+          const pageIndex = Math.min(columnPages[status] ?? 0, pageCount - 1);
+          const pageTasks = columnTasks.slice(
+            pageIndex * BOARD_COLUMN_PAGE_SIZE,
+            (pageIndex + 1) * BOARD_COLUMN_PAGE_SIZE,
+          );
+          const changePage = (nextPage: number): void => {
+            setColumnPages((current) => ({ ...current, [status]: nextPage }));
+          };
 
           return (
             <section
+              data-task-count={columnTasks.length}
+              data-task-status={status}
               className={`board-column board-column--${status.toLowerCase()}${
                 dragOverStatus === status ? ' is-drag-over' : ''
               }`}
@@ -704,11 +725,51 @@ export function BoardPage() {
                 <h2>{getTaskStatusLabel(status)}</h2>
                 <span>{columnTasks.length}</span>
               </header>
+              {pageCount > 1 ? (
+                <nav
+                  className="board-column__pagination"
+                  aria-label={`${getTaskStatusLabel(status)}分页`}
+                >
+                  <button
+                    className="secondary-button"
+                    aria-label={`${getTaskStatusLabel(status)}上一页`}
+                    disabled={pageIndex === 0 || isTaskActionPending}
+                    onClick={() => changePage(pageIndex - 1)}
+                    type="button"
+                  >
+                    上一页
+                  </button>
+                  <label>
+                    <span>页码</span>
+                    <select
+                      aria-label={`${getTaskStatusLabel(status)}页码`}
+                      disabled={isTaskActionPending}
+                      onChange={(event) => changePage(Number(event.target.value))}
+                      value={pageIndex}
+                    >
+                      {Array.from({ length: pageCount }, (_, index) => (
+                        <option key={index} value={index}>
+                          {index + 1} / {pageCount}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="secondary-button"
+                    aria-label={`${getTaskStatusLabel(status)}下一页`}
+                    disabled={pageIndex === pageCount - 1 || isTaskActionPending}
+                    onClick={() => changePage(pageIndex + 1)}
+                    type="button"
+                  >
+                    下一页
+                  </button>
+                </nav>
+              ) : null}
               <div className="board-column__body">
                 {columnTasks.length === 0 ? (
                   <div className="board-column__empty">暂无任务</div>
                 ) : (
-                  columnTasks.map((task) => (
+                  pageTasks.map((task) => (
                     <article
                       className={`task-card${draggedTaskId === task.id ? ' is-dragging' : ''}`}
                       draggable={canEdit && !isTaskActionPending}
@@ -848,7 +909,11 @@ export function BoardPage() {
                       .filter((status) => status !== 'COMPLETED' || canReview)
                       .map((status) => (
                         <button
-                          className="secondary-button"
+                          className={
+                            status === 'PENDING_REVIEW' || status === 'COMPLETED'
+                              ? 'primary-button'
+                              : 'secondary-button'
+                          }
                           disabled={isTaskActionPending}
                           key={status}
                           onClick={() => {
@@ -912,13 +977,7 @@ export function BoardPage() {
                     删除任务
                   </button>
                 ) : null}
-                <button
-                  className="primary-button"
-                  disabled={
-                    isTaskActionPending || !hasUnsavedTaskChanges(editInitialForm, editForm)
-                  }
-                  type="submit"
-                >
+                <button className="primary-button" disabled={isTaskActionPending} type="submit">
                   {isSavingEdit ? '正在保存...' : '保存任务'}
                 </button>
               </div>

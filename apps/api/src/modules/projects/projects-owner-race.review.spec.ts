@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { seedOwnedProject } from '../../test-support/project-owner';
 import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -33,6 +34,7 @@ it.each(['remove', 'demote'] as const)(
         data: { username: 'target', nickname: 'target', passwordHash: 'test' },
       });
       const repository = new ProjectsRepository(prisma);
+      await seedOwnedProject(prisma, owner.id);
       const project = await repository.createProject(owner.id, { name: 'race' });
       await repository.addMember(project.id, owner.id, target.id, 'MEMBER');
       const originalFind = repository.findMemberByUserId.bind(repository);
@@ -100,6 +102,7 @@ it.each(
         data: { username, nickname: username, passwordHash: 'test', isPlatformAdmin },
       });
     const owner = await createUser('owner');
+    await seedOwnedProject(prisma, owner.id);
     const target = await createUser('target');
     const other = await createUser('other');
     const admin = await createUser('admin', true);

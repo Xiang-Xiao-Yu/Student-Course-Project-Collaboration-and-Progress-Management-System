@@ -1,0 +1,351 @@
+{
+  "version": "SCPC-0.1.0-closeout-20261114",
+  "date": "2026-11-14",
+  "automated": {
+    "api": {
+      "passed": 242,
+      "failed": 0
+    },
+    "desktop": {
+      "passed": 230,
+      "failed": 0
+    },
+    "shared": {
+      "passed": 6,
+      "failed": 0
+    },
+    "log": {
+      "passed": 4,
+      "failed": 0
+    },
+    "total": 482
+  },
+  "desktopSuites": {
+    "core": 7,
+    "avatar": 9,
+    "disable": 8,
+    "p3Http": 137,
+    "p3Desktop": 17,
+    "p4": 15,
+    "p5": 9,
+    "dashboard": 12,
+    "supplement": 14
+  },
+  "finalExtras": [
+    {
+      "id": "X01",
+      "name": "旧库升级、重复迁移及合成历史保留",
+      "status": "PASS",
+      "details": {
+        "oldMigrations": 4,
+        "currentMigrations": 5,
+        "preservedModels": ["user", "project", "task", "activity"],
+        "repeatNoDataChange": true
+      },
+      "milliseconds": 2696
+    },
+    {
+      "id": "X02",
+      "name": "配置缺失与端口占用安全退出，错误数据库请求安全失败",
+      "status": "PASS",
+      "details": {
+        "missingSecretRejected": true,
+        "badDatabaseRequestSafelyFailed": true,
+        "occupiedPortRejected": true,
+        "safeMessages": true
+      },
+      "milliseconds": 3513
+    },
+    {
+      "id": "X03",
+      "name": "20个独立账号60秒持续混合读写",
+      "status": "PASS",
+      "details": {
+        "users": 20,
+        "durationMilliseconds": 60318,
+        "model": "one request/user/second; 25% create task, 75% list/dashboard",
+        "total": 1200,
+        "successful": 1200,
+        "writes": {
+          "count": 300,
+          "p50": 95,
+          "p95": 318,
+          "maximum": 619
+        },
+        "reads": {
+          "count": 900,
+          "p50": 55,
+          "p95": 312,
+          "maximum": 717
+        },
+        "errors": [],
+        "committedWrites": 300
+      },
+      "milliseconds": 61773
+    },
+    {
+      "id": "X04",
+      "name": "10000任务HTTP列表、筛选、统计及CSV完整性",
+      "status": "PASS",
+      "details": {
+        "tasks": 10000,
+        "filtered": 100,
+        "listMilliseconds": 581,
+        "csvRows": 10000,
+        "csvSha256": "fb1ec124c41a34bfd581679d1defbd9701bc86d56f2794ff2e1e5d1617f6d786"
+      },
+      "milliseconds": 1832
+    },
+    {
+      "id": "X05",
+      "name": "首次普通业务页面加载及最小窗口布局",
+      "status": "PASS",
+      "details": {
+        "loginVisibleMilliseconds": 433,
+        "timings": [
+          {
+            "route": "overview",
+            "milliseconds": 115
+          },
+          {
+            "route": "requirements",
+            "milliseconds": 20
+          },
+          {
+            "route": "board",
+            "milliseconds": 65
+          },
+          {
+            "route": "iterations",
+            "milliseconds": 143
+          },
+          {
+            "route": "meetings",
+            "milliseconds": 49
+          },
+          {
+            "route": "acceptance",
+            "milliseconds": 45
+          },
+          {
+            "route": "reports",
+            "milliseconds": 51
+          },
+          {
+            "route": "members",
+            "milliseconds": 41
+          },
+          {
+            "route": "settings",
+            "milliseconds": 14
+          }
+        ],
+        "layout": {
+          "width": 949,
+          "documentWidth": 934,
+          "height": 607,
+          "dpr": 1.0700000524520874
+        },
+        "measured": "first route navigation after UI login, one sample/route, not independent process cold starts"
+      },
+      "milliseconds": 642
+    },
+    {
+      "id": "X06",
+      "name": "万任务真实看板渲染、筛选、下载及交互响应",
+      "status": "PASS",
+      "details": {
+        "totalTasks": 10000,
+        "renderedCards": 50,
+        "renderedMilliseconds": 864,
+        "eventLoop100msTimer": 102,
+        "filteredCards": 100,
+        "renderedFilteredCards": 50,
+        "lastPageVerified": 200,
+        "fillMilliseconds": 11,
+        "inputMilliseconds": 52,
+        "filterMilliseconds": 64,
+        "actualDownloadRows": 100,
+        "dashboardTotal": 10000
+      },
+      "milliseconds": 2331
+    },
+    {
+      "id": "X07",
+      "name": "真实API停止重启后界面恢复和数据持久化",
+      "status": "PASS",
+      "details": {
+        "retainedTasks": 10000,
+        "legacyLoginAndHistoryAccessible": true,
+        "rendererErrors": 0
+      },
+      "milliseconds": 3936
+    }
+  ],
+  "portableDelivery": [
+    {
+      "id": "D01",
+      "name": "解包后独立运行，无默认密码且首次设置不覆盖已有数据",
+      "status": "PASS",
+      "details": {
+        "extractedArchiveRuns": true,
+        "initialPasswordRequired": true,
+        "administratorCreated": true
+      }
+    },
+    {
+      "id": "D02",
+      "name": "打包桌面真实登录和数据展示",
+      "status": "PASS",
+      "details": {
+        "packagedExecutable": true,
+        "loginAndTasksVisible": true,
+        "avatarStoredInsidePortable": true
+      }
+    },
+    {
+      "id": "D03",
+      "name": "已填写验收日期清空、保存和重新读取",
+      "status": "PASS",
+      "details": {
+        "clearedAndPersisted": true
+      }
+    },
+    {
+      "id": "D04",
+      "name": "关闭全部进程后重启，原账号和业务数据保持",
+      "status": "PASS",
+      "details": {
+        "accountRetained": true,
+        "taskRetained": true,
+        "oldSessionRevoked": true
+      }
+    },
+    {
+      "id": "D05",
+      "name": "100%、125%、150%、200%设备缩放下最小窗口与登录交互",
+      "status": "PASS",
+      "details": {
+        "scales": [
+          {
+            "requested": 1,
+            "width": 944,
+            "documentWidth": 929,
+            "dpr": 1
+          },
+          {
+            "requested": 1.25,
+            "width": 948,
+            "documentWidth": 933,
+            "dpr": 1.25
+          },
+          {
+            "requested": 1.5,
+            "width": 950,
+            "documentWidth": 935,
+            "dpr": 1.5
+          },
+          {
+            "requested": 2,
+            "width": 952,
+            "documentWidth": 937,
+            "dpr": 2
+          }
+        ],
+        "boundary": "Electron device scale emulation on one Windows computer; not physical mixed-DPI hardware"
+      }
+    },
+    {
+      "id": "D06",
+      "name": "本机网卡地址访问与核心API离线运行",
+      "status": "PASS",
+      "details": {
+        "nonLoopbackInterfaceLoginAndRead": true,
+        "externalGithubNotRequired": true,
+        "boundary": "same host via LAN address; no second physical machine or firewall changes"
+      }
+    },
+    {
+      "id": "D07",
+      "name": "正式PowerShell启动入口和桌面关闭后服务退出",
+      "status": "PASS",
+      "details": {
+        "powershellEntryRuns": true,
+        "desktopCloseStopsApi": true,
+        "existingPasswordNotReset": true
+      }
+    }
+  ],
+  "sourceReproduction": {
+    "sourceArchive": "候选/SCPC-Source.zip",
+    "codeFilesChecked": 392,
+    "mismatches": 0,
+    "independentDependencyRoots": true,
+    "install": {
+      "command": "pnpm install --frozen-lockfile --offline",
+      "packages": 501,
+      "downloaded": 0,
+      "exitCode": 0
+    },
+    "generate": {
+      "command": "pnpm db:generate",
+      "exitCode": 0
+    },
+    "build": {
+      "command": "pnpm build",
+      "exitCode": 0
+    }
+  },
+  "artifactDataPolicy": "No runtime database, avatar, credential or browser profile included",
+  "userExperience": "Optional supplement; no source/config edits required",
+  "physicalBoundary": "One Windows host; device-scale simulation and same-host network-interface access, not second physical device or mixed-DPI hardware",
+  "unicodePathStartup": [
+    {
+      "id": "D01",
+      "name": "解包后独立运行，无默认密码且首次设置不覆盖已有数据",
+      "status": "PASS",
+      "details": {
+        "extractedArchiveRuns": true,
+        "initialPasswordRequired": true,
+        "administratorCreated": true
+      }
+    },
+    {
+      "id": "D02",
+      "name": "打包桌面真实登录和数据展示",
+      "status": "PASS",
+      "details": {
+        "packagedExecutable": true,
+        "loginAndTasksVisible": true,
+        "avatarStoredInsidePortable": true
+      }
+    },
+    {
+      "id": "D04",
+      "name": "关闭全部进程后重启，原账号和业务数据保持",
+      "status": "PASS",
+      "details": {
+        "accountRetained": true,
+        "taskRetained": true,
+        "oldSessionRevoked": true
+      }
+    },
+    {
+      "id": "D07",
+      "name": "正式PowerShell启动入口和桌面关闭后服务退出",
+      "status": "PASS",
+      "details": {
+        "powershellEntryRuns": true,
+        "desktopCloseStopsApi": true,
+        "existingPasswordNotReset": true
+      }
+    }
+  ],
+  "independentReview": {
+    "blockingFindings": 0,
+    "dependencyEdgesChecked": 235,
+    "dependencyVersionMismatches": 0,
+    "readOnly": true,
+    "businessTestsRerunByReviewer": false
+  }
+}

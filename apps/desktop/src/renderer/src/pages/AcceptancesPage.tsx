@@ -34,7 +34,6 @@ import {
   acceptanceToForm,
   formToCreateAcceptanceInput,
   formToUpdateAcceptanceInput,
-  getAcceptanceDateClearError,
   hasAcceptanceFormErrors,
   hasUnsavedAcceptanceChanges,
   validateAcceptanceForm,
@@ -119,6 +118,8 @@ export function AcceptancesPage() {
   const [remediationForm, setRemediationForm] = useState(EMPTY_REMEDIATION_FORM);
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<AcceptanceState>({ status: 'loading' });
+  const failureInput = useRef<HTMLTextAreaElement>(null);
+  const saveButton = useRef<HTMLButtonElement>(null);
   const activeAcceptanceIdRef = useRef<string | null>(null);
   const selectionVersionRef = useRef(0);
 
@@ -354,15 +355,7 @@ export function AcceptancesPage() {
       return;
     }
 
-    const formErrors = validateAcceptanceForm(acceptanceForm);
-    const dateClearError = getAcceptanceDateClearError(
-      editInitialForm.acceptanceDate,
-      acceptanceForm.acceptanceDate,
-    );
-    const errors: AcceptanceFormErrors = {
-      ...formErrors,
-      ...(dateClearError ? { acceptanceDate: dateClearError } : {}),
-    };
+    const errors = validateAcceptanceForm(acceptanceForm);
 
     setAcceptanceErrors(errors);
     setCreateMessage(null);
@@ -747,6 +740,12 @@ export function AcceptancesPage() {
                           ...(result === 'IN_PROGRESS' ? { failureReason: '' } : {}),
                         }));
                         setEditOpen(true);
+                        requestAnimationFrame(() => {
+                          (result === 'FAILED'
+                            ? failureInput.current
+                            : saveButton.current
+                          )?.focus();
+                        });
                       }}
                       type="button"
                     >
@@ -864,6 +863,7 @@ export function AcceptancesPage() {
                           }))
                         }
                         rows={3}
+                        ref={failureInput}
                         value={acceptanceForm.failureReason}
                       />
                       {acceptanceErrors.failureReason ? (
@@ -881,11 +881,18 @@ export function AcceptancesPage() {
                     selectedIds={acceptanceForm.participantIds}
                   />
                   <div className="form-actions">
+                    {acceptanceForm.result !== acceptance.result && (
+                      <span className="acceptance-pending-result" role="status">
+                        待保存：{getAcceptanceResultLabel(acceptance.result)} →{' '}
+                        {getAcceptanceResultLabel(acceptanceForm.result)}
+                      </span>
+                    )}
                     <button
                       className="primary-button"
                       disabled={
                         isSaving || !hasUnsavedAcceptanceChanges(editInitialForm, acceptanceForm)
                       }
+                      ref={saveButton}
                       type="submit"
                     >
                       {isSaving ? '正在保存...' : '保存验收'}

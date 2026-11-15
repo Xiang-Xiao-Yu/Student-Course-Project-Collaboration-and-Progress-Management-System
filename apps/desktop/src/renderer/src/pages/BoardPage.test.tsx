@@ -221,6 +221,87 @@ function taskTitles(tree: ReactNode) {
     });
 }
 
+describe('大任务量看板', () => {
+  it('万任务只渲染一页卡片，输入筛选不改变完整任务总数', async () => {
+    requests.list.mockResolvedValue(
+      Array.from({ length: 10000 }, (_, index) => ({
+        ...task,
+        id: `task-${index}`,
+        title: `任务 ${index}`,
+      })),
+    );
+    let tree = await loadBoard();
+    expect(taskTitles(tree)).toHaveLength(50);
+    expect(filterPanel(tree).props.taskCount).toBe(10000);
+    const panel = filterPanel(tree).props;
+    panel.onValuesChange({ ...panel.values, search: '任务 9999' });
+    tree = render();
+    expect(taskTitles(tree)).toHaveLength(50);
+    expect(filterPanel(tree).props.taskCount).toBe(10000);
+    expect(filterPanel(tree).props.values.search).toBe('任务 9999');
+  });
+
+  it('逐页可达全部任务，末页和首页按钮有明确边界', async () => {
+    const titles = Array.from({ length: 103 }, (_, index) => `任务 ${index}`);
+    requests.list.mockResolvedValue(
+      titles.map((title, index) => ({ ...task, id: `task-${index}`, title })),
+    );
+    let tree = await loadBoard();
+    expect(buttons(tree, '上一页')[0]!.props.disabled).toBe(true);
+    expect(taskTitles(tree)).toEqual(titles.slice(0, 50));
+    click(tree, '下一页');
+    tree = render();
+    expect(taskTitles(tree)).toEqual(titles.slice(50, 100));
+    click(tree, '下一页');
+    tree = render();
+    expect(taskTitles(tree)).toEqual(titles.slice(100));
+    expect(buttons(tree, '下一页')[0]!.props.disabled).toBe(true);
+    click(tree, '上一页');
+    tree = render();
+    expect(taskTitles(tree)).toEqual(titles.slice(50, 100));
+    expect(filterPanel(tree).props.taskCount).toBe(103);
+  });
+
+  it('更换筛选结果后回到首屏，空结果不保留旧任务', async () => {
+    requests.list.mockResolvedValue(
+      Array.from({ length: 51 }, (_, index) => ({ ...task, id: `task-${index}` })),
+    );
+    let tree = await loadBoard();
+    click(tree, '下一页');
+    tree = render();
+    expect(taskTitles(tree)).toHaveLength(1);
+    requests.list.mockResolvedValue([]);
+    tree = await applySearch(tree, '不存在');
+    expect(taskTitles(tree)).toHaveLength(0);
+    expect(filterPanel(tree).props.taskCount).toBe(0);
+    expect(buttons(tree, '下一页')).toHaveLength(0);
+  });
+
+  it('末页删除失败保留数据，重试成功后回到有效页', async () => {
+    requests.list.mockResolvedValue(
+      Array.from({ length: 51 }, (_, index) => ({ ...task, id: `task-${index}` })),
+    );
+    let tree = await loadBoard();
+    click(tree, '下一页');
+    click(render(), '编辑任务');
+    click(render(), '删除任务');
+    requests.remove
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce(undefined);
+    confirmations(render())[0]!.props.onConfirm();
+    tree = await flush();
+    expect(taskTitles(tree)).toHaveLength(1);
+    expect(filterPanel(tree).props.taskCount).toBe(51);
+    expect(buttons(tree, '删除任务')[0]!.props.disabled).toBe(false);
+    click(tree, '删除任务');
+    confirmations(render())[0]!.props.onConfirm();
+    tree = await flush();
+    expect(taskTitles(tree)).toHaveLength(50);
+    expect(filterPanel(tree).props.taskCount).toBe(50);
+    expect(buttons(tree, '下一页')).toHaveLength(0);
+  });
+});
+
 describe('P6 筛选中的异步任务变更', () => {
   it.each(['alpha', ''])('从“%s”清空筛选仍在加载时完成创建会重新加载全部任务', async (search) => {
     const creating = deferred<TaskDto>();
@@ -312,6 +393,28 @@ describe('P6 筛选中的异步任务变更', () => {
 });
 
 describe('P3 看板任务操作互斥', () => {
+  it('未修改或改回原值时可以保存退出，无需提交更新', async () => {
+    let tree = await loadBoard();
+    for (const revert of [false, true]) {
+      click(tree, '编辑任务');
+      tree = render();
+      const editor = fields(tree).at(-1)!.props;
+      if (revert) {
+        editor.onChange({ ...editor.values, title: '临时标题' });
+        tree = render();
+        fields(tree).at(-1)!.props.onChange(editor.values);
+        tree = render();
+      }
+      expect(buttons(tree, '保存任务')[0]!.props.disabled).toBe(false);
+      forms(tree)
+        .at(-1)!
+        .props.onSubmit?.({ preventDefault() {} } as never);
+      tree = await flush();
+      expect(fields(tree)).toHaveLength(1);
+      expect(requests.edit).not.toHaveBeenCalled();
+    }
+  });
+
   it('关闭未保存编辑时取消保留草稿，确认后才放弃修改', async () => {
     let tree = await loadBoard();
     click(tree, '编辑任务');
