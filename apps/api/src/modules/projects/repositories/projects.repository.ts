@@ -122,6 +122,17 @@ export class ProjectsRepository {
     });
   }
 
+  async canCreateProject(
+    userId: string,
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<boolean> {
+    const actor = await db.user.findFirst({
+      where: { id: userId, status: 'ACTIVE' },
+      select: { id: true },
+    });
+    return actor !== null;
+  }
+
   async findMembershipRole(projectId: string, userId: string): Promise<ProjectRole | null> {
     const membership = await this.prisma.projectMember.findUnique({
       select: { role: true },
@@ -171,6 +182,13 @@ export class ProjectsRepository {
     input: Required<Pick<ProjectWriteInput, 'name'>> & ProjectWriteInput,
   ): Promise<ProjectRecord> {
     return this.prisma.$transaction(async (transaction) => {
+      if (!(await this.canCreateProject(ownerId, transaction))) {
+        throw new AppException(
+          HttpStatus.FORBIDDEN,
+          'PROJECT_PERMISSION_DENIED',
+          '账号未启用，无法创建项目',
+        );
+      }
       const project = await transaction.project.create({
         data: {
           description: input.description,
@@ -606,7 +624,7 @@ export class ProjectsRepository {
         }
 
         const actor = await transaction.user.findUnique({
-          select: { isPlatformAdmin: true, status: true },
+          select: { status: true },
           where: { id: actorId },
         });
 
@@ -614,7 +632,7 @@ export class ProjectsRepository {
           throw new ProjectOwnerTransferError('AUTH_SESSION_EXPIRED');
         }
 
-        if (actorId !== previousOwnerId && !actor.isPlatformAdmin) {
+        if (actorId !== previousOwnerId) {
           throw new ProjectOwnerTransferError('PROJECT_PERMISSION_DENIED');
         }
 

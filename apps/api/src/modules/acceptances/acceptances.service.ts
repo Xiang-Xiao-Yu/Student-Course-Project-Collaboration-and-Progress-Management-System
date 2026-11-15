@@ -94,7 +94,7 @@ export class AcceptancesService {
       userId,
       acceptanceId,
       {
-        acceptanceDate: this.parseDate(dto.acceptanceDate),
+        acceptanceDate: dto.acceptanceDate === null ? null : this.parseDate(dto.acceptanceDate),
         failureReason: this.optionalText(dto.failureReason),
         goal: this.optionalText(dto.goal),
         participantIds: dto.participantIds,

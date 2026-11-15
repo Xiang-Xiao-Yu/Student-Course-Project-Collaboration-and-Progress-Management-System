@@ -320,14 +320,19 @@ try {
     .locator('.acceptance-edit-form')
     .getByRole('button', { name: '保存验收', exact: true })
     .click();
-  await page
-    .getByText('当前后端暂不支持清除验收日期，请重新选择日期或保留原日期。', {
-      exact: true,
-    })
-    .waitFor();
-  await capture('acceptance-date-clear-guard.png');
-  await dateInput.fill('2026-11-20');
-  results.push({ name: 'acceptance date clear does not report false success', status: 'PASS' });
+  await page.getByText('阶段验收已保存。', { exact: true }).waitFor();
+  await page.reload();
+  await page.locator('.acceptance-list-row').filter({ hasText: 'P5 阶段验收' }).click();
+  await page.getByRole('button', { name: '编辑验收', exact: true }).click();
+  await page.locator('.acceptance-edit-form input[type="date"]').waitFor();
+  check(
+    (await page.locator('.acceptance-edit-form input[type="date"]').inputValue()) === '',
+    'Cleared acceptance date did not persist',
+  );
+  await capture('acceptance-date-cleared.png');
+  const restoredDateInput = page.locator('.acceptance-edit-form input[type="date"]');
+  await restoredDateInput.fill('2026-11-20');
+  results.push({ name: 'acceptance date clear persists after reload', status: 'PASS' });
 
   await page.getByRole('button', { name: /进入“验收中”/ }).click();
   await page

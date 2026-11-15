@@ -45,6 +45,28 @@ function dashboard(overrides: Partial<ProjectDashboard> = {}): ProjectDashboard 
 }
 
 describe('P6 dashboard presentation', () => {
+  it('服务端实际动作及未知动作显示中文，不泄露内部动作编码', () => {
+    for (const action of [
+      'ACCEPTANCE_RESULT_RECORDED',
+      'ITERATION_CLOSED',
+      'ITERATION_DELETED',
+      'ITERATION_STATUS_CHANGED',
+      'MEETING_ACTION_STATUS_CHANGED',
+      'PROJECT_MEMBER_ADDED',
+      'PROJECT_MEMBER_REMOVED',
+      'PROJECT_MEMBER_ROLE_CHANGED',
+      'PROJECT_OWNER_TRANSFERRED',
+      'PROJECT_STATUS_CHANGED',
+      'REQUIREMENT_STATUS_CHANGED',
+      'TASK_REVIEW_REJECTED',
+      'TASK_REVIEW_RESUBMITTED',
+      'TASK_STATUS_CHANGED',
+    ]) {
+      expect(getDashboardActivityLabel(action)).toMatch(/[\u4e00-\u9fff]/);
+      expect(getDashboardActivityLabel(action)).not.toMatch(/[A-Z_]/);
+    }
+    expect(getDashboardActivityLabel('FUTURE_INTERNAL_ACTION')).toBe('更新项目记录');
+  });
   it('正常场景格式化完成率并映射活动名称', () => {
     expect(formatCompletionRate(0.625)).toBe('62.5%');
     expect(getDashboardActivityLabel('TASK_STATUS_UPDATED')).toBe('更新任务状态');

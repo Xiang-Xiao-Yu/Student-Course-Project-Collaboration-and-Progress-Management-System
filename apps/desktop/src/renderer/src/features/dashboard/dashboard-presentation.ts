@@ -2,11 +2,15 @@ import type { ProjectDashboard } from './dashboard-api';
 
 const activityLabels: Readonly<Record<string, string>> = {
   ACCEPTANCE_CREATED: '创建阶段验收',
+  ACCEPTANCE_RESULT_RECORDED: '记录验收结果',
   ACCEPTANCE_UPDATED: '更新阶段验收',
   COMMENT_CREATED: '发布评论',
   COMMENT_DELETED: '删除评论',
   COMMENT_UPDATED: '更新评论',
   ITERATION_CREATED: '创建迭代',
+  ITERATION_CLOSED: '关闭迭代',
+  ITERATION_DELETED: '删除迭代',
+  ITERATION_STATUS_CHANGED: '更新迭代状态',
   ITERATION_STATUS_UPDATED: '更新迭代状态',
   ITERATION_TASK_ADDED: '将任务加入迭代',
   ITERATION_TASK_REMOVED: '将任务移出迭代',
@@ -14,6 +18,7 @@ const activityLabels: Readonly<Record<string, string>> = {
   MEETING_ACTION_CONVERTED: '将行动项转为任务',
   MEETING_ACTION_CREATED: '创建行动项',
   MEETING_ACTION_UPDATED: '更新行动项',
+  MEETING_ACTION_STATUS_CHANGED: '更新行动项状态',
   MEETING_CREATED: '创建会议',
   MEETING_UPDATED: '更新会议',
   MEMBER_JOINED: '邀请项目成员',
@@ -21,16 +26,25 @@ const activityLabels: Readonly<Record<string, string>> = {
   MEMBER_ROLE_UPDATED: '调整成员角色',
   PROJECT_ARCHIVED: '归档项目',
   PROJECT_CREATED: '创建项目',
+  PROJECT_MEMBER_ADDED: '邀请项目成员',
+  PROJECT_MEMBER_REMOVED: '移除项目成员',
+  PROJECT_MEMBER_ROLE_CHANGED: '调整成员角色',
+  PROJECT_OWNER_TRANSFERRED: '移交项目负责人',
+  PROJECT_STATUS_CHANGED: '更新项目状态',
   PROJECT_DELETED: '删除项目',
   PROJECT_STATUS_UPDATED: '更新项目状态',
   PROJECT_UPDATED: '更新项目',
   REQUIREMENT_CREATED: '创建需求',
+  REQUIREMENT_STATUS_CHANGED: '更新需求状态',
   REQUIREMENT_DELETED: '删除需求',
   REQUIREMENT_STATUS_UPDATED: '更新需求状态',
   REQUIREMENT_UPDATED: '更新需求',
   TASK_CREATED: '创建任务',
   TASK_DELETED: '删除任务',
   TASK_REOPENED: '重新打开任务',
+  TASK_REVIEW_REJECTED: '驳回任务审核',
+  TASK_REVIEW_RESUBMITTED: '重新提交任务审核',
+  TASK_STATUS_CHANGED: '更新任务状态',
   TASK_STATUS_UPDATED: '更新任务状态',
   TASK_UPDATED: '更新任务',
 };
@@ -54,7 +68,7 @@ export function formatDashboardDateTime(value: string): string {
 }
 
 export function getDashboardActivityLabel(action: string): string {
-  return activityLabels[action] ?? action.replaceAll('_', ' ');
+  return activityLabels[action] ?? '更新项目记录';
 }
 
 export interface DashboardSectionVisibility {

@@ -564,10 +564,24 @@ try {
       .locator('.task-filter-panel')
       .getByLabel('标题搜索', { exact: true })
       .fill('P7-NOT-FOUND');
+    // Keep the loading interval observable so this catches premature assertions.
+    const emptyQuery = `**/projects/${project.id}/tasks?*`;
+    const delayEmptyQuery = async (route) => {
+      await delay(600);
+      await route.continue();
+    };
+    await page.route(emptyQuery, delayEmptyQuery);
     await page.getByRole('button', { name: '应用筛选', exact: true }).click();
+    // Loading also removes old cards. Wait for the completed empty result.
+    await page
+      .locator('.task-filter-summary')
+      .getByText('已启用 1 个筛选条件 · 共 0 条', { exact: true })
+      .waitFor();
+    await page.getByText('暂无任务', { exact: true }).first().waitFor();
     await page.locator('.task-card').first().waitFor({ state: 'hidden' });
     assert.equal(await page.locator('.task-card').count(), 0);
     assert((await page.getByText('暂无任务', { exact: true }).count()) > 0);
+    await page.unroute(emptyQuery, delayEmptyQuery);
     await navigate(project.id, 'reports');
     await page.route('**/reports/progress', (route) => route.abort());
     await page.getByRole('button', { name: '导出项目进度报告', exact: true }).click();
@@ -575,7 +589,12 @@ try {
     assert(await page.getByRole('button', { name: '导出项目进度报告', exact: true }).isEnabled());
     await page.unroute('**/reports/progress');
     await page.screenshot({ path: join(output, 'export-failure-recoverable.png') });
-    return { emptyState: true, noResults: true, failedExportEnabledForRetry: true };
+    return {
+      emptyState: true,
+      noResults: true,
+      delayedEmptyQueryMilliseconds: 600,
+      failedExportEnabledForRetry: true,
+    };
   });
   await test('S13', '个人任务列表与会议评论持久化', async () => {
     await logout();

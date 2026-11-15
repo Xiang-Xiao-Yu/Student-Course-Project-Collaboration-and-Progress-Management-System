@@ -184,6 +184,8 @@ export function TaskFormFields({
                 aria-label="新任务标签"
                 disabled={disabled}
                 maxLength={50}
+                pattern="\s*"
+                title="请先点“添加”或按回车确认标签，也可以清空标签输入框。"
                 onChange={(event) => setTagDraft(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { getCurrentUserProfile } from '../auth/auth-api';
 import { useSession } from '../auth/session';
 
@@ -24,8 +24,11 @@ export function AdminUsersLink({ className = 'secondary-link' }: { readonly clas
     };
   }, [api, userId]);
   return userId && administratorId === userId ? (
-    <Link className={className} to="/account/users">
+    <NavLink
+      className={({ isActive }) => (isActive ? className + ' is-active' : className)}
+      to="/account/users"
+    >
       用户管理
-    </Link>
+    </NavLink>
   ) : null;
 }

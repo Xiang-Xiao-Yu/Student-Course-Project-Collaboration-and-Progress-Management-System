@@ -325,3 +325,19 @@
     flex-direction: column;
   }
 }
+.acceptance-pending-result {
+  color: #854d0e;
+  font-weight: 650;
+  align-self: center;
+}
+.acceptance-details .acceptance-failure {
+  border-inline-start: 4px solid #b45309;
+  background: #fff7ed;
+}
+.acceptance-failure h3 {
+  color: #873b0e;
+}
+.acceptance-edit-form :focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}

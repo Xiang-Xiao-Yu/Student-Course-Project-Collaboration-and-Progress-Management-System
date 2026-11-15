@@ -51,7 +51,7 @@ export interface CreateAcceptanceInput {
 }
 
 export interface UpdateAcceptanceInput {
-  readonly acceptanceDate?: string;
+  readonly acceptanceDate?: string | null;
   readonly failureReason?: string;
   readonly goal?: string;
   readonly participantIds?: string[];

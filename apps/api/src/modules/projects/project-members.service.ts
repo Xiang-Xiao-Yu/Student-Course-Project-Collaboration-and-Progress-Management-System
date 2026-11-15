@@ -89,6 +89,13 @@ export class ProjectMembersService {
     const targetRole = target.role as ProjectRole;
 
     if (dto.role === 'OWNER') {
+      if (userId !== access.project.ownerId) {
+        throw new AppException(
+          HttpStatus.FORBIDDEN,
+          'PROJECT_PERMISSION_DENIED',
+          '只有当前项目负责人可以移交项目',
+        );
+      }
       if (targetRole === 'OWNER') {
         return this.toResponse(target);
       }

@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { seedOwnedProject } from '../../test-support/project-owner';
 
 import { vi } from 'vitest';
 
@@ -95,6 +96,7 @@ describe('P2 project regressions with SQLite', () => {
     for (const name of ['admin', 'owner', 'memberB', 'memberC', 'observer', 'outsider'] as const) {
       accounts[name] = await createAccount(name);
     }
+    await seedOwnedProject(prisma, accounts.owner.id);
     await prisma.user.update({
       data: { isPlatformAdmin: true },
       where: { id: accounts.admin.id },
@@ -177,9 +179,21 @@ describe('P2 project regressions with SQLite', () => {
   it('serializes stale owner transfers and preserves exactly one OWNER', async () => {
     const projectId = await createProjectWithMembers('并发负责人转移');
 
+    await expect(
+      repository.transferOwnership(
+        projectId,
+        accounts.admin.id,
+        accounts.owner.id,
+        accounts.memberB.id,
+      ),
+    ).rejects.toMatchObject({ code: 'PROJECT_PERMISSION_DENIED' });
+    expect((await prisma.project.findUniqueOrThrow({ where: { id: projectId } })).ownerId).toBe(
+      accounts.owner.id,
+    );
+
     await repository.transferOwnership(
       projectId,
-      accounts.admin.id,
+      accounts.owner.id,
       accounts.owner.id,
       accounts.memberB.id,
     );
@@ -187,7 +201,7 @@ describe('P2 project regressions with SQLite', () => {
     await expect(
       repository.transferOwnership(
         projectId,
-        accounts.admin.id,
+        accounts.owner.id,
         accounts.owner.id,
         accounts.memberC.id,
       ),

@@ -32,6 +32,11 @@ export class ProjectsController {
     return this.projectsService.listProjects(this.requireUserId(request));
   }
 
+  @Get('creation-permission')
+  getCreationPermission(@Req() request: AuthenticatedRequest): Promise<{ canCreate: boolean }> {
+    return this.projectsService.getCreationPermission(this.requireUserId(request));
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   createProject(

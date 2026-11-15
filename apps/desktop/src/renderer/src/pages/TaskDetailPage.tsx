@@ -486,7 +486,7 @@ export function TaskDetailPage() {
 
       <div className="read-only-inline">
         当前角色：{getProjectRoleLabel(project.accessRole)} · 状态：
-        {getTaskStatusLabel(task.status)}
+        <strong className="task-current-status">{getTaskStatusLabel(task.status)}</strong>
       </div>
       {actionError ? <ErrorNotice message={actionError} /> : null}
       {actionMessage ? <div className="success-notice">{actionMessage}</div> : null}
@@ -573,7 +573,6 @@ export function TaskDetailPage() {
             <div className="panel__header">
               <div>
                 <h2>状态操作</h2>
-                <p>所有操作按后端合法状态流提交。</p>
               </div>
             </div>
             {!canEdit ? (
@@ -584,7 +583,11 @@ export function TaskDetailPage() {
               <div className="button-row">
                 {transitions.map((status) => (
                   <button
-                    className="secondary-button"
+                    className={
+                      status === 'PENDING_REVIEW' || status === 'COMPLETED'
+                        ? 'primary-button'
+                        : 'secondary-button'
+                    }
                     disabled={isTransitioning}
                     key={status}
                     onClick={() => attemptTransition(status as TaskDto['status'])}

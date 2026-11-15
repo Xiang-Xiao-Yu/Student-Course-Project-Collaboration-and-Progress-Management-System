@@ -32,9 +32,9 @@ export class UpdateAcceptanceDto {
   @MaxLength(5000)
   goal?: string;
 
-  @ValidateIf((_object, value) => value !== undefined)
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
-  acceptanceDate?: string;
+  acceptanceDate?: string | null;
 
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @ValidateIf((_object, value) => value !== undefined)
