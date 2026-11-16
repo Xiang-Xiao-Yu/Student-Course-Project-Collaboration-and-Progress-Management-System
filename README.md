@@ -1,135 +1,68 @@
 # 学生课程项目协作与进度管理系统
 
-面向学生课程项目团队的协作与进度管理系统，覆盖项目、成员、需求、任务、迭代、会议、阶段验收和进度统计。
+供课程小组安排分工、跟进进度的 Windows 桌面应用。组长把课程要求拆成任务，组员处理任务并提交审核，团队用会议、阶段验收、图表和 CSV 留下可复查的过程记录。
 
-- 仓库：<https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System>
-- Issues：<https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues>
-- Pull Requests：<https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/pulls>
+## 下载与使用
 
-## 1. 当前状态
+从 [v0.1.11 Release](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/releases/tag/v0.1.11) 下载 **SCPC-Windows-Portable-v0.1.11.zip**，在 Windows 11 上完整解压到可写目录，双击 `Start.cmd`。包内已含运行环境，无需另装 Node.js 或数据库；不要只复制或启动内部的 `client/SCPC.exe`。
 
-本仓库包含 Windows 0.1.10 的 MVP 业务源码。结项范围为 FR-01～FR-11、AC-01～AC-11，依据[需求规格 0.1.6](docs/需求规格说明书.md)。检查结果、安装包校验值及尚待人工确认的事项见[结项检查](docs/结项文档/0.1.10-结项检查.md)。
+首次为管理员 `admin` 设置 8～128 位密码，输入时不显示密码。普通用户也可以从登录页注册账号，再创建自己的项目。后续启动沿用原账号与数据。
 
-已取得课程安装包的用户可运行 `SCPC-0.1.10-x64.msi`，从安装目录的 `SCPC.exe` 或开始菜单启动。便携版请放在可写目录运行。发行包与测试数据不纳入 Git。空库调试管理员的首次登录信息由交付人单独提供，已有库沿用自己的密码。
+账号、项目和头像保存在解压目录的 `data` 下。退出应用后，复制完整目录即可搬迁。迁入旧版数据时，先保留旧目录，在新版本首次启动前复制完整 `data`；若两处都已有数据，保留两套目录核对，避免覆盖。不同电脑独立运行时各自保存数据，项目不会自动同步。
 
-| 工作区                 | 路径               | 技术栈                  | 负责方 |
-| ---------------------- | ------------------ | ----------------------- | ------ |
-| API 服务               | `apps/api/`        | NestJS + Prisma         | T-01   |
-| 桌面客户端             | `apps/desktop/`    | Electron + React + Vite | T-02   |
-| 共享类型与 DTO         | `packages/shared/` | TypeScript              | T-01   |
-| 数据库 Schema 与迁移   | `prisma/`          | Prisma + SQLite         | T-01   |
-| 跨模块测试与质量记录   | `tests/`           | Vitest 等               | T-03   |
-| 需求、契约、任务与文档 | `docs/`            | Markdown                | `root` |
+## 建立小组项目
 
-## 2. 环境要求
+1. 在「项目中心」填写名称并创建项目，创建者成为该项目的组长。
+2. 请队友先在同一套应用里注册，再到「成员管理」输入注册用户名，邀请为成员或观察者。
+3. 更换组长时，由现任组长选择接任成员并确认移交。原组长随后作为普通成员参与。
 
-- Windows 10/11（当前交付目标为局域网内的桌面应用）
-- Node.js `>= 24.18.0`（见根 `package.json` 的 `engines`）
-- pnpm `11.21.0`（已由根 `package.json` 的 `packageManager` 锁定）
-- Git 2.40 及以上
+组长、成员和观察者的权限取决于当前项目；一个人在不同项目可以承担不同角色。
 
-## 3. 快速开始
+## 从需求做到验收
+
+以图书借阅项目中的“按书名查书”为例，先写清怎样判断查询功能可用，再安排分工。
+
+| 步骤       | 在哪里操作         | 怎么做                                                                       |
+| ---------- | ------------------ | ---------------------------------------------------------------------------- |
+| 写需求     | 需求管理           | 创建“按书名查书”，写明“输入已有图书的完整书名，结果中能找到这本书”等验收标准 |
+| 分任务     | 任务看板           | 拆成实现查询、测试查询结果等任务，关联需求，分配负责人和截止日期             |
+| 执行与审核 | 我的任务、任务看板 | 组员更新状态，完成后填写说明并提交；组长审核通过或填写退回原因               |
+| 安排下一轮 | 迭代计划           | 设置目标和日期，安排任务，查看完成、阻塞和逾期情况                           |
+| 跟进组会   | 会议纪要           | 记录决定，给行动项设置负责人和期限，按需转为任务                             |
+| 验收成果   | 阶段验收           | 按标准记录结果；未通过时写明原因、创建整改任务，完成后再次验收               |
+| 准备汇报   | 统计与导出         | 查看图表；组长或管理员导出任务 CSV 和项目进度报告                            |
+
+看板每列每页最多显示 50 条，列标题表示完整数量，筛选和导出覆盖全部匹配结果。找不到任务时，先核对项目、筛选条件和页码；只能查看而不能编辑时，到成员管理核对角色。
+
+## 从源码运行
+
+需要 Node.js `>=24.18.0`、pnpm `11.21.0` 和 Git。项目使用 React、TypeScript、Electron、NestJS、Prisma、SQLite 和 ECharts。
 
 ```powershell
-git clone https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System.git
-cd Student-Course-Project-Collaboration-and-Progress-Management-System
-
 pnpm install --frozen-lockfile
 if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
-powershell -ExecutionPolicy Bypass -File scripts/set-agent-file-attributes.ps1
-
+# 在本地 .env 中设置随机 JWT_SECRET，并核对其他配置
 pnpm db:generate
 pnpm db:migrate
-pnpm lint
-pnpm typecheck
-pnpm test
+pnpm dev
 ```
 
-说明：
+首次配置时复制环境示例；已有 `.env` 时保留原配置。`pnpm db:seed` 仅在需要开发演示数据时执行。真实配置、数据库和用户数据不提交到仓库。
 
-- `.env` 只保存在本地，禁止提交；`.env.example` 中的值都是占位值，不要替换成真实凭据后再提交。
-- `scripts/set-agent-file-attributes.ps1` 把受保护文件设置为 Windows 只读 + 隐藏，与 `AGENTS.md` 的文件权限约定保持一致；使用 `-Status` 查看当前属性。
-- 首次执行 `pnpm db:migrate` 时，`scripts/ensure-database-file.mjs` 会自动补齐 `data/` 目录和空的 SQLite 文件；Prisma 不会自动创建缺失的数据库文件，缺少时只会抛出无进一步提示的 `Schema engine error`。
+| 检查       | 命令             |
+| ---------- | ---------------- |
+| 自动测试   | `pnpm test`      |
+| 类型检查   | `pnpm typecheck` |
+| 规范与格式 | `pnpm lint`      |
+| 生产构建   | `pnpm build`     |
 
-## 4. 启动命令
+源码按 `apps/api`、`apps/desktop`、`packages/shared` 组织；`prisma` 保存模型与迁移，`scripts` 保存构建和打包入口，`tests` 保存跨模块检查代码。业务回归为 API 256、桌面 238、共享契约 6 项，共 500 项。此前另外 4 项 AI 日志格式测试不属于业务功能，随流程资料退出公开检查。
 
-P0 约定的启动命令（与 `docs/P0-工程与契约约定.md` 第 4 节一致）：
+## 工程资料与反馈
 
-| 命令                             | 用途                                            |
-| -------------------------------- | ----------------------------------------------- |
-| `pnpm install --frozen-lockfile` | 安装锁定的依赖                                  |
-| `pnpm dev`                       | 同时启动 API 与桌面客户端                       |
-| `pnpm dev:api`                   | 启动 NestJS API（默认 `http://127.0.0.1:3000`） |
-| `pnpm dev:desktop`               | 启动 Electron + React 客户端                    |
-| `pnpm db:migrate`                | 执行 Prisma Migration                           |
-| `pnpm db:seed`                   | 写入最小开发种子数据                            |
-| `pnpm build`                     | 构建 API 与桌面客户端                           |
-| `pnpm test`                      | 执行当前阶段测试                                |
-| `pnpm lint`                      | 执行 ESLint 与 Prettier 检查                    |
-| `pnpm typecheck`                 | 执行 TypeScript 严格类型检查                    |
+- [需求规格说明书](docs/需求规格说明书.md)：当前基线 0.1.6，MVP 覆盖 FR-01～FR-11、AC-01～AC-11；FR-12～FR-15 保持后续范围。
+- [工程与接口约定](docs/P0-工程与契约约定.md)：目录、命令、配置、统一响应及数据约定。
+- [测试指引](tests/README.md)：日常检查和可选桌面、容量验证入口。
+- [GitHub Issues](https://github.com/Xiang-Xiao-Yu/Student-Course-Project-Collaboration-and-Progress-Management-System/issues)：反馈问题。
 
-首次启动前在本地配置中设置随机的 `JWT_SECRET`。开发库需要示例数据时才运行 `pnpm db:seed`。
-
-## 5. 数据库与目录约定
-
-- SQLite 数据库文件为 `data/app.db`，`DATABASE_URL=file:../data/app.db` 相对于 `prisma/schema.prisma` 解析。
-- `data/` 只保存本地数据，`.db`、`.sqlite` 文件不进入 Git。
-- 数据库结构变化必须通过 Prisma Migration，禁止手工修改运行中的数据库结构。
-- API 端口、API 前缀、响应格式、错误码和环境变量以 `docs/P0-工程与契约约定.md` 为准。
-
-## 6. 其他智能体接入流程
-
-1. `git clone` 本仓库并停留在 `main`；不要假设远程地址，也不要直接向 `main` 提交。
-2. 执行 `pnpm install --frozen-lockfile` 和 `scripts/set-agent-file-attributes.ps1`。
-3. 按顺序阅读：`AGENTS.md` → `docs/ai-agents/AGENTS.md` → `docs/README.md` → `docs/需求规格说明书.md` → `docs/P0-工程与契约约定.md` → 拟认领的 `docs/tasks/` 任务文档 → 相关源码与测试。
-4. 长期负责人选择未被认领的任务，向 `root` 申请并等待明确确认后取得修改权限；临时评审、测试与辅助智能体只按 root 已委派的范围工作，不占用正式任务或变更负责人。
-5. 建立独立分支与 worktree，目录命名遵循 `docs/ai-agents/智能体初始化提示词.md` 第 5 节。
-6. 在自己的 worktree 中配置署名身份，并在提交信息末尾附加署名尾注：
-
-   ```text
-   git config user.name "<智能体名称>@<任务标记>"
-   git config user.email "<agent-id>@local"
-
-   feat(task): add task status transition
-
-   Agent: DeepSeek@backend
-   Task: T-01
-   ```
-
-7. 主要智能体只在 `docs/ai-logs/root/`、`docs/ai-logs/codex-backend/`、`docs/ai-logs/deepseek-frontend/` 对应固定目录的当日日志中记录计划、实际改动、验证命令和风险；临时评审、测试与辅助智能体仅向 root 交接，由 root 汇总，不创建独立日志目录或文件。
-8. 所有交付通过 Pull Request 提交给 `root` 评审，禁止直接推送受保护分支或自行合并 PR。
-9. 阶段推进遵循门禁：T-01、T-02 完成当前阶段 → 全员冻结 → T-03 统一检查 → `root` 明确解锁下一阶段。检查未通过前不得开始下一阶段。
-
-## 7. 受保护文件
-
-以下文件由 `root` 管理，其他智能体严格只读；需要调整时通过 GitHub Issue 提交建议：
-
-- `AGENTS.md`
-- `docs/ai-agents/AGENTS.md`
-- `docs/需求规格说明书.md`
-- `docs/P0-工程与契约约定.md`
-- `docs/ai-logs/README.md`
-- `docs/tasks/T-03-test-quality.md`
-
-其他智能体即使具备本地文件系统权限，也不得解除这些文件的只读和隐藏属性。
-
-## 8. 文档索引
-
-| 文档                        | 内容                                          |
-| --------------------------- | --------------------------------------------- |
-| `docs/README.md`            | `docs/` 交付物索引与维护规则                  |
-| `docs/需求规格说明书.md`    | 需求基线：FR-01～FR-15、AC-01～AC-11          |
-| `docs/P0-工程与契约约定.md` | P0 目录、命令、环境变量、响应格式与数据库约定 |
-| `docs/design/ui-demo.html`  | P0 前端风格演示（纯静态页面）                 |
-| `docs/ai-logs/README.md`    | 智能体日志规范与模板                          |
-| `docs/tasks/`               | T-01、T-02、T-03 任务范围与阶段安排           |
-
-## 9. 常见问题
-
-| 现象                                               | 处理方式                                                                                       |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `pnpm db:migrate` 报 `Error: Schema engine error:` | 确认 `data/` 目录与 `data/app.db` 是否存在；直接重新执行 `pnpm db:migrate`，脚本会补齐后再迁移 |
-| PowerShell 拒绝执行脚本                            | 使用 `powershell -ExecutionPolicy Bypass -File <脚本路径>`                                     |
-| `pnpm install` 提示 Node 版本不符                  | 升级到 Node.js 24.18.0 及以上，或按团队约定统一版本                                            |
-
-接口、权限、数据和安全边界的完整约定见 `AGENTS.md` 与 `docs/P0-工程与契约约定.md`；两者冲突时先向 `root` 报告，不要自行选择。
+仓库保留源码和必要工程文件。课程结项材料、个人报告、历史截图与日志另行在本地保存，安装和运行包通过 Release 分发。

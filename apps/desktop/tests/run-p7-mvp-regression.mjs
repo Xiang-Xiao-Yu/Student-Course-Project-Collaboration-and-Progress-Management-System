@@ -20,7 +20,7 @@ for (const path of [
   join(root, 'apps/api/dist/main.js'),
   join(root, 'apps/desktop/out/main/index.js'),
 ]) {
-  assert(existsSync(path), 'Missing runtime or build; see docs/test/p7-frontend-regression.md');
+  assert(existsSync(path), 'Missing runtime or build; see tests/README.md');
 }
 const output = join(
   root,

@@ -1,3 +1,0 @@
-Command: node node_modules/@nestjs/cli/bin/nest.js build (working directory: apps/api)
-Exit code: 0
-Output: no build errors

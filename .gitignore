@@ -48,3 +48,23 @@ Thumbs.db
 .cache/
 .pnpm-store/
 *.tsbuildinfo
+
+# Local delivery materials and historical project records
+/AGENTS.md
+/deliverables/
+/临时待办-*.md
+/docs/ai-agents/
+/docs/ai-logs/
+/docs/design/
+/docs/superpowers/
+/docs/tasks/
+/docs/test/
+/docs/weekly-reports/
+/docs/结项文档/
+/data/
+/scripts/check-ai-log-layout.mjs
+/scripts/set-agent-file-attributes.ps1
+/tests/ai-logs/
+/tests/visual-evidence/
+/apps/desktop/tests/evidence/
+/.github/workflows/ai-log-layout.yml

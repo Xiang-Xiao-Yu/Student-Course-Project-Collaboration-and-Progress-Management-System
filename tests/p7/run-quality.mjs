@@ -70,7 +70,6 @@ await Promise.all([
     '--reporter=json',
     `--outputFile=${join(output, 'shared-tests.json')}`,
   ]),
-  run('log-tests', '.', ['--test', 'tests/ai-logs/check-ai-log-layout.test.mjs']),
   ...['apps/api', 'apps/desktop', 'packages/shared'].map((pkg) =>
     run(`${pkg.split('/').at(-1)}-typecheck`, '.', [
       'node_modules/typescript/bin/tsc',
@@ -81,7 +80,6 @@ await Promise.all([
   ),
   run('eslint', '.', ['node_modules/eslint/bin/eslint.js', '.']),
   run('prettier', '.', ['node_modules/prettier/bin/prettier.cjs', '--check', '.']),
-  run('log-layout', '.', ['scripts/check-ai-log-layout.mjs']),
 ]);
 await run('api-build', 'apps/api', ['node_modules/@nestjs/cli/bin/nest.js', 'build']);
 await run('desktop-build', 'apps/desktop', [
