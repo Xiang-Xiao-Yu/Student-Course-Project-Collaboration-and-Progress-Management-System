@@ -462,13 +462,13 @@
 
 .task-card__meta dt {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .task-card__meta dd {
   margin-top: 4px;
   overflow: hidden;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -482,12 +482,14 @@
 }
 
 .task-tags span {
+  max-width: 100%;
   padding: 3px 6px;
   color: var(--primary);
   border-radius: 4px;
   background: var(--primary-soft);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .task-card__edit {
@@ -615,7 +617,7 @@
 
 .task-detail-list dt {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .task-detail-list dd {
@@ -699,7 +701,7 @@
 .comment-row p {
   margin: 8px 0 0;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.65;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -709,6 +711,11 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+}
+
+.activity-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .activity-row__marker {
@@ -729,20 +736,20 @@
 }
 
 .activity-row strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .activity-row p {
   margin: 4px 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
 .activity-row div > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .activity-load-more {
@@ -751,7 +758,7 @@
   font-size: 11px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .requirement-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }

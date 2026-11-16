@@ -87,7 +87,7 @@
 .dashboard-task-row a {
   overflow: hidden;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-decoration: none;
   text-overflow: ellipsis;
@@ -102,7 +102,8 @@
 .dashboard-task-row span {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-task-row time {
@@ -124,6 +125,11 @@
   border-bottom: 0;
 }
 
+.dashboard-activity-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .dashboard-activity-row__marker {
   flex: 0 0 8px;
   width: 8px;
@@ -142,18 +148,19 @@
 }
 
 .dashboard-activity-row strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .dashboard-activity-row p {
   margin: 4px 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .dashboard-activity-row time {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .task-filter-panel {

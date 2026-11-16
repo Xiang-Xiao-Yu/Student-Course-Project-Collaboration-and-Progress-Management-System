@@ -12,6 +12,12 @@ export function UnsavedChangesGuard({ message, when }: UnsavedChangesGuardProps)
   const blocker = useBlocker(when);
 
   useEffect(() => {
+    if (!when && blocker.state === 'blocked') {
+      blocker.proceed();
+    }
+  }, [blocker, when]);
+
+  useEffect(() => {
     if (!when || typeof window === 'undefined') {
       return;
     }
@@ -28,7 +34,7 @@ export function UnsavedChangesGuard({ message, when }: UnsavedChangesGuardProps)
     };
   }, [when]);
 
-  if (blocker.state !== 'blocked') {
+  if (!when || blocker.state !== 'blocked') {
     return null;
   }
 

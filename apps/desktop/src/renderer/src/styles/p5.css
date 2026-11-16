@@ -64,7 +64,7 @@
 .meeting-list-row span,
 .acceptance-list-row span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .meeting-meta,
@@ -74,7 +74,7 @@
   gap: 12px;
   margin: 16px 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .meeting-notes,
@@ -103,7 +103,7 @@
 .acceptance-details p {
   margin: 8px 0 0;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.7;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -164,7 +164,7 @@
 .meeting-action-row > div:first-child span {
   margin-top: 5px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .meeting-action-row .action-date-error {
@@ -238,10 +238,12 @@
 
 .participant-selector label {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .participant-selector small,
@@ -298,7 +300,7 @@
 .remediation-pending p {
   margin: 0;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.65;
 }
 
