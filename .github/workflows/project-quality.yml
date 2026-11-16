@@ -34,8 +34,12 @@ jobs:
         run: pnpm install --frozen-lockfile --prod=false
       - name: Generate the Prisma client
         run: pnpm db:generate
-      - name: Test
-        run: pnpm test
+      - name: Test shared contracts
+        run: pnpm --filter @scpc/shared test
+      - name: Test desktop
+        run: pnpm --filter @scpc/desktop test
+      - name: Test API
+        run: pnpm --filter @scpc/api exec vitest run --maxWorkers=1
       - name: Typecheck
         run: pnpm typecheck
       - name: Lint
