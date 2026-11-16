@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  quality:
+  check:
     runs-on: windows-latest
     timeout-minutes: 20
     env:
