@@ -96,7 +96,7 @@ describe('ProjectsService', () => {
     ).rejects.toMatchObject({ status: HttpStatus.CONFLICT });
   });
 
-  it('keeps audit afterValue consistent with an explicit description update', async () => {
+  it('passes an explicit empty description to the transactional update', async () => {
     const { access, repository, service } = createService();
 
     access.requirePermission.mockResolvedValue({
@@ -111,13 +111,9 @@ describe('ProjectsService', () => {
 
     await service.updateProject('owner-1', 'project-1', { description: '' });
 
-    expect(repository.updateProject).toHaveBeenCalledWith(
-      'project-1',
-      'owner-1',
-      { description: '' },
-      expect.objectContaining({ description: '旧描述' }),
-      expect.objectContaining({ description: '' }),
-    );
+    expect(repository.updateProject).toHaveBeenCalledWith('project-1', 'owner-1', {
+      description: '',
+    });
   });
 
   it('enforces valid project status transitions', async () => {
@@ -164,6 +160,6 @@ describe('ProjectsService', () => {
       service.deleteProject('owner-1', 'project-1', { confirmName: project.name }),
     ).resolves.toEqual({ deleted: true });
 
-    expect(repository.deleteProject).toHaveBeenCalledWith('project-1', 'owner-1');
+    expect(repository.deleteProject).toHaveBeenCalledWith('project-1', 'owner-1', project.name);
   });
 });

@@ -118,24 +118,12 @@ export class ProjectsService {
       throw this.invalidDateRange();
     }
 
-    const afterValue = {
-      description: dto.description ?? access.project.description,
-      endDate: endDate?.toISOString() ?? null,
-      name: dto.name ?? access.project.name,
-      startDate: startDate?.toISOString() ?? null,
-    };
-    const project = await this.projectsRepository.updateProject(
-      projectId,
-      userId,
-      {
-        description: dto.description,
-        endDate: dto.endDate !== undefined ? endDate : undefined,
-        name: dto.name,
-        startDate: dto.startDate !== undefined ? startDate : undefined,
-      },
-      this.toActivityValue(access.project),
-      afterValue,
-    );
+    const project = await this.projectsRepository.updateProject(projectId, userId, {
+      description: dto.description,
+      endDate: dto.endDate !== undefined ? endDate : undefined,
+      name: dto.name,
+      startDate: dto.startDate !== undefined ? startDate : undefined,
+    });
 
     return this.toResponse(project, access.isPlatformAdmin ? 'ADMIN' : (access.role ?? 'OBSERVER'));
   }
@@ -196,7 +184,7 @@ export class ProjectsService {
       );
     }
 
-    await this.projectsRepository.deleteProject(projectId, userId);
+    await this.projectsRepository.deleteProject(projectId, userId, dto.confirmName);
 
     return { deleted: true };
   }
@@ -222,15 +210,6 @@ export class ProjectsService {
       startDate: project.startDate?.toISOString() ?? null,
       status: project.status as ProjectStatus,
       updatedAt: project.updatedAt.toISOString(),
-    };
-  }
-
-  private toActivityValue(project: ProjectRecord): unknown {
-    return {
-      description: project.description,
-      endDate: project.endDate?.toISOString() ?? null,
-      name: project.name,
-      startDate: project.startDate?.toISOString() ?? null,
     };
   }
 

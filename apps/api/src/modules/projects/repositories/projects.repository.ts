@@ -5,6 +5,7 @@ import { AppException } from '../../../common/errors/app.exception';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { ListActivityQueryDto } from '../dto/list-activity-query.dto';
 import type { ProjectRole, ProjectStatus } from '../project.constants';
+import { withProjectWrite } from '../project-write-access';
 
 const projectSelect = {
   createdAt: true,
@@ -31,6 +32,15 @@ const projectMemberSelect = {
     },
   },
 } satisfies Prisma.ProjectMemberSelect;
+
+function projectActivityValue(project: ProjectRecord): unknown {
+  return {
+    description: project.description,
+    endDate: project.endDate?.toISOString() ?? null,
+    name: project.name,
+    startDate: project.startDate?.toISOString() ?? null,
+  };
+}
 
 export interface ProjectRecord {
   createdAt: Date;
@@ -231,30 +241,47 @@ export class ProjectsRepository {
     projectId: string,
     actorId: string,
     data: ProjectWriteInput,
-    beforeValue: unknown,
-    afterValue: unknown,
   ): Promise<ProjectRecord> {
-    return this.prisma.$transaction(async (transaction) => {
-      const project = await transaction.project.update({
-        data,
-        select: projectSelect,
-        where: { id: projectId },
-      });
+    return withProjectWrite(
+      this.prisma,
+      projectId,
+      actorId,
+      'PROJECT_UPDATE',
+      async (transaction) => {
+        const current = await transaction.project.findUniqueOrThrow({
+          select: projectSelect,
+          where: { id: projectId },
+        });
+        const startDate = data.startDate !== undefined ? data.startDate : current.startDate;
+        const endDate = data.endDate !== undefined ? data.endDate : current.endDate;
+        if (startDate && endDate && startDate.getTime() > endDate.getTime()) {
+          throw new AppException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            'PROJECT_DATE_RANGE_INVALID',
+            '项目结束日期不能早于开始日期',
+          );
+        }
+        const project = await transaction.project.update({
+          data,
+          select: projectSelect,
+          where: { id: projectId },
+        });
 
-      await transaction.activityLog.create({
-        data: {
-          action: 'PROJECT_UPDATED',
-          actorId,
-          afterValue: JSON.stringify(afterValue),
-          beforeValue: JSON.stringify(beforeValue),
-          projectId,
-          targetId: projectId,
-          targetType: 'PROJECT',
-        },
-      });
+        await transaction.activityLog.create({
+          data: {
+            action: 'PROJECT_UPDATED',
+            actorId,
+            afterValue: JSON.stringify(projectActivityValue(project)),
+            beforeValue: JSON.stringify(projectActivityValue(current)),
+            projectId,
+            targetId: projectId,
+            targetType: 'PROJECT',
+          },
+        });
 
-      return project;
-    });
+        return project;
+      },
+    );
   }
 
   async updateProjectStatus(
@@ -263,59 +290,89 @@ export class ProjectsRepository {
     status: ProjectStatus,
     previousStatus: ProjectStatus,
   ): Promise<ProjectRecord> {
-    return this.prisma.$transaction(async (transaction) => {
-      const project = await transaction.project.update({
-        data: { status },
-        select: projectSelect,
-        where: { id: projectId },
-      });
+    return withProjectWrite(
+      this.prisma,
+      projectId,
+      actorId,
+      'PROJECT_STATUS_UPDATE',
+      async (transaction) => {
+        const updated = await transaction.project.updateMany({
+          data: { status },
+          where: { id: projectId, status: previousStatus },
+        });
+        if (updated.count !== 1) {
+          throw new AppException(HttpStatus.CONFLICT, 'CONFLICT', '项目状态已变化，请刷新后重试');
+        }
+        const project = await transaction.project.findUniqueOrThrow({
+          select: projectSelect,
+          where: { id: projectId },
+        });
 
-      await transaction.activityLog.create({
-        data: {
-          action: 'PROJECT_STATUS_CHANGED',
-          actorId,
-          afterValue: JSON.stringify({ status }),
-          beforeValue: JSON.stringify({ status: previousStatus }),
-          projectId,
-          targetId: projectId,
-          targetType: 'PROJECT',
-        },
-      });
+        await transaction.activityLog.create({
+          data: {
+            action: 'PROJECT_STATUS_CHANGED',
+            actorId,
+            afterValue: JSON.stringify({ status }),
+            beforeValue: JSON.stringify({ status: previousStatus }),
+            projectId,
+            targetId: projectId,
+            targetType: 'PROJECT',
+          },
+        });
 
-      return project;
-    });
+        return project;
+      },
+    );
   }
 
-  async deleteProject(projectId: string, actorId: string): Promise<void> {
-    await this.prisma.$transaction(async (transaction) => {
-      const actor = await transaction.user.findUnique({
-        select: { username: true },
-        where: { id: actorId },
-      });
+  async deleteProject(projectId: string, actorId: string, confirmName: string): Promise<void> {
+    await withProjectWrite(
+      this.prisma,
+      projectId,
+      actorId,
+      'PROJECT_DELETE',
+      async (transaction) => {
+        const actor = await transaction.user.findUnique({
+          select: { username: true },
+          where: { id: actorId },
+        });
 
-      if (!actor) {
-        throw new AppException(
-          HttpStatus.UNAUTHORIZED,
-          'AUTH_SESSION_EXPIRED',
-          '登录会话已失效，请重新登录',
-        );
-      }
+        if (!actor) {
+          throw new AppException(
+            HttpStatus.UNAUTHORIZED,
+            'AUTH_SESSION_EXPIRED',
+            '登录会话已失效，请重新登录',
+          );
+        }
 
-      const project = await transaction.project.delete({
-        select: { id: true, name: true, status: true },
-        where: { id: projectId },
-      });
+        const current = await transaction.project.findUniqueOrThrow({
+          select: { name: true },
+          where: { id: projectId },
+        });
+        if (current.name !== confirmName) {
+          throw new AppException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            'PROJECT_DELETE_CONFIRMATION_MISMATCH',
+            '项目名称已变化，请核对当前名称后重新确认',
+          );
+        }
+        const project = await transaction.project.delete({
+          select: { id: true, name: true, status: true },
+          where: { id: projectId },
+        });
 
-      await transaction.projectDeletionAudit.create({
-        data: {
-          actorId,
-          actorUsername: actor.username,
-          projectId: project.id,
-          projectName: project.name,
-          projectStatus: project.status,
-        },
-      });
-    });
+        await transaction.projectDeletionAudit.create({
+          data: {
+            actorId,
+            actorUsername: actor.username,
+            projectId: project.id,
+            projectName: project.name,
+            projectStatus: project.status,
+          },
+        });
+      },
+      { allowArchived: true },
+    );
   }
 
   async findUserByUsername(username: string): Promise<{
@@ -406,29 +463,36 @@ export class ProjectsRepository {
     role: 'MEMBER' | 'OBSERVER',
   ): Promise<ProjectMemberRecord> {
     try {
-      return await this.prisma.$transaction(async (transaction) => {
-        const member = await transaction.projectMember.create({
-          data: {
-            projectId,
-            role,
-            userId,
-          },
-          select: projectMemberSelect,
-        });
+      return await withProjectWrite(
+        this.prisma,
+        projectId,
+        actorId,
+        'MEMBER_INVITE',
+        async (transaction) => {
+          const member = await transaction.projectMember.create({
+            data: {
+              projectId,
+              role,
+              userId,
+            },
+            select: projectMemberSelect,
+          });
 
-        await transaction.activityLog.create({
-          data: {
-            action: 'PROJECT_MEMBER_ADDED',
-            actorId,
-            afterValue: JSON.stringify({ role, userId }),
-            projectId,
-            targetId: userId,
-            targetType: 'MEMBER',
-          },
-        });
+          await transaction.activityLog.create({
+            data: {
+              action: 'PROJECT_MEMBER_ADDED',
+              actorId,
+              afterValue: JSON.stringify({ role, userId }),
+              projectId,
+              targetId: userId,
+              targetType: 'MEMBER',
+            },
+          });
 
-        return member;
-      });
+          return member;
+        },
+        { creating: true },
+      );
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new AppException(
