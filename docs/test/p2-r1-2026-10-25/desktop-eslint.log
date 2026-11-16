@@ -1,3 +1,0 @@
-Command: ESLint on the nine changed Desktop source and test files (PR30 remediation worktree)
-Exit code: 0
-Output: no source diagnostics; only Node's experimental-loader notice

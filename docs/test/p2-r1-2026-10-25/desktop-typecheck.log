@@ -1,3 +1,0 @@
-Command: node 'D:\Claude Code\p2-pr28-remediation\node_modules\typescript\bin\tsc' -p tsconfig.json --noEmit (working directory: apps/desktop)
-Exit code: 0
-Output: no diagnostics

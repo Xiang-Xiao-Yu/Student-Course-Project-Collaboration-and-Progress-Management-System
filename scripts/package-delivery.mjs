@@ -8,7 +8,6 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -24,6 +23,9 @@ assert(!existsSync(output), 'Existing deliverables are preserved; choose a new d
 mkdirSync(output, { recursive: true });
 const stage = join(root, 'tmp/closeout-20261116', 'source-' + Date.now());
 const docsStage = stage + '-documents';
+const documentIndex = existsSync(join(root, 'docs/结项文档/README.md'))
+  ? 'docs/结项文档/README.md'
+  : 'docs/README.md';
 mkdirSync(stage, { recursive: true });
 mkdirSync(docsStage);
 const tracked = execFileSync(
@@ -34,39 +36,11 @@ const tracked = execFileSync(
   .toString()
   .split('\0')
   .filter(Boolean);
-const extras = [
-  'scripts/package-portable.mjs',
-  'scripts/package-delivery.mjs',
-  'scripts/portable',
-  'tests/p7/final-full-extra.mjs',
-  'tests/p7/closeout-delivery.mjs',
-  'tests/p7/manual-test-session.mjs',
-  'tests/p7/start-manual-test.ps1',
-  'docs/结项文档',
-  'docs/weekly-reports/README.md',
-  'docs/superpowers/plans/2026-11-14-mvp-closeout.md',
-  'docs/ai-logs/root/2026-11-14.md',
-  'docs/test/board-performance-fix-2026-11-14.md',
-  'docs/test/recheck-2026-11-14.md',
-  'docs/test/final-full-test-checklist-2026-11-12.md',
-  'docs/test/final-full-test-report-2026-11-12.md',
-  'docs/test/final-manual-test-guide-2026-11-12.md',
-  'third_party/node-v24.18.0.LICENSE',
-];
-function files(path) {
-  if (!existsSync(path)) return [];
-  assert(!lstatSync(path).isSymbolicLink(), 'Do not package source links');
-  return statSync(path).isDirectory()
-    ? readdirSync(path).flatMap((entry) => files(join(path, entry)))
-    : [path];
-}
-const selected = new Set([
-  ...tracked.map((path) => join(root, path)),
-  ...extras.flatMap((path) => files(join(root, path))),
-]);
+const selected = new Set(tracked.map((path) => join(root, path)));
 const sourceFiles = [];
 for (const source of [...selected].sort()) {
   if (!existsSync(source) || !statSync(source).isFile()) continue;
+  assert(!lstatSync(source).isSymbolicLink(), 'Do not package source links');
   const path = relative(root, source).replaceAll('\\', '/');
   if (
     /^(?:\.git\/|node_modules\/|release\/|deliverables\/|tmp\/|data\/)/.test(path) ||
@@ -89,7 +63,7 @@ const version = {
   date: '2026-11-16',
   base: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
   branch: execFileSync('git', ['branch', '--show-current'], { cwd: root, encoding: 'utf8' }).trim(),
-  contentAuthority: 'SOURCE-MANIFEST.json; includes listed local closeout fixes',
+  contentAuthority: 'SOURCE-MANIFEST.json; tracked and unignored project files only',
   sourceFiles,
 };
 writeFileSync(join(stage, 'SOURCE-MANIFEST.json'), JSON.stringify(version, null, 2));
@@ -100,7 +74,7 @@ for (const path of ['docs', 'README.md', 'tests/README.md']) {
 }
 writeFileSync(
   join(docsStage, 'README.txt'),
-  '请从 docs/结项文档/README.md 开始阅读。正式需求、其他设计文档和原始测试证据保持原路径。需要打开源码引用时，将 SCPC-Source.zip 解压到相同目录。历史日志和测试证据保留其原始内容与轮次。\r\n',
+  `请从 ${documentIndex} 开始阅读。正式需求和工程文档保持原路径；本地资料包可能另含未提交的课程材料，分发范围按项目组长授权确定。需要打开源码引用时，将 SCPC-Source.zip 解压到相同目录。\r\n`,
   'utf8',
 );
 const quote = (value) => "'" + value.replaceAll("'", "''") + "'";
@@ -149,7 +123,7 @@ writeFileSync(
 );
 writeFileSync(
   join(output, '开始使用.txt'),
-  '运行：完整解压 SCPC-Windows-Portable.zip，双击 Start.cmd，首次设置 admin 密码。文档：解压 SCPC-Documents.zip，从 docs/结项文档/README.md 阅读。源码：SCPC-Source.zip。完整性：SHA256SUMS.txt。原有项目和运行数据未被修改。\r\n',
+  `运行：完整解压 SCPC-Windows-Portable.zip，双击 Start.cmd，首次设置 admin 密码。文档：解压 SCPC-Documents.zip，从 ${documentIndex} 阅读。源码：SCPC-Source.zip。完整性：SHA256SUMS.txt。原有项目和运行数据未被修改。\r\n`,
   'utf8',
 );
 console.log(JSON.stringify({ output, sourceFiles: sourceFiles.length, archives }, null, 2));
