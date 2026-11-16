@@ -308,7 +308,7 @@ try {
   base = `http://127.0.0.1:${env.APP_PORT}/api/v1`;
   await test('X02', '配置缺失与端口占用安全退出，错误数据库请求安全失败', async () => {
     const missing = { ...env };
-    delete missing.JWT_SECRET;
+    missing.JWT_SECRET = '';
     const a = await command(
       'startup-missing-secret',
       [join(source, 'apps/api/dist/main.js')],

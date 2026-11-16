@@ -21,7 +21,7 @@ export async function withProjectWrite<T>(
   actorId: string,
   permission: ProjectPermission,
   mutate: (transaction: Prisma.TransactionClient, project: WritableProject) => Promise<T>,
-  options: { creating?: boolean; ownerOnly?: boolean } = {},
+  options: { creating?: boolean; ownerOnly?: boolean; allowArchived?: boolean } = {},
 ): Promise<T> {
   try {
     return await prisma.$transaction(async (transaction) => {
@@ -66,7 +66,10 @@ export async function withProjectWrite<T>(
         }
         canManageTasks = member.role === 'OWNER' && project.ownerId === actorId;
       }
-      if (project.status === 'ARCHIVED' || (options.creating && project.status === 'PAUSED')) {
+      if (
+        (project.status === 'ARCHIVED' && !options.allowArchived) ||
+        (options.creating && project.status === 'PAUSED')
+      ) {
         throw new AppException(
           HttpStatus.CONFLICT,
           project.status === 'ARCHIVED' ? 'PROJECT_ARCHIVED' : 'PROJECT_PAUSED',
