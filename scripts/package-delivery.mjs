@@ -16,16 +16,21 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const [portableArgument, outputArgument] = process.argv.slice(2);
+const [portableArgument, outputArgument, deliveryId = 'SCPC-0.1.10-maintenance-20261116'] =
+  process.argv.slice(2);
 assert(portableArgument && outputArgument, 'verifiedPortableZip newOutputDirectory required');
 const output = resolve(outputArgument);
 assert(!existsSync(output), 'Existing deliverables are preserved; choose a new directory');
 mkdirSync(output, { recursive: true });
-const stage = join(root, 'tmp/closeout-20261114', 'source-' + Date.now());
+const stage = join(root, 'tmp/closeout-20261116', 'source-' + Date.now());
 const docsStage = stage + '-documents';
 mkdirSync(stage, { recursive: true });
 mkdirSync(docsStage);
-const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: root })
+const tracked = execFileSync(
+  'git',
+  ['ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+  { cwd: root },
+)
   .toString()
   .split('\0')
   .filter(Boolean);
@@ -80,27 +85,22 @@ for (const source of [...selected].sort()) {
   });
 }
 const version = {
-  id: 'SCPC-0.1.0-closeout-20261114',
-  date: '2026-11-14',
+  id: deliveryId,
+  date: '2026-11-16',
   base: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
   branch: execFileSync('git', ['branch', '--show-current'], { cwd: root, encoding: 'utf8' }).trim(),
   contentAuthority: 'SOURCE-MANIFEST.json; includes listed local closeout fixes',
   sourceFiles,
 };
 writeFileSync(join(stage, 'SOURCE-MANIFEST.json'), JSON.stringify(version, null, 2));
-for (const path of [
-  'docs/结项文档',
-  'docs/需求规格说明书.md',
-  'docs/P0-工程与契约约定.md',
-  'docs/weekly-reports/README.md',
-]) {
+for (const path of ['docs', 'README.md', 'tests/README.md']) {
   const destination = join(docsStage, path);
   mkdirSync(dirname(destination), { recursive: true });
   cpSync(join(root, path), destination, { recursive: true });
 }
 writeFileSync(
   join(docsStage, 'README.txt'),
-  '请从 docs/结项文档/README.md 开始阅读。正式需求原件与工程约定保持原路径。\r\n',
+  '请从 docs/结项文档/README.md 开始阅读。正式需求、其他设计文档和原始测试证据保持原路径。需要打开源码引用时，将 SCPC-Source.zip 解压到相同目录。历史日志和测试证据保留其原始内容与轮次。\r\n',
   'utf8',
 );
 const quote = (value) => "'" + value.replaceAll("'", "''") + "'";

@@ -20,25 +20,27 @@ import { setTimeout as pause } from 'node:timers/promises';
 const [exe, playwrightManifest, destination, layout = 'portable', applicationFolder] =
   process.argv.slice(2);
 assert(exe && playwrightManifest && destination, 'exe playwrightManifest newEvidenceDirectory');
-assert(['portable', 'installed'].includes(layout));
+assert(['portable', 'installed', 'directory'].includes(layout));
 const out = resolve(destination);
 mkdirSync(out, { recursive: true });
 assert(!existsSync(join(out, '逐页记录.json')), 'Choose a new evidence directory');
 const { _electron } = createRequire(resolve(playwrightManifest))('playwright');
 const scratch = mkdtempSync(join(tmpdir(), 'scpc-ui-roles-'));
 const runner = join(scratch, 'SCPC.exe');
-if (layout === 'installed') {
+if (layout !== 'portable') {
   const source =
     applicationFolder ??
-    execFileSync(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-Command',
-        "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); (Get-ItemProperty -LiteralPath 'HKCU:\\Software\\SCPC\\Installer').InstallFolder",
-      ],
-      { encoding: 'utf8', windowsHide: true },
-    ).trim();
+    (layout === 'directory'
+      ? dirname(dirname(resolve(exe)))
+      : execFileSync(
+          'powershell.exe',
+          [
+            '-NoProfile',
+            '-Command',
+            "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); (Get-ItemProperty -LiteralPath 'HKCU:\\Software\\SCPC\\Installer').InstallFolder",
+          ],
+          { encoding: 'utf8', windowsHide: true },
+        ).trim());
   for (const part of ['bootstrap.mjs', 'apps']) {
     const original = join(source, part);
     if (existsSync(original)) cpSync(original, join(scratch, part), { recursive: true });
@@ -46,8 +48,13 @@ if (layout === 'installed') {
 } else {
   copyFileSync(exe, runner);
 }
-const runtime = layout === 'installed' ? scratch : join(scratch, 'SCPC-便携版');
-const binaryFolder = layout === 'installed' ? dirname(resolve(exe)) : runtime;
+const runtime = layout !== 'portable' ? scratch : join(scratch, 'SCPC-便携版');
+const binaryFolder =
+  layout === 'directory'
+    ? dirname(dirname(resolve(exe)))
+    : layout === 'installed'
+      ? dirname(resolve(exe))
+      : runtime;
 const client = join(binaryFolder, 'client', 'SCPC.exe');
 const sessionFile = join(runtime, 'data', 'last-session.json');
 const report = {
@@ -81,22 +88,22 @@ async function api(route, token, body, method = body ? 'POST' : 'GET') {
   return result.data;
 }
 const adminPass =
-  layout === 'installed'
+  layout !== 'portable'
     ? randomBytes(18).toString('base64url')
     : process.env.SCPC_DEBUG_ADMIN_PASSWORD;
 assert(adminPass, 'Set SCPC_DEBUG_ADMIN_PASSWORD for the tested portable package');
 const users = { admin: { username: 'admin', password: adminPass } };
 const main =
-  layout === 'installed'
+  layout !== 'portable'
     ? spawn(join(binaryFolder, 'runtime/node.exe'), ['bootstrap.mjs'], {
         cwd: scratch,
-        stdio: 'ignore',
+        stdio: layout === 'directory' ? ['pipe', 'ignore', 'ignore'] : 'ignore',
         windowsHide: true,
         env: {
           ...process.env,
           SCPC_BINARY_FOLDER: binaryFolder,
           SCPC_INITIAL_PASSWORD: adminPass,
-          SCPC_PORTABLE_TEST_MODE: '',
+          SCPC_PORTABLE_TEST_MODE: layout === 'directory' ? '1' : '',
         },
       })
     : spawn(runner, [], { cwd: scratch, stdio: 'ignore' });
@@ -265,6 +272,20 @@ async function visitAs(who) {
         await fn();
         result.actions.push(label);
       } catch (e) {
+        await page
+          .screenshot({
+            path: join(out, who + '-action-' + result.actions.length + '-failure.png'),
+          })
+          .catch(() => {});
+        result.failurePage = {
+          url: page.url(),
+          text: (
+            await page
+              .locator('body')
+              .innerText()
+              .catch(() => '')
+          ).slice(0, 6000),
+        };
         result.problems.push({ label, error: String(e.message).split('\n').slice(0, 4).join(' ') });
         console.log(who, 'CHECK', label, String(e.message).split('\n')[0]);
       }
@@ -606,6 +627,19 @@ async function visitAs(who) {
     await heading('登录').waitFor();
     result.actions.push('退出后返回登录页');
   } catch (e) {
+    const page = app.windows()[0];
+    if (page) {
+      await page.screenshot({ path: join(out, who + '-failure.png') }).catch(() => {});
+      result.failurePage = {
+        url: page.url(),
+        text: (
+          await page
+            .locator('body')
+            .innerText()
+            .catch(() => '')
+        ).slice(0, 6000),
+      };
+    }
     result.problems.push({
       label: '页面导航中断',
       error: e.message.split('\n').slice(0, 5).join(' '),
@@ -640,22 +674,26 @@ try {
   process.exitCode = 1;
 } finally {
   save();
-  execFileSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-Command',
-      'for($i=0;$i -lt 60;$i++){$boot=Get-CimInstance Win32_Process -Filter ("ParentProcessId="+$env:SCPC_TEST_LAUNCHER) |Where-Object Name -eq "node.exe"|Select-Object -First 1;$parent=if($env:SCPC_TEST_LAYOUT -eq "installed"){[int]$env:SCPC_TEST_LAUNCHER}else{$boot.ProcessId};if($parent){$c=Get-CimInstance Win32_Process -Filter ("ParentProcessId="+$parent)|Where-Object ExecutablePath -eq $env:SCPC_TEST_CLIENT|Select-Object -First 1;if($c){$p=Get-Process -Id $c.ProcessId -ErrorAction SilentlyContinue;if($p.MainWindowHandle){[void]$p.CloseMainWindow();break}}};Start-Sleep -Milliseconds 200}',
-    ],
-    {
-      env: {
-        ...process.env,
-        SCPC_TEST_CLIENT: client,
-        SCPC_TEST_LAUNCHER: String(main.pid),
-        SCPC_TEST_LAYOUT: layout,
+  if (layout === 'directory') {
+    main.stdin.end();
+  } else {
+    execFileSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-Command',
+        'for($i=0;$i -lt 60;$i++){$boot=Get-CimInstance Win32_Process -Filter ("ParentProcessId="+$env:SCPC_TEST_LAUNCHER) |Where-Object Name -eq "node.exe"|Select-Object -First 1;$parent=if($env:SCPC_TEST_LAYOUT -eq "installed"){[int]$env:SCPC_TEST_LAUNCHER}else{$boot.ProcessId};if($parent){$c=Get-CimInstance Win32_Process -Filter ("ParentProcessId="+$parent)|Where-Object ExecutablePath -eq $env:SCPC_TEST_CLIENT|Select-Object -First 1;if($c){$p=Get-Process -Id $c.ProcessId -ErrorAction SilentlyContinue;if($p.MainWindowHandle){[void]$p.CloseMainWindow();break}}};Start-Sleep -Milliseconds 200}',
+      ],
+      {
+        env: {
+          ...process.env,
+          SCPC_TEST_CLIENT: client,
+          SCPC_TEST_LAUNCHER: String(main.pid),
+          SCPC_TEST_LAYOUT: layout,
+        },
+        windowsHide: true,
       },
-      windowsHide: true,
-    },
-  );
+    );
+  }
   await wait(() => main.exitCode !== null, 25);
 }

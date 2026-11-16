@@ -388,10 +388,17 @@ try {
       const session = JSON.parse(readFileSync(join(portable, 'data/last-session.json')));
       assert((await fetch(session.apiBase + '/health')).ok);
       const exit = closed(normal);
-      execFileSync('taskkill.exe', ['/PID', String(desktopPid), '/T', '/F'], {
-        windowsHide: true,
-        stdio: 'ignore',
-      });
+      const closedWindow = execFileSync(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `(Get-Process -Id ${desktopPid}).CloseMainWindow()`,
+        ],
+        { encoding: 'utf8', windowsHide: true },
+      ).trim();
+      assert.equal(closedWindow, 'True', 'The packaged desktop must accept a normal window close');
       assert.equal(await exit, 0);
       assert.equal(
         JSON.parse(readFileSync(join(portable, 'data/last-session.json'))).status,
