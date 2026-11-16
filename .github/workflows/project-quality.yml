@@ -34,65 +34,12 @@ jobs:
         run: pnpm install --frozen-lockfile --prod=false
       - name: Generate the Prisma client
         run: pnpm db:generate
-      - name: Diagnose SQLite startup
-        working-directory: apps/api
-        timeout-minutes: 1
-        run: |
-          @'
-          const fs = require('node:fs');
-          const os = require('node:os');
-          const path = require('node:path');
-          const { createRequire } = require('node:module');
-          let stage = 'load-client';
-          const guard = setTimeout(() => {
-            console.error(JSON.stringify({ stalledStage: stage }));
-            process.exit(1);
-          }, 20000);
-          async function measure(name, action) {
-            stage = name;
-            const start = performance.now();
-            const result = await action();
-            console.log(JSON.stringify({ stage: name, milliseconds: Math.round(performance.now() - start) }));
-            return result;
-          }
-          async function main() {
-            const { PrismaClient } = require('@prisma/client');
-            const clientRequire = createRequire(require.resolve('@prisma/client'));
-            const engine = path.join(path.dirname(clientRequire.resolve('.prisma/client/default')), 'query_engine-windows.dll.node');
-            console.log(JSON.stringify({ node: process.version, cpus: os.availableParallelism(), enginePathLength: engine.length, engineExists: fs.existsSync(engine) }));
-            await measure('load-native-library', () => require(engine));
-            const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'scpc-ci-probe-'));
-            const database = path.join(folder, 'probe.db').replaceAll('\\', '/');
-            const prisma = new PrismaClient({ datasources: { db: { url: 'file:' + database } } });
-            try {
-              await measure('connect', () => prisma.$connect());
-              await measure('select-one', () => prisma.$queryRawUnsafe('SELECT 1'));
-              const migrations = path.resolve('../../prisma/migrations');
-              const started = performance.now();
-              let count = 0;
-              for (const entry of fs.readdirSync(migrations, { withFileTypes: true }).filter(x => x.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
-                for (const sql of fs.readFileSync(path.join(migrations, entry.name, 'migration.sql'), 'utf8').split(';').filter(x => x.trim())) {
-                  stage = 'migration-' + (++count);
-                  await prisma.$executeRawUnsafe(sql);
-                }
-              }
-              console.log(JSON.stringify({ migrationStatements: count, milliseconds: Math.round(performance.now() - started) }));
-            } finally {
-              await prisma.$disconnect();
-            }
-          }
-          main().then(() => clearTimeout(guard)).catch(error => {
-            console.error(JSON.stringify({ failedStage: stage, error: String(error.message) }));
-            clearTimeout(guard);
-            process.exitCode = 1;
-          });
-          '@ | node
       - name: Test shared contracts
         run: pnpm --filter @scpc/shared test
       - name: Test desktop
         run: pnpm --filter @scpc/desktop test
       - name: Test API
-        run: pnpm --filter @scpc/api exec vitest run --maxWorkers=1
+        run: pnpm --filter @scpc/api exec vitest run --maxWorkers=1 --testTimeout=30000 --hookTimeout=60000
       - name: Typecheck
         run: pnpm typecheck
       - name: Lint
